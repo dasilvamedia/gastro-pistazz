@@ -48,7 +48,7 @@ export default function RestaurantLandingPage() {
 
   const loadData = useCallback(async () => {
     const [{ data: rest }, { data: user }] = await Promise.all([
-      supabase.from('restaurants').select('*').eq('slug', slug).eq('is_active', true).single(),
+      supabase.from('restaurants').select('*').eq('slug', slug).neq('is_active', false).single(),
       supabase.auth.getUser().then(r => ({ data: r.data.user })),
     ])
 
@@ -117,28 +117,31 @@ export default function RestaurantLandingPage() {
   return (
     <div className="min-h-screen bg-[#0f1410]">
       {/* ── Cover ────────────────────────────────────── */}
-      <div className="relative h-64 overflow-hidden">
-        {restaurant.cover_url ? (
-          <img key={restaurant.cover_url} src={restaurant.cover_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${primaryColor}66 0%, #0f1410 100%)` }} />
-        )}
-        {/* Dark gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0f1410]" />
+      <div className="relative h-64">
+        {/* Cover image — own overflow-hidden wrapper so logo is never clipped */}
+        <div className="absolute inset-0 overflow-hidden">
+          {restaurant.cover_url ? (
+            <img key={restaurant.cover_url} src={restaurant.cover_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${primaryColor}66 0%, #0f1410 100%)` }} />
+          )}
+          {/* Dark gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0f1410]" />
+        </div>
 
-        {/* Logo — overlaps cover */}
-        <div className="absolute -bottom-8 left-5">
-          <div className="w-20 h-20 rounded-2xl border-4 border-[#0f1410] overflow-hidden shadow-2xl"
-            style={{ background: primaryColor + '33', backdropFilter: 'blur(10px)' }}>
+        {/* Logo — outside overflow-hidden, z-10 ensures it always paints above cover */}
+        <div className="absolute -bottom-10 left-5 z-10">
+          <div className="w-20 h-20 rounded-2xl border-4 border-[#0f1410] shadow-2xl flex items-center justify-center"
+            style={{ background: restaurant.logo_url ? '#fff' : primaryColor + '33' }}>
             {restaurant.logo_url
-              ? <img key={restaurant.logo_url} src={restaurant.logo_url} alt={restaurant.name} className="w-full h-full" style={{ objectFit: 'contain' }} />
+              ? <img key={restaurant.logo_url} src={restaurant.logo_url} alt={restaurant.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px', borderRadius: '12px', display: 'block' }} />
               : <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>}
           </div>
         </div>
       </div>
 
       {/* ── Content ──────────────────────────────────── */}
-      <div className="px-4 pt-12 pb-24 max-w-lg mx-auto space-y-4">
+      <div className="px-4 pt-14 pb-24 max-w-lg mx-auto space-y-4">
 
         {/* Name + status */}
         <div>
@@ -371,12 +374,18 @@ export default function RestaurantLandingPage() {
                           ? 'text-red-400/70 text-xs'
                           : isToday ? 'font-semibold text-xs' : 'text-white/60 text-xs'}
                           style={isToday && h && !h.closed ? { color: primaryColor } : {}}>
-                          {!h || h.closed ? 'Geschlossen' : `${h.open} – ${h.close}`}
+                          {!h || h.closed ? 'Geschlossen' : `${h.open} bis ${h.close}`}
                         </span>
                       </div>
                     )
                   })}
                 </div>
+                {restaurant.opening_hours_note && (
+                  <div className="flex items-start gap-2 px-2 pt-2 mt-1 border-t border-white/8">
+                    <span className="text-white/30 text-xs mt-0.5 flex-shrink-0">ℹ</span>
+                    <p className="text-xs text-white/50 leading-relaxed">{restaurant.opening_hours_note}</p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -181,14 +181,14 @@ export default function AnalyticsPage() {
           </div>
 
           <div className={chartCls}>
-            <h2 className="font-semibold text-[#1C1F1A] mb-3">Deal-Einloesungen nach Trigger</h2>
+            <h2 className="font-semibold text-[#1C1F1A] mb-3">Deal-Einlösungen nach Trigger</h2>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={dealData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF5E6" />
                 <XAxis dataKey="trigger" tick={{ fontSize: 10, fill: '#6b7280' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#8BB06A" radius={[4, 4, 0, 0]} name="Einloesungen" />
+                <Bar dataKey="count" fill="#8BB06A" radius={[4, 4, 0, 0]} name="Einlösungen" />
               </BarChart>
             </ResponsiveContainer>
           </div>

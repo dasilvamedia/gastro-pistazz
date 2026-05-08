@@ -37,13 +37,17 @@ function DealBigCard({ deal }: { deal: Deal }) {
   return (
     <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#EEF5E6]">
       <div
-        className="h-36 w-full flex items-end p-4"
-        style={{
+        className="h-44 w-full relative overflow-hidden flex items-end p-4"
+        style={!deal.image_url ? {
           background: `linear-gradient(135deg, ${deal.badge_color || '#8BB06A'}99, ${deal.badge_color || '#6D9450'})`,
-        }}
+        } : undefined}
       >
+        {deal.image_url && (
+          <img src={deal.image_url} alt={deal.title} className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         {deal.badge_text && (
-          <span className="bg-[#E5B84C] text-[#1C1F1A] text-xs font-bold px-3 py-1 rounded-full">
+          <span className="relative z-10 bg-[#E5B84C] text-[#1C1F1A] text-xs font-bold px-3 py-1 rounded-full">
             {deal.badge_text}
           </span>
         )}
@@ -115,6 +119,18 @@ export default function DealsPage() {
       }
     }
     load()
+
+    if (!IS_MOCK_MODE) {
+      const channel = supabase
+        .channel('deals-list-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' },
+          async () => {
+            const { data } = await supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active')
+            if (data) setDeals(data)
+          })
+        .subscribe()
+      return () => { supabase.removeChannel(channel) }
+    }
   }, [])
 
   const tier = profile?.tier ?? 'bronze'

@@ -50,7 +50,10 @@ export interface Restaurant {
   website: string | null
   instagram_handle: string | null
   google_place_id: string | null
+  google_rating: number | null
+  google_review_count: number | null
   opening_hours: OpeningHours
+  opening_hours_note: string | null
   points_per_story: number
   points_per_reel: number
   points_per_google_review: number

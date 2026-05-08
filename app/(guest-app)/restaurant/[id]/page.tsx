@@ -13,13 +13,13 @@ import { MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
 type Tab = 'ubersicht' | 'deals' | 'info'
 
 const DAYS: { key: string; label: string }[] = [
-  { key: 'mo', label: 'Montag' },
-  { key: 'di', label: 'Dienstag' },
-  { key: 'mi', label: 'Mittwoch' },
-  { key: 'do', label: 'Donnerstag' },
-  { key: 'fr', label: 'Freitag' },
-  { key: 'sa', label: 'Samstag' },
-  { key: 'so', label: 'Sonntag' },
+  { key: 'monday', label: 'Montag' },
+  { key: 'tuesday', label: 'Dienstag' },
+  { key: 'wednesday', label: 'Mittwoch' },
+  { key: 'thursday', label: 'Donnerstag' },
+  { key: 'friday', label: 'Freitag' },
+  { key: 'saturday', label: 'Samstag' },
+  { key: 'sunday', label: 'Sonntag' },
 ]
 
 function StampProgress({ card, restaurant }: { card: StampCard | null; restaurant: Restaurant }) {
@@ -101,6 +101,20 @@ export default function RestaurantDetailPage() {
       }
     }
     load()
+
+    if (!IS_MOCK_MODE) {
+      const channel = supabase
+        .channel(`restaurant-detail-${id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants', filter: `id=eq.${id}` },
+          (payload) => { setRestaurant(payload.new as Restaurant) })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals', filter: `restaurant_id=eq.${id}` },
+          async () => {
+            const { data } = await supabase.from('deals').select('*').eq('restaurant_id', id).eq('status', 'active')
+            if (data) setDeals(data)
+          })
+        .subscribe()
+      return () => { supabase.removeChannel(channel) }
+    }
   }, [id])
 
   if (loading) {
@@ -120,17 +134,23 @@ export default function RestaurantDetailPage() {
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
       {/* Cover */}
-      <div
-        className="relative h-52 w-full"
-        style={{
-          background: restaurant.primary_color
-            ? `linear-gradient(135deg, ${restaurant.primary_color}aa, ${restaurant.primary_color})`
-            : 'linear-gradient(135deg, #8BB06A, #577A3D)',
-        }}
-      >
+      <div className="relative h-52 w-full overflow-hidden">
+        {restaurant.cover_url ? (
+          <img src={restaurant.cover_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{
+              background: restaurant.primary_color
+                ? `linear-gradient(135deg, ${restaurant.primary_color}aa, ${restaurant.primary_color})`
+                : 'linear-gradient(135deg, #8BB06A, #577A3D)',
+            }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40" />
         <button
           onClick={() => router.back()}
-          className="absolute top-12 left-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"
+          className="absolute top-12 left-4 w-10 h-10 bg-black/30 rounded-full flex items-center justify-center"
         >
           <ArrowLeft size={20} className="text-white" />
         </button>
@@ -138,9 +158,9 @@ export default function RestaurantDetailPage() {
 
       {/* Logo + info */}
       <div className="px-5 relative">
-        <div className="w-16 h-16 rounded-2xl bg-white border-4 border-white shadow-md -mt-8 mb-3 flex items-center justify-center text-2xl">
+        <div className="w-16 h-16 rounded-2xl bg-white border-4 border-white shadow-md -mt-8 mb-3 flex items-center justify-center text-2xl z-10 relative">
           {restaurant.logo_url
-            ? <img src={restaurant.logo_url} alt={restaurant.name} className="w-full h-full rounded-xl object-cover" />
+            ? <img src={restaurant.logo_url} alt={restaurant.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px', borderRadius: '10px', display: 'block' }} />
             : '🍽️'}
         </div>
 
@@ -154,15 +174,15 @@ export default function RestaurantDetailPage() {
                 {RESTAURANT_TYPE_LABELS[restaurant.type]}
               </span>
               <span className="text-[#1C1F1A] text-sm font-semibold">
-                ⭐ {restaurant.avg_rating?.toFixed(1) ?? '–'}
+                ⭐ {restaurant.avg_rating?.toFixed(1) ?? '-'}
               </span>
             </div>
           </div>
           <button
-            onClick={() => router.push('/story/submit')}
+            onClick={() => router.push(`/story/submit?restaurant=${restaurant.slug}`)}
             className="gradient-primary text-white text-sm font-bold px-4 py-2 rounded-xl"
           >
-            Story posten
+            Jetzt teilnehmen
           </button>
         </div>
 
@@ -218,24 +238,37 @@ export default function RestaurantDetailPage() {
               : deals.map(d => {
                   const trigger = TRIGGER_CONFIG[d.trigger]
                   return (
-                    <div key={d.id} className="bg-white rounded-2xl p-4 border border-[#EEF5E6]">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-2xl">{trigger.emoji}</span>
-                        <div className="flex-1">
-                          <p className="text-[#1C1F1A] font-bold">{d.title}</p>
+                    <div key={d.id} className="bg-white rounded-2xl overflow-hidden border border-[#EEF5E6]">
+                      {/* Cover image or gradient */}
+                      <div
+                        className="h-36 w-full relative overflow-hidden flex items-end p-3"
+                        style={!d.image_url ? {
+                          background: `linear-gradient(135deg, ${d.badge_color || '#8BB06A'}99, ${d.badge_color || '#6D9450'})`,
+                        } : undefined}
+                      >
+                        {d.image_url && (
+                          <img src={d.image_url} alt={d.title} className="absolute inset-0 w-full h-full object-cover" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                        <div className="relative z-10 flex items-center justify-between w-full">
+                          <span className="text-white font-bold text-sm drop-shadow">{d.title}</span>
                           {d.badge_text && (
-                            <span className="text-xs bg-[#E5B84C]/20 text-[#E5B84C] font-bold px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-[#E5B84C] text-[#1C1F1A] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
                               {d.badge_text}
                             </span>
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => router.push(`/deals/${d.id}`)}
-                        className="w-full gradient-primary text-white font-bold py-2.5 rounded-xl text-sm"
-                      >
-                        Deal einlösen
-                      </button>
+                      <div className="p-3 flex items-center gap-3">
+                        <span className="text-xl flex-shrink-0">{trigger.emoji}</span>
+                        <span className="text-xs text-[#6D9450] flex-1">{trigger.label}</span>
+                        <button
+                          onClick={() => router.push(`/deals/${d.id}`)}
+                          className="gradient-primary text-white font-bold py-2 px-4 rounded-xl text-xs flex-shrink-0"
+                        >
+                          Einlösen
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
@@ -313,7 +346,7 @@ export default function RestaurantDetailPage() {
                     <div key={key} className="flex justify-between items-center text-sm">
                       <span className="text-[#6D9450]">{label}</span>
                       <span className={`font-medium ${h?.closed ? 'text-[#E86B5A]' : 'text-[#1C1F1A]'}`}>
-                        {!h || h.closed ? 'Geschlossen' : `${h.open} – ${h.close}`}
+                        {!h || h.closed ? 'Geschlossen' : `${h.open} bis ${h.close}`}
                       </span>
                     </div>
                   )

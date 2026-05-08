@@ -49,12 +49,12 @@ export default function EinstellungenPage() {
   }, [supabase])
 
   const changePassword = async () => {
-    if (newPw !== confirmPw) { toast.error('Passwoerter stimmen nicht ueberein'); return }
+    if (newPw !== confirmPw) { toast.error('Passwörter stimmen nicht übereinstimmen'); return }
     if (newPw.length < 6) { toast.error('Mindestens 6 Zeichen'); return }
     setPwSaving(true)
     const { error } = await supabase.auth.updateUser({ password: newPw })
     if (error) toast.error('Fehler: ' + error.message)
-    else { toast.success('Passwort geaendert'); setCurrentPw(''); setNewPw(''); setConfirmPw('') }
+    else { toast.success('Passwort geändert'); setCurrentPw(''); setNewPw(''); setConfirmPw('') }
     setPwSaving(false)
   }
 
@@ -105,15 +105,15 @@ export default function EinstellungenPage() {
           <label className="block text-sm font-medium text-[#1C1F1A] mb-1">E-Mail</label>
           <input value={email} readOnly className={`${inputCls} bg-gray-50 text-gray-400`} />
         </div>
-        <h3 className="text-sm font-medium text-[#1C1F1A]">Passwort aendern</h3>
+        <h3 className="text-sm font-medium text-[#1C1F1A]">Passwort ändern</h3>
         <div className="grid grid-cols-1 gap-3">
           <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="Aktuelles Passwort" className={inputCls} />
           <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Neues Passwort" className={inputCls} />
-          <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Passwort bestaetigen" className={inputCls} />
+          <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Passwort bestätigen" className={inputCls} />
         </div>
         <button onClick={changePassword} disabled={pwSaving}
           className="px-4 py-2 rounded-lg gradient-primary text-white text-sm font-medium hover:opacity-90 disabled:opacity-50">
-          {pwSaving ? 'Speichern...' : 'Passwort aendern'}
+          {pwSaving ? 'Speichern...' : 'Passwort ändern'}
         </button>
       </div>
 
@@ -165,7 +165,7 @@ export default function EinstellungenPage() {
             { key: 'new_story' as const, label: 'Neue Story eingereicht' },
             { key: 'new_customer' as const, label: 'Neuer Kunde registriert' },
             { key: 'deal_redeemed' as const, label: 'Deal eingeloest' },
-            { key: 'weekly_report' as const, label: 'Woechentlicher Report' },
+            { key: 'weekly_report' as const, label: 'Wöchentlicher Report' },
           ]).map(({ key, label }) => (
             <label key={key} className="flex items-center justify-between cursor-pointer">
               <span className="text-sm text-[#1C1F1A]">{label}</span>
@@ -184,12 +184,12 @@ export default function EinstellungenPage() {
       </div>
 
       <div className="glass rounded-xl p-5 border border-red-200">
-        <h2 className="font-semibold text-[#E86B5A] mb-2">Gefaehrliche Zone</h2>
-        <p className="text-sm text-gray-500 mb-3">Das Loeschen deines Restaurants ist dauerhaft und kann nicht rueckgaengig gemacht werden.</p>
+        <h2 className="font-semibold text-[#E86B5A] mb-2">Gefährliche Zone</h2>
+        <p className="text-sm text-gray-500 mb-3">Das Löschen deines Restaurants ist dauerhaft und kann nicht rückgängig gemacht werden.</p>
         <button onClick={() => setDeleteOpen(true)}
           className="px-4 py-2 rounded-lg border border-[#E86B5A] text-[#E86B5A] text-sm font-medium hover:bg-red-50 opacity-50 cursor-not-allowed"
           disabled>
-          Restaurant loeschen
+          Restaurant löschen
         </button>
       </div>
 

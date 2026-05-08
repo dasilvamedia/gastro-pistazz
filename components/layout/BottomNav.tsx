@@ -14,8 +14,8 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
 
-  // Hide on onboarding — full-screen flow, no navigation needed
-  if (pathname === '/onboarding') return null
+  // Hide on full-screen flows — no navigation needed
+  if (pathname === '/onboarding' || pathname === '/story/submit') return null
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-md border-t border-charcoal/8 safe-area-pb">

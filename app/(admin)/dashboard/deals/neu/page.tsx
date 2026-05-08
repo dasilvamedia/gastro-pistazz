@@ -21,7 +21,7 @@ export default function NewDealPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/dashboard/deals" className="text-gray-400 hover:text-[#8BB06A] transition-colors">
-          ← Zurueck
+          ← Zurück
         </Link>
         <h1 className="text-2xl font-bold text-[#1C1F1A]">Neuer Deal</h1>
       </div>

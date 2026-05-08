@@ -24,6 +24,33 @@ function timeAgo(date: string) {
 
 type StoryWithUser = StorySubmission & {
   user: { full_name: string | null; instagram_handle: string | null } | null
+  ai_verdict?: string | null
+  ai_confidence?: number | null
+  ai_notes?: string | null
+}
+
+function AIBadge({ verdict, confidence, notes }: { verdict?: string | null; confidence?: number | null; notes?: string | null }) {
+  if (!verdict || verdict === 'pending') {
+    return (
+      <div title="Wird geprüft" className="flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+        <span className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin" />
+        Wird geprüft…
+      </div>
+    )
+  }
+  const cfg: Record<string, { color: string; bg: string; label: string; icon: string }> = {
+    approved:   { color: '#16a34a', bg: '#dcfce7', label: 'Verifiziert',   icon: '✅' },
+    suspicious: { color: '#d97706', bg: '#fef3c7', label: 'Verdächtig',    icon: '⚠️' },
+    rejected:   { color: '#dc2626', bg: '#fee2e2', label: 'Nicht bestätigt', icon: '❌' },
+  }
+  const c = cfg[verdict] ?? cfg.suspicious
+  return (
+    <div title={notes ?? ''} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg cursor-help" style={{ color: c.color, background: c.bg }}>
+      <span>{c.icon}</span>
+      <span className="font-medium">{c.label}</span>
+      {confidence != null && <span className="opacity-70">({confidence}%)</span>}
+    </div>
+  )
 }
 
 export default function StoriesPage() {
@@ -142,12 +169,16 @@ export default function StoriesPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-400">
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
                     <span>{timeAgo(story.created_at)}</span>
                     <span className="bg-[#EEF5E6] text-[#6D9450] px-2 py-0.5 rounded-full font-medium">
                       +{story.points_awarded} Punkte
                     </span>
                   </div>
+                  <AIBadge verdict={story.ai_verdict} confidence={story.ai_confidence} notes={story.ai_notes} />
+                  {story.ai_notes && story.ai_verdict !== 'pending' && (
+                    <p className="text-xs text-gray-500 italic mt-1">{story.ai_notes}</p>
+                  )}
                   {story.instagram_permalink && (
                     <a href={story.instagram_permalink} target="_blank" rel="noopener noreferrer"
                       className="text-xs text-[#8BB06A] underline hover:no-underline">

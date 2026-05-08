@@ -68,7 +68,7 @@ export default function QRCodesPage() {
 
   const deleteQR = async (id: string) => {
     const { error } = await supabase.from('qr_codes').delete().eq('id', id)
-    if (error) { toast.error('Loeschen fehlgeschlagen'); return }
+    if (error) { toast.error('Löschen fehlgeschlagen'); return }
     setQrCodes(prev => prev.filter(q => q.id !== id))
     setDeleteId(null)
     toast.success('QR-Code geloescht')
@@ -166,7 +166,7 @@ export default function QRCodesPage() {
               <div className="flex gap-4">
                 <div className="flex-shrink-0 bg-gray-50 rounded-xl p-2">
                   <QRCodeSVG
-                    value={qr.target_url ?? `https://app.pistazz.io/r/${restaurantSlug}?qr=${qr.code}`}
+                    value={qr.target_url ?? `https://gastro.pistazz.io/r/${restaurantSlug}`}
                     size={150}
                     ref={(el: SVGSVGElement | null) => { svgRefs.current[qr.id] = el }}
                   />
@@ -217,7 +217,7 @@ export default function QRCodesPage() {
       {deleteId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-[#1C1F1A] mb-2">QR-Code loeschen?</h3>
+            <h3 className="text-lg font-semibold text-[#1C1F1A] mb-2">QR-Code löschen?</h3>
             <p className="text-sm text-gray-500 mb-5">Dieser QR-Code und alle Scan-Daten werden permanent geloescht.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteId(null)}
@@ -226,7 +226,7 @@ export default function QRCodesPage() {
               </button>
               <button onClick={() => deleteQR(deleteId)}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-[#E86B5A] text-white text-sm hover:opacity-90">
-                Loeschen
+                Löschen
               </button>
             </div>
           </div>

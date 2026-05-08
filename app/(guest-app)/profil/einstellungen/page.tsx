@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Share2, Bell, Lock, LogOut } from 'lucide-react'
+import { ArrowLeft, Share2, Bell, Lock, LogOut, Star } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -44,6 +44,7 @@ export default function EinstellungenPage() {
   const [saving, setSaving] = useState(false)
   const [instagramHandle, setInstagramHandle] = useState('')
   const [instagramConnected, setInstagramConnected] = useState(false)
+  const [googleProfileUrl, setGoogleProfileUrl] = useState('')
   const [notifInApp, setNotifInApp] = useState(true)
   const [notifEmail, setNotifEmail] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
@@ -63,6 +64,7 @@ export default function EinstellungenPage() {
           setProfile(p)
           setInstagramHandle(p.instagram_handle ?? '')
           setInstagramConnected(p.instagram_connected ?? false)
+          setGoogleProfileUrl((p as unknown as { google_profile_url?: string }).google_profile_url ?? '')
           reset({
             full_name: p.full_name ?? '',
             city: p.city ?? '',
@@ -107,6 +109,19 @@ export default function EinstellungenPage() {
         instagram_connected: instagramConnected,
       }).eq('id', user.id)
       toast.success('Instagram gespeichert ✓')
+    } catch {
+      toast.error('Fehler beim Speichern')
+    }
+  }
+
+  const handleGoogleSave = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      await supabase.from('profiles').update({
+        google_profile_url: googleProfileUrl || null,
+      } as Record<string, unknown>).eq('id', user.id)
+      toast.success('Google-Konto gespeichert ✓')
     } catch {
       toast.error('Fehler beim Speichern')
     }
@@ -206,6 +221,37 @@ export default function EinstellungenPage() {
             <button
               onClick={handleInstagramSave}
               className="w-full gradient-primary text-white font-bold py-2.5 rounded-xl"
+            >
+              Speichern
+            </button>
+          </div>
+        </div>
+
+        {/* Google */}
+        <div>
+          <SectionTitle>Google-Konto verknüpfen</SectionTitle>
+          <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6] space-y-3">
+            <div className="flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+              </svg>
+              <span className="text-[#1C1F1A] font-semibold text-sm">Google Profil</span>
+            </div>
+            <p className="text-[#6D7A6D] text-xs leading-relaxed">
+              Verknüpfe dein Google-Profil, damit deine Google-Bewertungen schneller verifiziert werden können.
+            </p>
+            <input
+              value={googleProfileUrl}
+              onChange={e => setGoogleProfileUrl(e.target.value)}
+              placeholder="https://maps.google.com/contrib/..."
+              className="w-full border border-[#D4E8C2] rounded-xl px-3 py-2.5 text-sm text-[#1C1F1A] outline-none focus:border-[#8BB06A]"
+            />
+            <button
+              onClick={handleGoogleSave}
+              className="w-full gradient-primary text-white font-bold py-2.5 rounded-xl text-sm"
             >
               Speichern
             </button>

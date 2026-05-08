@@ -37,9 +37,11 @@ type FormValues = z.infer<typeof schema>
 interface Props {
   deal?: Deal
   restaurantId: string
+  /** Where to navigate after save. Defaults to /dashboard/deals */
+  backPath?: string
 }
 
-export default function DealForm({ deal, restaurantId }: Props) {
+export default function DealForm({ deal, restaurantId, backPath = '/dashboard/deals' }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const isEdit = !!deal
@@ -98,7 +100,7 @@ export default function DealForm({ deal, restaurantId }: Props) {
       if (error) { toast.error('Fehler beim Erstellen'); return }
       toast.success('Deal erstellt')
     }
-    router.push('/admin/deals')
+    router.push(backPath)
   }
 
   const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#8BB06A] bg-white'
@@ -162,14 +164,14 @@ export default function DealForm({ deal, restaurantId }: Props) {
       </div>
 
       <div className={sectionCls}>
-        <h2 className="font-semibold text-[#1C1F1A]">Gueltigkeit</h2>
+        <h2 className="font-semibold text-[#1C1F1A]">Gültigkeit</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Gueltig von</label>
+            <label className={labelCls}>Gültig von</label>
             <input type="date" {...register('valid_from')} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Gueltig bis</label>
+            <label className={labelCls}>Gültig bis</label>
             <input type="date" {...register('valid_until')} className={inputCls} />
           </div>
           <div>
@@ -198,7 +200,7 @@ export default function DealForm({ deal, restaurantId }: Props) {
         <h2 className="font-semibold text-[#1C1F1A]">Limits</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Max. Einloesungen gesamt</label>
+            <label className={labelCls}>Max. Einlösungen gesamt</label>
             <input type="number" {...register('max_redemptions', { valueAsNumber: true })} className={inputCls} />
           </div>
           <div>
@@ -244,7 +246,7 @@ export default function DealForm({ deal, restaurantId }: Props) {
       </div>
 
       <div className="flex gap-3">
-        <button type="button" onClick={() => router.push('/admin/deals')}
+        <button type="button" onClick={() => router.push(backPath)}
           className="flex-1 px-4 py-3 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium">
           Abbrechen
         </button>

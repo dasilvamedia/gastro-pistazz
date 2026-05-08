@@ -29,6 +29,7 @@ const schema = z.object({
   points_per_post: z.number().min(0),
   points_per_google_review: z.number().min(0),
   points_per_receipt: z.number().min(0),
+  opening_hours_note: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -41,6 +42,8 @@ export default function ProfilPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [openingHours, setOpeningHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>({})
+  const [googleRating, setGoogleRating] = useState('')
+  const [googleReviewCount, setGoogleReviewCount] = useState('')
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -71,9 +74,12 @@ export default function ProfilPage() {
           points_per_post: rest.points_per_post,
           points_per_google_review: rest.points_per_google_review,
           points_per_receipt: rest.points_per_receipt,
+          opening_hours_note: rest.opening_hours_note ?? '',
         })
         setLogoPreview(rest.logo_url)
         setCoverPreview(rest.cover_url)
+        if (rest.google_rating != null) setGoogleRating(String(rest.google_rating))
+        if (rest.google_review_count != null) setGoogleReviewCount(String(rest.google_review_count))
 
         const hours: Record<string, { open: string; close: string; closed: boolean }> = {}
         DAY_KEYS.forEach(key => {
@@ -115,7 +121,15 @@ export default function ProfilPage() {
   const onSubmit = async (values: FormValues) => {
     if (!restaurant) return
     setSaving(true)
-    const payload = { ...values, opening_hours: openingHours }
+    const parsedRating = parseFloat(googleRating)
+    const parsedCount = parseInt(googleReviewCount, 10)
+    const payload = {
+      ...values,
+      opening_hours: openingHours,
+      opening_hours_note: values.opening_hours_note || null,
+      google_rating: isNaN(parsedRating) ? null : Math.min(5, Math.max(1, parsedRating)),
+      google_review_count: isNaN(parsedCount) ? null : parsedCount,
+    }
     const { error, data } = await supabase
       .from('restaurants')
       .update(payload)
@@ -127,7 +141,7 @@ export default function ProfilPage() {
     } else {
       // Update local state immediately so UI reflects new values
       if (data) setRestaurant(data)
-      toast.success('Profil gespeichert – Änderungen sind sofort live')
+      toast.success('Profil gespeichert, Änderungen sind sofort live')
     }
     setSaving(false)
   }
@@ -214,7 +228,41 @@ export default function ProfilPage() {
       </div>
 
       <div className={sectionCls}>
-        <h2 className="font-semibold text-[#1C1F1A]">Oeffnungszeiten</h2>
+        <h2 className="font-semibold text-[#1C1F1A]">Google Bewertung</h2>
+        <p className="text-xs text-gray-400">Trage hier deine aktuelle Google-Bewertung ein. Diese wird für Gäste auf den Karten angezeigt.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Google Sterne (1.0 – 5.0)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="1"
+              max="5"
+              placeholder="z. B. 4.7"
+              value={googleRating}
+              onChange={e => setGoogleRating(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Anzahl Bewertungen</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="z. B. 234"
+              value={googleReviewCount}
+              onChange={e => setGoogleReviewCount(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-gray-400">
+          Findest du auf Google Maps unter deinem Restaurant-Eintrag. Bitte aktuell halten.
+        </p>
+      </div>
+
+      <div className={sectionCls}>
+        <h2 className="font-semibold text-[#1C1F1A]">Öffnungszeiten</h2>
         <div className="space-y-2">
           {DAY_KEYS.map((key, idx) => (
             <div key={key} className="flex items-center gap-3">
@@ -237,6 +285,22 @@ export default function ProfilPage() {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Optional notice shown below opening hours on customer page */}
+        <div>
+          <label className={labelCls}>
+            Hinweistext <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea
+            {...register('opening_hours_note')}
+            rows={2}
+            placeholder="z. B. An Feiertagen geschlossen · Bei schlechtem Wetter früher Feierabend"
+            className={inputCls}
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Wird unterhalb der Öffnungszeiten auf der Gästekarte angezeigt und bei Änderungen sofort aktualisiert.
+          </p>
         </div>
       </div>
 

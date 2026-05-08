@@ -40,7 +40,7 @@ function RedemptionModal({
     return () => clearInterval(t)
   }, [secondsLeft])
 
-  const qrValue = `https://app.pistazz.io/redeem/${code}`
+  const qrValue = `https://gastro.pistazz.io/redeem/${code}`
 
   return (
     <motion.div
@@ -141,6 +141,18 @@ export default function DealDetailPage() {
       }
     }
     load()
+
+    if (!IS_MOCK_MODE) {
+      const channel = supabase
+        .channel(`deal-detail-${id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deals', filter: `id=eq.${id}` },
+          async () => {
+            const { data } = await supabase.from('deals').select('*, restaurant:restaurants(*)').eq('id', id).single()
+            if (data) setDeal(data)
+          })
+        .subscribe()
+      return () => { supabase.removeChannel(channel) }
+    }
   }, [id])
 
   const handleRedeem = async () => {
@@ -188,19 +200,23 @@ export default function DealDetailPage() {
       <div className="min-h-screen bg-[#EEF5E6] pb-24">
         {/* Header image */}
         <div
-          className="relative h-52 w-full flex items-end p-4"
-          style={{
+          className="relative h-56 w-full flex items-end p-4 overflow-hidden"
+          style={!deal.image_url ? {
             background: `linear-gradient(135deg, ${deal.badge_color || '#8BB06A'}aa, ${deal.badge_color || '#6D9450'})`,
-          }}
+          } : undefined}
         >
+          {deal.image_url && (
+            <img src={deal.image_url} alt={deal.title} className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/25" />
           <button
             onClick={() => router.back()}
-            className="absolute top-12 left-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"
+            className="absolute top-12 left-4 w-10 h-10 bg-black/30 rounded-full flex items-center justify-center z-10"
           >
             <ArrowLeft size={20} className="text-white" />
           </button>
           {deal.badge_text && (
-            <span className="bg-[#E5B84C] text-[#1C1F1A] text-sm font-bold px-3 py-1 rounded-full">
+            <span className="relative z-10 bg-[#E5B84C] text-[#1C1F1A] text-sm font-bold px-3 py-1 rounded-full">
               {deal.badge_text}
             </span>
           )}

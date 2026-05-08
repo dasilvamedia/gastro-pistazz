@@ -88,6 +88,7 @@ export async function POST(request: Request) {
         instagram_permalink: instagram_permalink ?? null,
         media_url: media_url ?? null,
         caption: caption ?? null,
+        ai_verdict: 'pending',
       })
       .select('id')
       .single()
@@ -96,6 +97,14 @@ export async function POST(request: Request) {
       console.error('Story submission insert error:', insertError)
       return NextResponse.json({ error: 'Failed to submit story' }, { status: 500 })
     }
+
+    // Trigger AI analysis asynchronously (fire-and-forget – don't block the response)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
+    fetch(`${baseUrl}/api/stories/ai-analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: submission.id }),
+    }).catch(err => console.error('AI analyze trigger error:', err))
 
     return NextResponse.json({ success: true, submission_id: submission.id }, { status: 201 })
   } catch (err) {

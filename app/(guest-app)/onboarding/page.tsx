@@ -1,45 +1,44 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
+import type { Restaurant, Deal } from '@/types'
+import { TRIGGER_CONFIG } from '@/types'
 
 /* ─────────────────────────────────────────────
    Slide 1 – Welcome
 ───────────────────────────────────────────── */
 function Slide0() {
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-8 text-center relative">
-      <span className="absolute top-[8%] left-[10%] text-2xl opacity-25 select-none pointer-events-none">🍽️</span>
-      <span className="absolute top-[18%] right-[8%] text-xl opacity-20 select-none pointer-events-none">✨</span>
-      <span className="absolute bottom-[15%] left-[6%] text-2xl opacity-20 select-none pointer-events-none">💰</span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '0 32px', textAlign: 'center', position: 'relative' }}>
+      <span style={{ position: 'absolute', top: '8%', left: '10%', fontSize: '1.5rem', opacity: 0.25, userSelect: 'none', pointerEvents: 'none' }}>🍽️</span>
+      <span style={{ position: 'absolute', top: '18%', right: '8%', fontSize: '1.25rem', opacity: 0.20, userSelect: 'none', pointerEvents: 'none' }}>✨</span>
+      <span style={{ position: 'absolute', bottom: '15%', left: '6%', fontSize: '1.5rem', opacity: 0.20, userSelect: 'none', pointerEvents: 'none' }}>💰</span>
 
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        style={{ marginBottom: '2rem' }}
       >
-        <div
-          className="w-28 h-28 rounded-full bg-white flex items-center justify-center mx-auto mb-3"
-          style={{ boxShadow: '0 8px 32px rgba(139,176,106,0.3)' }}
-        >
-          <span className="text-5xl">🫙</span>
+        <div style={{ width: 112, height: 112, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem', boxShadow: '0 8px 32px rgba(139,176,106,0.3)' }}>
+          <span style={{ fontSize: '3rem' }}>🫙</span>
         </div>
-        <p className="text-[#577A3D] font-bold text-lg tracking-wide">pistazz.io</p>
+        <p style={{ color: '#577A3D', fontWeight: 700, fontSize: '1.125rem', letterSpacing: '0.05em' }}>pistazz.io</p>
       </motion.div>
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="space-y-4"
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
       >
-        <h2 className="text-[32px] font-bold text-[#1C1F1A] leading-tight">
+        <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#1C1F1A', lineHeight: 1.2 }}>
           Entdecke dein<br />Lieblingsrestaurant!
         </h2>
-        <p className="text-[#6D7A6D] text-base leading-relaxed">
+        <p style={{ color: '#6D7A6D', fontSize: '1rem', lineHeight: 1.6 }}>
           Free Food? Yes, please! 🎉<br />
           Schnapp dir deine Freunde – los geht&apos;s!
         </p>
@@ -51,35 +50,41 @@ function Slide0() {
 /* ─────────────────────────────────────────────
    Slide 2 – Stories & Punkte
 ───────────────────────────────────────────── */
-function Slide1() {
+function Slide1({ points }: { points: number }) {
   const cards = [
     { emoji: '🥗', bg: 'linear-gradient(135deg,#d4e8c2,#a8c88e)', rotate: -12, tx: '-34%' },
-    { emoji: '🍔', bg: 'linear-gradient(135deg,#8bb06a,#577a3d)', rotate: 0,   tx: '0%'   },
-    { emoji: '🍕', bg: 'linear-gradient(135deg,#c8ddb0,#8bb06a)', rotate: 13,  tx: '34%'  },
+    { emoji: '🍔', bg: 'linear-gradient(135deg,#8bb06a,#577a3d)', rotate: 0,   tx: '0%' },
+    { emoji: '🍕', bg: 'linear-gradient(135deg,#c8ddb0,#8bb06a)', rotate: 13,  tx: '34%' },
   ]
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-8 text-center relative">
-      <span className="absolute top-[8%] left-[8%] text-2xl opacity-25 select-none pointer-events-none">📌</span>
-      <span className="absolute top-[20%] right-[6%] text-xl opacity-20 select-none pointer-events-none">💰</span>
-      <span className="absolute bottom-[18%] right-[10%] text-2xl opacity-20 select-none pointer-events-none">✨</span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '0 32px', textAlign: 'center', position: 'relative' }}>
+      <span style={{ position: 'absolute', top: '8%', left: '8%', fontSize: '1.5rem', opacity: 0.25, userSelect: 'none', pointerEvents: 'none' }}>📌</span>
+      <span style={{ position: 'absolute', top: '20%', right: '6%', fontSize: '1.25rem', opacity: 0.20, userSelect: 'none', pointerEvents: 'none' }}>💰</span>
+      <span style={{ position: 'absolute', bottom: '18%', right: '10%', fontSize: '1.5rem', opacity: 0.20, userSelect: 'none', pointerEvents: 'none' }}>✨</span>
 
-      {/* Stacked photo cards */}
-      <div className="relative h-52 w-full flex items-center justify-center mb-8">
+      <div style={{ position: 'relative', height: 208, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
         {cards.map((c, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08, duration: 0.4 }}
-            className="absolute w-36 h-44 rounded-2xl shadow-lg flex items-center justify-center"
             style={{
+              position: 'absolute',
+              width: 144,
+              height: 176,
+              borderRadius: '1rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               background: c.bg,
               transform: `translateX(${c.tx}) rotate(${c.rotate}deg)`,
               zIndex: i === 1 ? 3 : 1,
             }}
           >
-            <span className="text-5xl">{c.emoji}</span>
+            <span style={{ fontSize: '3rem' }}>{c.emoji}</span>
           </motion.div>
         ))}
       </div>
@@ -88,14 +93,14 @@ function Slide1() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.28, duration: 0.5 }}
-        className="space-y-3"
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
       >
-        <h2 className="text-[28px] font-bold text-[#1C1F1A] leading-tight">
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1C1F1A', lineHeight: 1.2 }}>
           Erstelle Instagram Stories 📸
         </h2>
-        <p className="text-[#6D7A6D] text-base leading-relaxed px-2">
-          Mache ein Foto deines Essens, teile es direkt mit einem Klick als Story und erhalte{' '}
-          <strong className="text-[#577A3D]">500 Punkte</strong>.
+        <p style={{ color: '#6D7A6D', fontSize: '1rem', lineHeight: 1.6 }}>
+          Mache ein Foto deines Essens, teile es als Story und erhalte{' '}
+          <strong style={{ color: '#577A3D' }}>{points} Punkte</strong>.
         </p>
       </motion.div>
     </div>
@@ -103,55 +108,72 @@ function Slide1() {
 }
 
 /* ─────────────────────────────────────────────
-   Slide 3 – Deals einlösen
+   Slide 3 – Echte Deals des Restaurants
 ───────────────────────────────────────────── */
-function Slide2() {
-  return (
-    <div className="flex flex-col items-center justify-center flex-1 px-6 text-center relative">
-      <span className="absolute top-[8%] left-[6%] text-2xl opacity-20 select-none pointer-events-none">🍽️</span>
-      <span className="absolute bottom-[20%] right-[6%] text-2xl opacity-20 select-none pointer-events-none">🎯</span>
+function Slide2({ restaurant, deal }: { restaurant: Restaurant | null; deal: Deal | null }) {
+  const trigger = deal ? (TRIGGER_CONFIG[deal.trigger] ?? { emoji: '🎁' }) : { emoji: '🍣' }
 
-      {/* Mock Deal Card */}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '0 24px', textAlign: 'center', position: 'relative' }}>
+      <span style={{ position: 'absolute', top: '8%', left: '6%', fontSize: '1.5rem', opacity: 0.20, userSelect: 'none', pointerEvents: 'none' }}>🍽️</span>
+      <span style={{ position: 'absolute', bottom: '20%', right: '6%', fontSize: '1.5rem', opacity: 0.20, userSelect: 'none', pointerEvents: 'none' }}>🎯</span>
+
+      {/* Deal-Karte — echte Daten wenn vorhanden */}
       <motion.div
         initial={{ scale: 0.92, opacity: 0, y: 12 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="w-full bg-white rounded-3xl p-5 mb-8 text-left"
-        style={{ boxShadow: '0 8px 40px rgba(139,176,106,0.2)' }}
+        style={{
+          width: '100%',
+          background: '#fff',
+          borderRadius: '1.5rem',
+          padding: '1.25rem',
+          marginBottom: '2rem',
+          textAlign: 'left',
+          boxShadow: '0 8px 40px rgba(139,176,106,0.2)',
+        }}
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-14 h-14 rounded-xl bg-[#EEF5E6] flex items-center justify-center text-3xl flex-shrink-0">
-            🍣
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '0.75rem', background: '#EEF5E6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.875rem', flexShrink: 0 }}>
+            {deal?.image_url
+              ? <img src={deal.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0.75rem' }} />
+              : trigger.emoji}
           </div>
           <div>
-            <p className="text-[#6D9450] text-xs font-semibold">Restaurant pistazz</p>
-            <p className="text-[#1C1F1A] font-bold text-base leading-tight">2:1 Hauptgericht Deal</p>
+            <p style={{ color: '#6D9450', fontSize: '0.75rem', fontWeight: 600 }}>
+              {restaurant?.name ?? 'Dein Restaurant'}
+            </p>
+            <p style={{ color: '#1C1F1A', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
+              {deal?.title ?? 'Exklusive Deals & Angebote'}
+            </p>
+            {deal?.badge_text && (
+              <span style={{ display: 'inline-block', background: 'rgba(229,184,76,0.2)', color: '#E5B84C', fontWeight: 700, fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99, marginTop: 4 }}>
+                {deal.badge_text}
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-[#F5F9F0] rounded-xl px-4 py-3 mb-4">
-          <p className="text-[#6D7A6D] text-sm leading-snug">
-            Beim Kauf von 2 Hauptgerichten geht eines aufs Haus
+        <div style={{ background: '#F5F9F0', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+          <p style={{ color: '#6D7A6D', fontSize: '0.875rem', lineHeight: 1.4 }}>
+            {deal?.description ?? 'Sammle Punkte und löse sie gegen exklusive Prämien ein 🎁'}
           </p>
         </div>
-        <button
-          className="w-full py-3 rounded-2xl font-bold text-white text-sm"
-          style={{ background: 'linear-gradient(135deg,#8BB06A,#577A3D)' }}
-        >
-          Deal einlösen
-        </button>
+        <div style={{ width: '100%', padding: '0.75rem', borderRadius: '1rem', fontWeight: 700, color: '#fff', fontSize: '0.875rem', background: 'linear-gradient(135deg,#8BB06A,#577A3D)', textAlign: 'center' }}>
+          Deal einlösen ✨
+        </div>
       </motion.div>
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.25, duration: 0.5 }}
-        className="space-y-3"
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
       >
-        <h2 className="text-[28px] font-bold text-[#1C1F1A] leading-tight">
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1C1F1A', lineHeight: 1.2 }}>
           Löse deine Deals ein 💰
         </h2>
-        <p className="text-[#6D7A6D] text-base leading-relaxed">
-          Tausche deine Punkte gegen Gratis-Desserts, Rabatte oder sogar komplette Menüs in deinen Lieblingsrestaurants! 🤝
+        <p style={{ color: '#6D7A6D', fontSize: '1rem', lineHeight: 1.6 }}>
+          Tausche deine Punkte gegen Gratis-Desserts, Rabatte oder komplette Menüs! 🤝
         </p>
       </motion.div>
     </div>
@@ -159,62 +181,157 @@ function Slide2() {
 }
 
 /* ─────────────────────────────────────────────
-   Main Onboarding Page
+   Inner component (needs Suspense for useSearchParams)
 ───────────────────────────────────────────── */
-const slides = [Slide0, Slide1, Slide2]
-
-export default function OnboardingPage() {
+function OnboardingInner() {
   const [current, setCurrent] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+  const [deal, setDeal] = useState<Deal | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const restaurantSlug = searchParams.get('restaurant')
   const supabase = createClient()
+
+  // Load real restaurant + first deal when slug is available
+  useEffect(() => {
+    if (!restaurantSlug) return
+    const load = async () => {
+      const { data: rest } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('slug', restaurantSlug)
+        .single()
+      if (!rest) return
+      setRestaurant(rest as Restaurant)
+
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('*')
+        .eq('restaurant_id', rest.id)
+        .eq('status', 'active')
+        .limit(1)
+      if (deals && deals.length > 0) setDeal(deals[0] as Deal)
+    }
+    load()
+  }, [restaurantSlug, supabase])
+
+  const slides = [
+    () => <Slide0 />,
+    () => <Slide1 points={restaurant?.points_per_story ?? 500} />,
+    () => <Slide2 restaurant={restaurant} deal={deal} />,
+  ]
 
   const goNext = async () => {
     if (current < slides.length - 1) {
       setCurrent(current + 1)
-    } else {
-      setLoading(true)
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id)
-        }
-        router.push('/home')
-      } catch {
-        router.push('/home')
-      } finally {
-        setLoading(false)
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Use getSession (reads from cookie, no network call) to avoid hanging
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        // Wait up to 3s for the update — then navigate regardless
+        await Promise.race([
+          supabase
+            .from('profiles')
+            .update({ onboarding_completed: true })
+            .eq('id', session.user.id),
+          new Promise<void>(resolve => setTimeout(resolve, 3000)),
+        ])
       }
+    } catch {
+      // Ignore errors — navigate anyway so the user isn't stuck
+    } finally {
+      setLoading(false)
+      // Navigate back to restaurant page (or home) after onboarding
+      const destination = restaurantSlug ? `/r/${restaurantSlug}` : '/home'
+      router.push(destination)
     }
   }
 
   const CurrentSlide = slides[current]
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: '#F5F8F2' }}>
-
-      {/* Decorative circle — top right (pistazz green) */}
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        background: '#F5F8F2',
+        zIndex: 50,
+      }}
+    >
+      {/* Decorative circle – top right */}
       <div
-        className="absolute -top-28 -right-28 w-80 h-80 rounded-full pointer-events-none"
-        style={{ background: '#8BB06A', opacity: 0.15 }}
+        style={{
+          position: 'absolute',
+          top: -112,
+          right: -112,
+          width: 320,
+          height: 320,
+          borderRadius: '50%',
+          background: '#8BB06A',
+          opacity: 0.15,
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Decorative circle – bottom left */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: -112,
+          left: -112,
+          width: 288,
+          height: 288,
+          borderRadius: '50%',
+          background: '#E8D9B5',
+          opacity: 0.6,
+          pointerEvents: 'none',
+        }}
       />
 
-      {/* Decorative circle — bottom left (warm beige) */}
-      <div
-        className="absolute -bottom-28 -left-28 w-72 h-72 rounded-full pointer-events-none"
-        style={{ background: '#E8D9B5', opacity: 0.6 }}
-      />
+      {/* Restaurant hint at top */}
+      {restaurant && (
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center', paddingTop: 56, paddingBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(139,176,106,0.12)', borderRadius: 99, padding: '6px 16px' }}>
+            {restaurant.logo_url
+              ? <img src={restaurant.logo_url} alt="" style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain' }} />
+              : <span style={{ fontSize: '1rem' }}>🍽️</span>}
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#577A3D' }}>{restaurant.name}</span>
+          </div>
+        </div>
+      )}
 
       {/* Dot navigation */}
-      <div className="flex justify-center pt-14 gap-2 relative z-10">
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          paddingTop: restaurant ? 16 : 56,
+          gap: 8,
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className="h-2.5 rounded-full transition-all duration-300"
             style={{
+              height: 10,
               width: current === i ? 32 : 10,
+              borderRadius: 99,
               background: current === i ? '#577A3D' : '#C8DDB0',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              padding: 0,
             }}
           />
         ))}
@@ -228,19 +345,38 @@ export default function OnboardingPage() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -60, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex flex-col flex-1 relative z-10 min-h-0"
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, position: 'relative', zIndex: 10, minHeight: 0 }}
         >
           <CurrentSlide />
         </motion.div>
       </AnimatePresence>
 
-      {/* Buttons — pb accounts for iPhone home bar safe area */}
-      <div className="flex gap-3 px-6 pt-4 relative z-10" style={{ paddingBottom: 'max(48px, env(safe-area-inset-bottom, 48px) + 16px)' }}>
+      {/* Buttons */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          padding: '16px 24px',
+          paddingBottom: 'max(48px, calc(env(safe-area-inset-bottom, 48px) + 16px))',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
         {current === 0 ? (
           <button
             onClick={goNext}
-            className="w-full py-4 rounded-2xl text-white font-bold text-base shadow-lg"
-            style={{ background: 'linear-gradient(135deg,#8BB06A,#577A3D)' }}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              borderRadius: '1rem',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '1rem',
+              background: 'linear-gradient(135deg,#8BB06A,#577A3D)',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(139,176,106,0.4)',
+            }}
           >
             Jetzt loslegen ✨
           </button>
@@ -248,24 +384,64 @@ export default function OnboardingPage() {
           <>
             <button
               onClick={() => setCurrent(current - 1)}
-              className="flex-none w-28 py-4 rounded-2xl border-2 font-semibold text-sm"
-              style={{ borderColor: '#8BB06A', color: '#6D9450' }}
+              style={{
+                flexShrink: 0,
+                width: 112,
+                padding: '1rem',
+                borderRadius: '1rem',
+                border: '2px solid #8BB06A',
+                color: '#6D9450',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                background: 'transparent',
+                cursor: 'pointer',
+              }}
             >
               Zurück
             </button>
             <button
               onClick={goNext}
               disabled={loading}
-              className="flex-1 py-4 rounded-2xl text-white font-bold shadow-lg disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg,#8BB06A,#577A3D)' }}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                borderRadius: '1rem',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '1rem',
+                background: 'linear-gradient(135deg,#8BB06A,#577A3D)',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                boxShadow: '0 4px 16px rgba(139,176,106,0.4)',
+              }}
             >
               {current < slides.length - 1
-                ? 'Weiter'
-                : loading ? 'Lädt…' : "Los geht's 🫶🏽"}
+                ? 'Weiter →'
+                : loading
+                ? 'Wird geladen…'
+                : "Los geht's 🫶🏽"}
             </button>
           </>
         )}
       </div>
     </div>
+  )
+}
+
+/* ─────────────────────────────────────────────
+   Main export — Suspense boundary for useSearchParams
+───────────────────────────────────────────── */
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F8F2' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #8BB06A', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      }
+    >
+      <OnboardingInner />
+    </Suspense>
   )
 }
