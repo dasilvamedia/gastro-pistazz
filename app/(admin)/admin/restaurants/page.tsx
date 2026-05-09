@@ -10,6 +10,7 @@ import type { RestaurantType } from '@/types'
 
 interface RestaurantRow {
   id: string
+  slug: string | null
   name: string
   type: RestaurantType
   city: string | null
@@ -61,7 +62,7 @@ export default function AdminRestaurantsPage() {
     try {
       let query = supabase
         .from('restaurants')
-        .select('id, name, type, city, total_stories, total_customers, is_active, is_verified, owner:profiles!owner_id(full_name)')
+        .select('id, slug, name, type, city, total_stories, total_customers, is_active, is_verified, owner:profiles!owner_id(full_name)')
         .order('created_at', { ascending: false })
 
       if (filterStatus === 'active') query = query.eq('is_active', true)
@@ -103,9 +104,11 @@ export default function AdminRestaurantsPage() {
     return () => { supabase.removeChannel(channel) }
   }, [loadRestaurants]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleImpersonate = async (restaurantId: string) => {
+  // Kundenansicht: öffnet das Restaurant-Dashboard als wärst du der Inhaber
+  const handleKundenansicht = (restaurantId: string, restaurantName: string) => {
     document.cookie = `impersonate_restaurant_id=${restaurantId}; path=/; max-age=3600`
-    toast.success('Wechsle zu Restaurant-Ansicht...')
+    // Store name in cookie so sidebar can read it synchronously without an API call
+    document.cookie = `impersonate_restaurant_name=${encodeURIComponent(restaurantName)}; path=/; max-age=3600`
     router.push('/dashboard')
   }
 
@@ -221,15 +224,15 @@ export default function AdminRestaurantsPage() {
                       <StatusBadge active={r.is_active} />
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleImpersonate(r.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-charcoal/10 text-charcoal hover:bg-charcoal/20 transition-colors"
-                        >
-                          <Eye className="w-3 h-3" />
-                          Imitieren
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleKundenansicht(r.id, r.name)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95"
+                        style={{ background: '#FF6B35' }}
+                        title="Restaurant-Dashboard öffnen"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Kundenansicht
+                      </button>
                     </td>
                   </tr>
                 ))}
