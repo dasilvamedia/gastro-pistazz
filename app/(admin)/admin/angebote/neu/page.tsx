@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,18 +9,17 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { ArrowLeft, Save, ChevronDown } from 'lucide-react'
+import { PLANS, type PlanKey } from '@/lib/plans'
 
 const ALL_FEATURES = [
-  'Social-Media Loyalty System',
-  'Story-Management & Verification',
-  'Digitale Stempelkarten',
-  'QR-Code System',
-  'Analytics Dashboard',
-  'In-App Messaging',
-  'Deals & Rabatte',
-  'Kundendatenbank',
-  'Monatlicher Performance Report',
-] as const
+  ...new Set([
+    ...PLANS.starter.features,
+    ...PLANS.professional.features,
+    ...PLANS.enterprise.features,
+    'Social-Media Loyalty System',
+    'In-App Messaging',
+  ]),
+]
 
 const schema = z.object({
   recipient_type: z.enum(['lead', 'restaurant']),
@@ -43,12 +42,16 @@ const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm f
 const labelCls = 'block text-sm font-medium text-[#1C1F1A] mb-1.5'
 const errorCls = 'text-xs text-red-500 mt-1'
 
-export default function NeuesAngebotPage() {
+function NeuesAngebotForm() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [leads, setLeads] = useState<SelectOption[]>([])
   const [restaurants, setRestaurants] = useState<SelectOption[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(
+    (searchParams.get('plan') as PlanKey | null) ?? null
+  )
 
   const {
     register,
@@ -61,13 +64,22 @@ export default function NeuesAngebotPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       recipient_type: 'lead',
-      monthly_fee: 149,
+      monthly_fee: 129,
       setup_fee: 0,
       features: [],
     },
   })
 
   const recipientType = watch('recipient_type')
+
+  // Apply plan template when selectedPlan changes
+  useEffect(() => {
+    if (!selectedPlan) return
+    const plan = PLANS[selectedPlan]
+    setValue('monthly_fee', plan.price_monthly)
+    setValue('setup_fee', plan.setup_fee)
+    setValue('features', [...plan.features])
+  }, [selectedPlan, setValue])
 
   useEffect(() => {
     async function loadOptions() {
@@ -126,6 +138,63 @@ export default function NeuesAngebotPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Plan Picker */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-[#1C1F1A]">Paket-Vorlage</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Wähle ein Paket — Preise und Features werden automatisch eingetragen</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {(Object.keys(PLANS) as PlanKey[]).map(key => {
+              const plan = PLANS[key]
+              const active = selectedPlan === key
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedPlan(active ? null : key)}
+                  className="rounded-2xl overflow-hidden border-2 transition-all text-left"
+                  style={{ borderColor: active ? plan.color : 'transparent', outline: active ? `2px solid ${plan.color}30` : 'none' }}
+                >
+                  {plan.bestseller && (
+                    <div className="bg-[#C5A44E] text-white text-center text-[9px] font-bold tracking-widest py-1 uppercase">
+                      Bestseller
+                    </div>
+                  )}
+                  <div className="p-4 space-y-2" style={{ background: plan.cardBg, color: plan.textColor }}>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-widest opacity-50">{plan.subtitle}</p>
+                      <h3 className="text-base font-black tracking-tight">{plan.name.toUpperCase()}</h3>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black">{plan.price_monthly}</span>
+                      <span className="text-sm font-bold">€</span>
+                      <span className="text-[10px] opacity-50 ml-1">/ Mo.</span>
+                    </div>
+                    <p className="text-[10px] opacity-50">Setup: {plan.setup_fee.toLocaleString('de-DE')}€</p>
+                    <ul className="space-y-1 pt-1">
+                      {plan.features.slice(0, 3).map(f => (
+                        <li key={f} className="flex items-center gap-1.5 text-[10px]">
+                          <span>✓</span><span>{f}</span>
+                        </li>
+                      ))}
+                      {plan.features.length > 3 && (
+                        <li className="text-[10px] opacity-40">+{plan.features.length - 3} weitere</li>
+                      )}
+                    </ul>
+                    {active && (
+                      <div className="mt-2 text-center text-[10px] font-bold py-1 rounded-full"
+                        style={{ background: plan.textColor + '22', color: plan.textColor }}>
+                        ✓ Ausgewählt
+                      </div>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Recipient */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-[#1C1F1A]">Empfänger</h2>
@@ -306,5 +375,13 @@ export default function NeuesAngebotPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+export default function NeuesAngebotPage() {
+  return (
+    <Suspense fallback={null}>
+      <NeuesAngebotForm />
+    </Suspense>
   )
 }

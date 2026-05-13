@@ -186,7 +186,7 @@ export default function ProfilPage() {
       </div>
 
       <div className={sectionCls}>
-        <h2 className="font-semibold text-[#1C1F1A]">Oeffnungszeiten</h2>
+        <h2 className="font-semibold text-[#1C1F1A]">Öffnungszeiten</h2>
         <div className="space-y-2">
           {DAY_KEYS.map((key, idx) => (
             <div key={key} className="flex items-center gap-3">

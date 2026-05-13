@@ -76,10 +76,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Create restaurant
+    const VALID_DB_TYPES = ['restaurant', 'bar', 'cafe', 'fine_dining', 'biergarten', 'eisdiele']
+    const safeType = type && VALID_DB_TYPES.includes(type) ? type : 'restaurant'
+
     const { error: restaurantError } = await admin.from('restaurants').insert({
       name,
       slug,
-      type: type || 'restaurant',
+      type: safeType,
       city: city || null,
       address: address || null,
       zip: zip || null,

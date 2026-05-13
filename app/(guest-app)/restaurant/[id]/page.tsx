@@ -103,8 +103,16 @@ export default function RestaurantDetailPage() {
     load()
 
     if (!IS_MOCK_MODE) {
+      const refresh = async () => {
+        const { data: r } = await supabase.from('restaurants').select('*').eq('id', id).single()
+        if (r) setRestaurant(r)
+        const { data: d } = await supabase.from('deals').select('*').eq('restaurant_id', id).eq('status', 'active')
+        if (d) setDeals(d)
+      }
+
       const channel = supabase
         .channel(`restaurant-detail-${id}`)
+        .on('broadcast', { event: 'restaurant_updated' }, refresh)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants', filter: `id=eq.${id}` },
           (payload) => { setRestaurant(payload.new as Restaurant) })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'deals', filter: `restaurant_id=eq.${id}` },
@@ -113,7 +121,11 @@ export default function RestaurantDetailPage() {
             if (data) setDeals(data)
           })
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
+
+      // 5s polling fallback so updates arrive even without Supabase Realtime publication
+      const poll = setInterval(refresh, 5_000)
+
+      return () => { supabase.removeChannel(channel); clearInterval(poll) }
     }
   }, [id])
 
@@ -194,7 +206,7 @@ export default function RestaurantDetailPage() {
             </div>
           </div>
           <button
-            onClick={() => router.push(`/story/submit?restaurant=${restaurant.slug}`)}
+            onClick={() => router.push(`/story/create?restaurant=${restaurant.slug}`)}
             className="gradient-primary text-white text-sm font-bold px-4 py-2 rounded-xl"
           >
             Jetzt teilnehmen

@@ -165,6 +165,19 @@ export default function ProfilPage() {
     <form onSubmit={handleSubmit(onSubmit)} className="p-6 max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-[#1C1F1A]">Restaurant-Profil</h1>
 
+      {/* ── Instagram-Handle Warnung ── */}
+      {!restaurant?.instagram_handle && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Instagram-Handle fehlt</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Gäste-Stories können deinen Account nicht taggen. Bitte unten im Abschnitt <strong>Kontakt</strong> eintragen.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Grunddaten ── */}
       <div className={sectionCls}>
         <h2 className="font-semibold text-[#1C1F1A]">Grunddaten</h2>
@@ -230,7 +243,23 @@ export default function ProfilPage() {
           <div><label className={labelCls}>Telefon</label><input {...register('phone')} className={inputCls} /></div>
           <div><label className={labelCls}>E-Mail</label><input {...register('email')} className={inputCls} /></div>
           <div><label className={labelCls}>Website</label><input {...register('website')} className={inputCls} /></div>
-          <div><label className={labelCls}>Instagram-Handle</label><input {...register('instagram_handle')} className={inputCls} /></div>
+          <div>
+            <label className={labelCls}>
+              Instagram-Handle{' '}
+              <span className="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pink-100 text-pink-600">
+                📸 Story-Tag
+              </span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium select-none">@</span>
+              <input
+                {...register('instagram_handle')}
+                placeholder="deinrestaurant"
+                className={`${inputCls} pl-7`}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Wird automatisch in der Story deiner Gäste als @mention eingebaut.</p>
+          </div>
           <div className="sm:col-span-2"><label className={labelCls}>Google Place ID</label><input {...register('google_place_id')} className={inputCls} /></div>
         </div>
       </div>

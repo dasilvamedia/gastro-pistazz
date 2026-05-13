@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -28,8 +28,10 @@ function GoogleIcon() {
   )
 }
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const restaurantSlug = searchParams.get('restaurant') ?? ''
   const supabase = createClient()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -65,9 +67,9 @@ export default function LoginPage() {
       if (profile?.role === 'restaurant_owner' || profile?.role === 'admin') {
         router.push('/dashboard')
       } else if (!profile?.onboarding_completed) {
-        router.push('/onboarding')
+        router.push(restaurantSlug ? `/onboarding?restaurant=${restaurantSlug}` : '/onboarding')
       } else {
-        router.push('/home')
+        router.push(restaurantSlug ? `/r/${restaurantSlug}` : '/home')
       }
     } else {
       router.push('/home')
@@ -77,9 +79,12 @@ export default function LoginPage() {
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider)
+    const callbackUrl = restaurantSlug
+      ? `${window.location.origin}/auth/callback?restaurant=${restaurantSlug}`
+      : `${window.location.origin}/auth/callback`
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl },
     })
     if (error) {
       toast.error(error.message)
@@ -201,10 +206,21 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-[#1C1F1A]/50">
         Noch kein Konto?{' '}
-        <Link href="/register" className="text-[#8BB06A] font-semibold hover:text-[#6D9450] transition-colors">
+        <Link
+          href={'/register' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : '')}
+          className="text-[#8BB06A] font-semibold hover:text-[#6D9450] transition-colors"
+        >
           Registrieren
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="h-96 flex items-center justify-center"><span className="w-8 h-8 border-2 border-[#8BB06A] border-t-transparent rounded-full animate-spin" /></div>}>
+      <LoginInner />
+    </Suspense>
   )
 }

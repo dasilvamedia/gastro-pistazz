@@ -1,7 +1,9 @@
+import { LangProvider } from '@/lib/lang-context'
+
 export default function LandingLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return <LangProvider>{children}</LangProvider>
 }

@@ -144,7 +144,7 @@ export async function PATCH(request: NextRequest) {
     if (check instanceof NextResponse) return check
 
     const body = await request.json()
-    const { user_id, full_name, password, restaurant_slug } = body
+    const { user_id, full_name, password, restaurant_slug, unban } = body
 
     if (!user_id) {
       return NextResponse.json({ error: 'user_id required' }, { status: 400 })
@@ -154,6 +154,11 @@ export async function PATCH(request: NextRequest) {
 
     if (password) {
       const { error } = await admin.auth.admin.updateUserById(user_id, { password })
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    if (unban === true) {
+      const { error } = await admin.auth.admin.updateUserById(user_id, { ban_duration: 'none' })
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     }
 

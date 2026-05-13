@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { notifyNewUser } from '@/lib/notify'
 
 const schema = z
   .object({
@@ -36,8 +37,10 @@ function GoogleIcon() {
   )
 }
 
-export default function RegisterPage() {
+function RegisterInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const restaurantSlug = searchParams.get('restaurant') ?? ''
   const supabase = createClient()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -52,25 +55,46 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: { data: { full_name: data.full_name } },
     })
     setLoading(false)
+
     if (error) {
       toast.error(error.message)
       return
     }
-    toast.success('Konto erstellt! Bitte bestätige deine E-Mail.')
-    router.push('/login')
+
+    // Benachrichtigung an info@pistazz.io (nicht-blockierend)
+    notifyNewUser({ email: data.email, name: data.full_name, method: 'email' })
+
+    // If session was created immediately (email confirmation disabled in Supabase),
+    // skip login page and go directly to onboarding with the restaurant context.
+    if (authData.session) {
+      const dest = restaurantSlug
+        ? `/onboarding?restaurant=${restaurantSlug}`
+        : '/onboarding'
+      router.push(dest)
+      return
+    }
+
+    // Email confirmation required — tell user to check inbox
+    toast.success('Konto erstellt! Bitte bestätige deine E-Mail, dann kannst du dich einloggen.')
+    router.push('/login' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : ''))
   }
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider)
+    // Pass restaurant slug through the OAuth callback so we can restore context
+    const callbackUrl = restaurantSlug
+      ? `${window.location.origin}/auth/callback?restaurant=${restaurantSlug}`
+      : `${window.location.origin}/auth/callback`
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl },
     })
     if (error) {
       toast.error(error.message)
@@ -87,7 +111,11 @@ export default function RegisterPage() {
         >
           Konto erstellen ✨
         </h1>
-        <p className="text-[#1C1F1A]/50 text-sm mt-1">Starte kostenlos – keine Kreditkarte nötig</p>
+        <p className="text-[#1C1F1A]/50 text-sm mt-1">
+          {restaurantSlug
+            ? 'Registriere dich kostenlos und sammle Punkte'
+            : 'Starte kostenlos, keine Kreditkarte nötig'}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -245,10 +273,21 @@ export default function RegisterPage() {
 
       <p className="text-center text-sm text-[#1C1F1A]/50">
         Bereits ein Konto?{' '}
-        <Link href="/login" className="text-[#8BB06A] font-semibold hover:text-[#6D9450] transition-colors">
+        <Link
+          href={'/login' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : '')}
+          className="text-[#8BB06A] font-semibold hover:text-[#6D9450] transition-colors"
+        >
           Einloggen
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="h-96 flex items-center justify-center"><span className="w-8 h-8 border-2 border-[#8BB06A] border-t-transparent rounded-full animate-spin" /></div>}>
+      <RegisterInner />
+    </Suspense>
   )
 }

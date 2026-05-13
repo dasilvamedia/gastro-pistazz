@@ -11,6 +11,56 @@ import type { Restaurant, Deal } from '@/types'
 import { TRIGGER_CONFIG } from '@/types'
 import Link from 'next/link'
 
+/* ─── Wetter-Widget ────────────────────────────────────────────────────────── */
+const WMO_ICON: Record<number, string> = {
+  0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+  45: '🌫️', 48: '🌫️',
+  51: '🌦️', 53: '🌦️', 55: '🌧️',
+  61: '🌧️', 63: '🌧️', 65: '🌧️',
+  71: '🌨️', 73: '🌨️', 75: '❄️',
+  80: '🌦️', 81: '🌧️', 82: '⛈️',
+  95: '⛈️', 96: '⛈️', 99: '⛈️',
+}
+
+interface WeatherData { temp: number; icon: string }
+
+function useWeather(city: string | null) {
+  const [weather, setWeather] = useState<WeatherData | null>(null)
+
+  useEffect(() => {
+    if (!city) return
+    let cancelled = false
+
+    const fetch_ = async () => {
+      try {
+        // Open-Meteo Geocoding API — CORS-frei, kein Key, kein User-Agent nötig
+        const geo = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=de&format=json`,
+        ).then(r => r.json())
+        const loc = geo?.results?.[0]
+        if (!loc || cancelled) return
+
+        // Open-Meteo: aktuelles Wetter
+        const wx = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weathercode&timezone=auto`,
+        ).then(r => r.json())
+        if (cancelled) return
+
+        const temp = Math.round(wx?.current?.temperature_2m ?? 0)
+        const code = wx?.current?.weathercode ?? 0
+        setWeather({ temp, icon: WMO_ICON[code] ?? '🌡️' })
+      } catch { /* still fehlschlagen */ }
+    }
+
+    fetch_()
+    // Alle 10 Min. aktualisieren
+    const id = setInterval(fetch_, 10 * 60 * 1000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [city])
+
+  return weather
+}
+
 const DAYS: { key: string; label: string }[] = [
   { key: 'monday', label: 'Mo' }, { key: 'tuesday', label: 'Di' }, { key: 'wednesday', label: 'Mi' },
   { key: 'thursday', label: 'Do' }, { key: 'friday', label: 'Fr' }, { key: 'saturday', label: 'Sa' },
@@ -45,6 +95,7 @@ export default function RestaurantLandingPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'angebot' | 'info'>('angebot')
   const [stampCount, setStampCount] = useState(0)
+  const weather = useWeather(restaurant?.city ?? null)
 
   const loadData = useCallback(async () => {
     const [{ data: rest }, { data: user }] = await Promise.all([
@@ -144,9 +195,17 @@ export default function RestaurantLandingPage() {
       <div className="px-4 pt-14 pb-24 max-w-lg mx-auto space-y-4">
 
         {/* Name + status */}
-        <div>
-          <h1 className="text-white text-2xl font-display leading-tight">{restaurant.name}</h1>
-          {restaurant.city && <p className="text-white/40 text-sm mt-0.5">{restaurant.city}</p>}
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="text-white text-2xl font-display leading-tight">{restaurant.name}</h1>
+            {restaurant.city && <p className="text-white/40 text-sm mt-0.5">{restaurant.city}</p>}
+          </div>
+          {weather && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 shrink-0 mt-1">
+              <span className="text-base leading-none">{weather.icon}</span>
+              <span className="text-white font-semibold text-sm">{weather.temp}°C</span>
+            </div>
+          )}
         </div>
 
         {/* Status badges */}
@@ -208,7 +267,7 @@ export default function RestaurantLandingPage() {
                 <p className="text-white/70 text-sm leading-relaxed mb-4">
                   Nach erfolgreichem Erstellen einer Instagram-Story über {restaurant.name} erhältst du attraktive Punkte und exklusive Benefits!
                 </p>
-                <Link href={`/story/submit?restaurant=${slug}`}
+                <Link href={`/story/create?restaurant=${slug}`}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white transition-opacity hover:opacity-90"
                   style={{ background: primaryColor }}>
                   Jetzt teilnehmen

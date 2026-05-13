@@ -179,6 +179,12 @@ export default function DashboardPage() {
         table: 'points_transactions',
         filter: `restaurant_id=eq.${rid}`,
       }, () => { fetchData(rid); toast('Punkte vergeben', { icon: '🏆' }) })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'visits',
+        filter: `restaurant_id=eq.${rid}`,
+      }, () => { fetchData(rid); toast('Neuer Besucher!', { icon: '👋' }) })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

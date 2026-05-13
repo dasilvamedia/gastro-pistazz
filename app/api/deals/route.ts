@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { checkActiveDealsLimit } from '@/lib/planGate'
 
 const createDealSchema = z.object({
   restaurant_id: z.string().uuid('Invalid restaurant_id'),
@@ -117,6 +118,17 @@ export async function POST(request: Request) {
     const allowed = await assertOwnerOfRestaurant(user.id, parsed.data.restaurant_id, profile.role)
     if (!allowed) {
       return NextResponse.json({ error: 'Forbidden: not your restaurant' }, { status: 403 })
+    }
+
+    // Enforce plan limits for active deals (only when creating an active deal)
+    if (parsed.data.status === 'active') {
+      const limitCheck = await checkActiveDealsLimit(parsed.data.restaurant_id)
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          { error: `Limit erreicht: Dein Plan erlaubt maximal ${limitCheck.max} aktive Deals (aktuell: ${limitCheck.current}). Upgrade auf Professional für unbegrenzte Deals.` },
+          { status: 403 }
+        )
+      }
     }
 
     const { data: deal, error: insertError } = await admin

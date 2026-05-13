@@ -17,8 +17,15 @@ const dmSerifDisplay = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'gastro-pistazz',
+  title: 'pistazz',
   description: 'Dein Loyalty-Erlebnis für Gastronomie',
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.png', type: 'image/png' },
+    ],
+    apple: { url: '/favicon.png' },
+  },
 }
 
 export default function RootLayout({

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { FileText, Plus, Filter } from 'lucide-react'
+import { PLANS, type PlanKey } from '@/lib/plans'
 
 type ProposalStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
 
@@ -121,6 +122,65 @@ export default function AngebotePage() {
           <Plus className="w-4 h-4" />
           Neues Angebot
         </Link>
+      </div>
+
+      {/* Pakete Vorlagen */}
+      <div className="mb-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Paket-Vorlage wählen</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(Object.keys(PLANS) as PlanKey[]).map(key => {
+            const plan = PLANS[key]
+            return (
+              <Link
+                key={key}
+                href={`/admin/angebote/neu?plan=${key}`}
+                className="group rounded-2xl overflow-hidden border border-gray-200 hover:border-transparent hover:shadow-lg transition-all"
+              >
+                {plan.bestseller && (
+                  <div className="bg-[#C5A44E] text-white text-center text-[10px] font-bold tracking-widest py-1 uppercase">
+                    Bestseller
+                  </div>
+                )}
+                <div className="p-5 space-y-3" style={{ background: plan.cardBg, color: plan.textColor }}>
+                  {/* Header */}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest opacity-50">{plan.subtitle}</p>
+                    <h3 className="text-lg font-black tracking-tight">{plan.name.toUpperCase()}</h3>
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black">{plan.price_monthly}</span>
+                    <span className="font-bold">€</span>
+                    <span className="text-xs opacity-50 ml-1">/ Monat</span>
+                  </div>
+                  <p className="text-xs opacity-50">Setup: {plan.setup_fee.toLocaleString('de-DE')}€</p>
+
+                  {/* Features (first 4) */}
+                  <ul className="space-y-1.5 pt-1">
+                    {plan.features.slice(0, 4).map(f => (
+                      <li key={f} className="flex items-center gap-2 text-xs">
+                        <span>✓</span>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                    {plan.features.length > 4 && (
+                      <li className="text-xs opacity-40">+{plan.features.length - 4} weitere…</li>
+                    )}
+                  </ul>
+
+                  {/* CTA */}
+                  <div
+                    className="w-full mt-2 px-4 py-2 rounded-full text-xs font-bold text-center transition-all group-hover:opacity-90"
+                    style={{ background: plan.textColor, color: plan.cardBg }}
+                  >
+                    Angebot mit Vorlage erstellen →
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
       </div>
 
       {/* Filter Tabs */}

@@ -56,7 +56,7 @@ export default function DealsPage() {
 
   const deleteDeal = async (id: string) => {
     const { error } = await supabase.from('deals').delete().eq('id', id)
-    if (error) { toast.error('Loeschen fehlgeschlagen'); return }
+    if (error) { toast.error('Löschen fehlgeschlagen'); return }
     setDeals(prev => prev.filter(d => d.id !== id))
     setDeleteId(null)
     toast.success('Deal geloescht')
@@ -132,7 +132,7 @@ export default function DealsPage() {
                       </button>
                       <button onClick={() => setDeleteId(deal.id)}
                         className="text-xs px-3 py-1 rounded-lg border border-[#E86B5A] text-[#E86B5A] hover:bg-red-50 transition-colors">
-                        Loeschen
+                        Löschen
                       </button>
                     </div>
                   </div>
@@ -146,8 +146,8 @@ export default function DealsPage() {
       {deleteId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="glass rounded-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-[#1C1F1A] mb-2">Deal loeschen?</h3>
-            <p className="text-sm text-gray-500 mb-4">Diese Aktion kann nicht rueckgaengig gemacht werden.</p>
+            <h3 className="text-lg font-semibold text-[#1C1F1A] mb-2">Deal löschen?</h3>
+            <p className="text-sm text-gray-500 mb-4">Diese Aktion kann nicht rückgängig gemacht werden.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteId(null)}
                 className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm">
@@ -155,7 +155,7 @@ export default function DealsPage() {
               </button>
               <button onClick={() => deleteDeal(deleteId)}
                 className="flex-1 px-4 py-2 rounded-lg bg-[#E86B5A] text-white text-sm hover:opacity-90">
-                Loeschen
+                Löschen
               </button>
             </div>
           </div>

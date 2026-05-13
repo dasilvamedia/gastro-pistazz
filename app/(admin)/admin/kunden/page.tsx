@@ -161,7 +161,7 @@ export default function KundenPage() {
             <div className="flex items-center justify-center gap-2">
               <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
                 className="px-3 py-1 rounded-lg border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50">
-                ← Zurueck
+                ← Zurück
               </button>
               <span className="text-sm text-gray-500">Seite {page + 1} von {totalPages}</span>
               <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}

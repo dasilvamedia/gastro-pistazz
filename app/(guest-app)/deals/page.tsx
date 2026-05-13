@@ -121,15 +121,17 @@ export default function DealsPage() {
     load()
 
     if (!IS_MOCK_MODE) {
+      const refresh = async () => {
+        const { data } = await supabase.from('deals').select('*, restaurant:restaurants(name, cover_url, logo_url)').eq('status', 'active')
+        if (data) setDeals(data)
+      }
       const channel = supabase
         .channel('deals-list-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' },
-          async () => {
-            const { data } = await supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active')
-            if (data) setDeals(data)
-          })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, refresh)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, refresh)
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
+      const poll = setInterval(refresh, 30_000)
+      return () => { supabase.removeChannel(channel); clearInterval(poll) }
     }
   }, [])
 

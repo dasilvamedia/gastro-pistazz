@@ -1,3 +1,22 @@
-import LandingPage from '@/app/(landing)/page'
+import { LangProvider } from '@/lib/lang-context'
+import { Navbar } from '@/components/landing/Navbar'
+import { HeroSection } from '@/components/landing/HeroSection'
+import { HowItWorksSection } from '@/components/landing/HowItWorksSection'
+import { FeaturesSection } from '@/components/landing/FeaturesSection'
+import { CTASection } from '@/components/landing/CTASection'
+import { Footer } from '@/components/landing/Footer'
 
-export default LandingPage
+export default function HomePage() {
+  return (
+    <LangProvider>
+      <Navbar />
+      <main>
+        <HeroSection />
+        <HowItWorksSection />
+        <FeaturesSection />
+        <CTASection />
+      </main>
+      <Footer />
+    </LangProvider>
+  )
+}

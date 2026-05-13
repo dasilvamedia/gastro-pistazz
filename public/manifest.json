@@ -1,0 +1,14 @@
+{
+  "name": "pistazz — Gastro Loyalty",
+  "short_name": "pistazz",
+  "description": "Punkte sammeln, Deals sichern — deine Gastro-Loyalty-App",
+  "start_url": "/home",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F7F2",
+  "theme_color": "#8BB06A",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

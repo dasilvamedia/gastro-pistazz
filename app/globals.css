@@ -31,11 +31,28 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+/* All buttons and links get a proper touch target on mobile */
+@media (max-width: 768px) {
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Prevent layout shift / flicker on nav */
+  [data-sidebar-main] {
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 h1, h2, h3, h4 {
@@ -111,4 +128,43 @@ h1, h2, h3, h4 {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ─── Mobile Admin: space below hamburger button ─────────────────────── */
+@media (max-width: 1023px) {
+  /* Add top padding so content clears the hamburger button */
+  main > * {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+  main > div:first-child,
+  main > section:first-child {
+    padding-top: 56px !important;
+  }
+  /* Tables on mobile: make them scroll horizontally */
+  .overflow-x-auto, table {
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Ensure buttons are tappable */
+  button, a[role="button"], [type="button"], [type="submit"] {
+    min-height: 44px;
+  }
+  /* Prevent text from overflowing buttons */
+  button span, a span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
+
+/* Prevent page flicker on navigation (Next.js) */
+html.nprogress-busy body { cursor: wait; }
+
+/* Smooth page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+main > * {
+  animation: fadeIn 0.18s ease-out both;
 }

@@ -264,7 +264,7 @@ CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT USING (
 );
 
 -- Restaurants policies
-CREATE POLICY "Anyone can view active restaurants" ON restaurants FOR SELECT USING (is_active = TRUE);
+CREATE POLICY "Anyone can view active restaurants" ON restaurants FOR SELECT USING (is_active IS NOT FALSE);
 CREATE POLICY "Owners can manage own restaurant" ON restaurants FOR ALL USING (owner_id = auth.uid());
 CREATE POLICY "Admins can manage all restaurants" ON restaurants FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
@@ -309,7 +309,7 @@ CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE U
 CREATE POLICY "Owners can manage own QR codes" ON qr_codes FOR ALL USING (
   EXISTS (SELECT 1 FROM restaurants WHERE id = restaurant_id AND owner_id = auth.uid())
 );
-CREATE POLICY "Anyone can view active QR codes" ON qr_codes FOR SELECT USING (is_active = TRUE);
+CREATE POLICY "Anyone can view active QR codes" ON qr_codes FOR SELECT USING (is_active IS NOT FALSE);
 
 -- ============================================================
 -- TRIGGERS & FUNCTIONS

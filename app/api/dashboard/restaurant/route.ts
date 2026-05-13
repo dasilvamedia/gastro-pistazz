@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -131,6 +132,34 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       console.error('PATCH /api/dashboard/restaurant DB error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Invalidate Next.js cache so SSR pages (restaurant detail, r/[slug]) serve fresh data
+    revalidatePath(`/restaurant/${restaurant.id}`)
+    revalidatePath(`/r/${restaurant.slug}`)
+    revalidatePath('/entdecken')
+    revalidatePath('/home')
+    revalidatePath('/deals')
+
+    // Push instant broadcast to all connected clients (no DB pub/sub config needed)
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: 'realtime:entdecken-live',
+            event: 'restaurant_updated',
+            payload: { id: restaurant.id },
+          }],
+        }),
+      })
+    } catch {
+      // Broadcast is best-effort — save already succeeded
     }
 
     return NextResponse.json({ restaurant: data })

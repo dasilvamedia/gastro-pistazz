@@ -118,7 +118,7 @@ export default function GlobalAnalyticsPage() {
       <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-serif text-charcoal">Global Analytics</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Plattform-Übersicht – alle Restaurants</p>
+          <p className="text-sm text-gray-500 mt-0.5">Plattform-Übersicht · alle Restaurants</p>
         </div>
         <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
           {(['7d', '30d', '90d'] as Range[]).map((r) => (

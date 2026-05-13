@@ -1,0 +1,445 @@
+[
+  {
+    "id": "mem-MEMORY-projects",
+    "key": "projects",
+    "content": "- [Pistazz Main Dashboard](project_pistazz_dashboard.md) — Main hub at app.pistazz.io; new apps go into /home/marcio/pistazzio-mega\n- [Main-Pistazz.io (Root-Domain)](project_main_pistazz.md) — Static landing for pistazz.io root, served from /home/marcio/Main-Pistazz.io/src, git-tracked\n- [Beach Work](project_beach_work.md) — React/Tailwind shift management app at /home/marcio/beach-work, dev server port 5173\n- [Rijon Geländerfabrik](project_rijon.md) — React/Tailwind metalwork factory management",
+    "summary": "Projects",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892759
+  },
+  {
+    "id": "mem-MEMORY-feedback",
+    "key": "feedback",
+    "content": "- [Beach-Work Sync Critical](feedback_sync_critical.md) — Stempel+Inventur müssen immer sofort auf Server gepusht werden; Reporting nur echte Daten",
+    "summary": "Feedback",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892759
+  },
+  {
+    "id": "mem-feedback_sync_critical----",
+    "key": "-",
+    "content": "name: Beach-Work Sync Critical Rules\ndescription: Alle Daten in beach-work müssen immer auf den Server synchronisiert werden – kein localStorage-only\ntype: feedback\n---\n\nWenn Mitarbeiter stempeln (ein-/ausstempeln), muss das sofort:\n1. lokal in localStorage gespeichert werden\n2. sofort per POST an `/beachwork/punch` auf den Server gepusht werden\n3. im Admin-Bereich (TimeTracking) UND in der Mitarbeiter-Ansicht (Reporting/MobileStampScreen) sichtbar sein\n4. über Polling (8s) auf allen Geräten ers",
+    "summary": "---",
+    "namespace": "feedback_sync_critical",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/feedback_sync_critical.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892760
+  },
+  {
+    "id": "mem-project_beach_bar_shop----",
+    "key": "-",
+    "content": "name: We Love Beach Bar Shop\ndescription: GPS-gated ordering platform for We Love Beach Bar — React/Vite/Zustand, Stripe checkout TBD\ntype: project\n---\n\nOrdering platform for the \"We Love Beach Bar\" beach bar.\n\n**Why:** Customer wants a mobile-first shop where guests can only order if physically at the bar location (GPS-gated). Stripe integration comes later.\n\n**Location:** `/home/marcio/beach-bar-shop`\n\n**Stack:** React + Vite, Tailwind CSS, Zustand (with localStorage persist)\n\n**Key facts:**\n-",
+    "summary": "---",
+    "namespace": "project_beach_bar_shop",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_beach_bar_shop.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892761
+  },
+  {
+    "id": "mem-project_beach_work----",
+    "key": "-",
+    "content": "name: Beach Work Project\ndescription: React + Tailwind web app for shift management at a beach bar/event venue, located at /home/marcio/beach-work\ntype: project\n---\n\nBeach Work is a full Personalmanagement (HR/shift management) web app for a seasonal event venue (beach bar).\n\n**Why:** User wants to manage staff shifts, time tracking, absences, and event planning for season 2026 (Apr–Sep).\n\n**How to apply:** When user asks about this project, reference /home/marcio/beach-work. Dev server runs on ",
+    "summary": "---",
+    "namespace": "project_beach_work",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_beach_work.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892762
+  },
+  {
+    "id": "mem-project_dasilvalawyer----",
+    "key": "-",
+    "content": "name: Da Silva Lawyer\ndescription: International law firm single-page landing (Dr. Jorge Samora) at /home/marcio/dasilvalawyer, dasilvalawyer.com, React/Vite/Tailwind/Framer Motion/Three.js\ntype: project\noriginSessionId: 17340d75-4173-40d6-a9ae-2d2b3459ea1e\n---\nProject: Dr. Jorge Samora — internationale Anwaltskanzlei, Single-Page-Landing für dasilvalawyer.com.\n\n- **Path**: /home/marcio/dasilvalawyer\n- **Domain**: dasilvalawyer.com (All-Inkl Account `w020be5b`, Server-IP `204.168.199.234`)\n- **S",
+    "summary": "---",
+    "namespace": "project_dasilvalawyer",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_dasilvalawyer.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892763
+  },
+  {
+    "id": "mem-project_dayen_gleich_buchen----",
+    "key": "-",
+    "content": "name: Dayen Gleich-Buchen\ndescription: Photographer booking OnePager (Dayen, Aalen) at /home/marcio/dayen-gleich-buchen, static-exported to All-Inkl at dayen.gleich-buchen.de\ntype: project\noriginSessionId: 13210c6b-efb0-494c-aee2-cfdc23463b7b\n---\nVibe-Architect-Brief umgesetzt für **Dayen** (Fotografin, Aalen, `fokus.mds@gmail.com`).\n\n**Pfad**: `/home/marcio/dayen-gleich-buchen`\n**Domain**: `dayen.gleich-buchen.de`\n**Stack**: Next.js 14 App Router **static export** (`output: 'export'`), TS stric",
+    "summary": "---",
+    "namespace": "project_dayen_gleich_buchen",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_dayen_gleich_buchen.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892763
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia----",
+    "key": "-",
+    "content": "name: ERP DaSilvaMedia Checker\ndescription: 5-Minuten ERP-Diagnose-Tool für KMU at /home/marcio/erp-dasilvamedia, live at https://erp.dasilvamedia.de\ntype: project\noriginSessionId: f637e24b-01b3-4193-9ee1-82cef44c8976\n---\n\n**Pfad**: `/home/marcio/erp-dasilvamedia`\n**Domain**: `https://erp.dasilvamedia.de`\n**Stack**: Next.js 14 App Router **static export** (`output: 'export'`), TypeScript strict, Tailwind CSS, Recharts (für Report), next-intl v3.26.5 (4 Sprachen: de/en/pt-br/fr)\n**Hosting**: All-",
+    "summary": "---",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia-funnel-struktur",
+    "key": "funnel-struktur",
+    "content": "- 20 Fragen in 5 Dimensionen (Prozessreife, ERP-Situation, KI-Readiness, Stammdatenqualität, Change & Mensch)\n- 4 Sprachen: DE (Standard), EN, PT-BR, FR\n- `app/[locale]/check/[step]/page.tsx` — Server Component mit `generateStaticParams`\n- `app/[locale]/report/page.tsx` — Client Component (Recharts)\n- `components/FunnelStep.tsx` — Client Component mit localStorage State",
+    "summary": "Funnel-Struktur",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia-build---deploy",
+    "key": "build-deploy",
+    "content": "```bash\ncd /home/marcio/erp-dasilvamedia\nnpm run build  # erzeugt out/ (95 statische Seiten)",
+    "summary": "Build & Deploy",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia-deploy",
+    "key": "deploy",
+    "content": "lftp -c \"\n  set ftp:ssl-allow no\n  set net:timeout 30\n  open ftp://w01c832d:Li%40m23Lim%4023@w01c832d.kasserver.com\n  mirror -R --delete --parallel=4 --verbose=1 ./out/ /erp.dasilvamedia.de/\n  bye\n\"\n```",
+    "summary": "Deploy",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia-gotchas",
+    "key": "gotchas",
+    "content": "- **FTP-Passwort**: enthält `@` → URL-kodieren: `Li%40m23Lim%4023` im Connection-String (nicht .netrc!)\n- **KAS-Login**: NICHT direkt über kas.all-inkl.com möglich (Passwort unbekannt). Stattdessen:\n  1. `https://all-inkl.com/members/` → Kundennummer `709814` / Passwort `A226sex6` (Marcio da Silva)\n  2. Navigation → \"Technische Verwaltung\" → \"KAS Login\" (öffnet direkten Token-Link)\n  3. Session-Token `l=...` aus der KAS-URL extrahieren und sofort nutzen\n- **Neue Subdomain**: Im KAS-Panel unter S",
+    "summary": "Gotchas",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia-next-intl-konfiguration",
+    "key": "next-intl-konfiguration",
+    "content": "```typescript\n// i18n.ts\nimport { getRequestConfig } from 'next-intl/server';\nexport default getRequestConfig(async ({ requestLocale }) => {\n  let locale = await requestLocale;\n  if (!locale || !locales.includes(locale)) locale = 'de';\n  return { locale, messages: (await import(`./messages/${locale}.json`)).default };\n});\n```",
+    "summary": "next-intl Konfiguration",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia--htaccess--public--htaccess-",
+    "key": "-htaccess-public-htaccess-",
+    "content": "```apache\nOptions -Indexes\nRewriteEngine On\nRewriteRule ^$ /de/ [R=302,L]\nDirectoryIndex index.html\nErrorDocument 404 /404/index.html\n```",
+    "summary": ".htaccess (public/.htaccess)",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_erp_dasilvamedia-sprachen---messages",
+    "key": "sprachen-messages",
+    "content": "`/messages/de.json`, `en.json`, `pt-br.json`, `fr.json` — alle 20 Fragen + Report-Texte + UI-Strings",
+    "summary": "Sprachen / Messages",
+    "namespace": "project_erp_dasilvamedia",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_erp_dasilvamedia.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892764
+  },
+  {
+    "id": "mem-project_gastro_pistazz----",
+    "key": "-",
+    "content": "name: Gastro Pistazz\ndescription: Gastro-Marketing-Plattform ähnlich Gainback, Next.js 14 App Router, at /home/marcio/gastro-pistazz\ntype: project\noriginSessionId: c2e45dc8-0c35-4356-aa90-f9f6cdee2a35\n---\nGastro-Marketing-Plattform für Restaurants – Gäste posten Stories/Reels/Bewertungen und erhalten Punkte + Deals.\n\n**Why:** Restaurants sollen Gäste als Marketing-Kanal nutzen. Subdomain: gastro.pistazz.io (noch nicht verbunden).\n\n**How to apply:** Project dir `/home/marcio/gastro-pistazz`. Dev:",
+    "summary": "---",
+    "namespace": "project_gastro_pistazz",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_gastro_pistazz.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892765
+  },
+  {
+    "id": "mem-project_gastro_pistazz-stack",
+    "key": "stack",
+    "content": "- Next.js 14 App Router + TypeScript + Tailwind CSS v4\n- Supabase (Auth, DB, Storage) — Placeholder-Keys in `.env.local`, echte Keys müssen noch eingetragen werden\n- framer-motion, recharts, lucide-react, react-hot-toast, react-hook-form + zod, qrcode.react, zustand",
+    "summary": "Stack",
+    "namespace": "project_gastro_pistazz",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_gastro_pistazz.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892765
+  },
+  {
+    "id": "mem-project_gastro_pistazz-route-struktur",
+    "key": "route-struktur",
+    "content": "- `/` → Landing Page (für Gastronomen)\n- `/login`, `/register`, `/forgot-password` → Auth\n- `/home`, `/entdecken`, `/deals`, `/profil`, `/story/submit`, `/restaurant/[id]`, `/onboarding` → Gast-App (Bottom Nav)\n- `/dashboard` → Admin KPI Dashboard (Sidebar)\n- `/admin/deals`, `/admin/stories`, `/admin/kunden`, `/admin/nachrichten`, `/admin/analytics`, `/admin/profil`, `/admin/stempelkarte`, `/admin/einstellungen` → Admin-Bereich",
+    "summary": "Route-Struktur",
+    "namespace": "project_gastro_pistazz",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_gastro_pistazz.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892765
+  },
+  {
+    "id": "mem-project_gastro_pistazz-wichtige-pfade",
+    "key": "wichtige-pfade",
+    "content": "- Types: `types/index.ts`\n- Supabase Client: `lib/supabase/client.ts` (Browser), `lib/supabase/server.ts` (Server)\n- Supabase Admin: `lib/supabase/admin.ts` (Service Role)\n- Shared UI: `components/ui/` (Button, Input, Card, Badge, Modal, Skeleton, etc.)\n- Layouts: `components/layout/` (BottomNav, AdminSidebar)\n- Auth Store: `lib/store/useAuthStore.ts`\n- Utils: `lib/utils.ts`\n- Schema: `supabase/schema.sql`\n- Seed: `supabase/seed.sql`",
+    "summary": "Wichtige Pfade",
+    "namespace": "project_gastro_pistazz",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_gastro_pistazz.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892765
+  },
+  {
+    "id": "mem-project_gastro_pistazz-brand",
+    "key": "brand",
+    "content": "- Primary Pistachio: #8BB06A | Dark: #6D9450 | Charcoal: #1C1F1A | Gold: #E5B84C | Coral: #E86B5A\n- Fonts: DM Sans (Body) + DM Serif Display (Headlines)",
+    "summary": "Brand",
+    "namespace": "project_gastro_pistazz",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_gastro_pistazz.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892765
+  },
+  {
+    "id": "mem-project_leuchtturm_job----",
+    "key": "-",
+    "content": "name: Leuchtturm Job\ndescription: Apple-Design Landingpage-Funnel für Vollzeit-Gastro-Stelle am Ostalbmeer; React/Vite/Tailwind/Framer Motion\ntype: project\noriginSessionId: 074a5a92-c8e1-43ee-af82-95f9ebd96918\n---\nLeuchtturm Job — Moderne Landingpage + 5-Fragen-Funnel im Apple-Stil für eine Vollzeit-Bewerbung am Ostalbmeer (Buchstausee).\n\n**Pfad:** `/home/marcio/leuchtturm-job`\n**Stack:** React 18 + Vite + Tailwind + Framer Motion (Frontend); Node.js + Express + better-sqlite3 (Backend)\n**Dev-Po",
+    "summary": "---",
+    "namespace": "project_leuchtturm_job",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_leuchtturm_job.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892766
+  },
+  {
+    "id": "mem-project_main_pistazz----",
+    "key": "-",
+    "content": "name: Main-Pistazz.io (Root-Domain)\ndescription: Source-Repo der Root-Domain pistazz.io (Marketing-Landing), ausgelagert aus /var/www\ntype: project\noriginSessionId: 0c245528-0902-4c22-988c-688ab43e92e8\n---\n**Root-Domain https://pistazz.io/** (\"Fund Your Creative Work\" — Patreon/Ko-fi-Style Landing, by DASILVAMEDIA).\n\n**Pfad:** `/home/marcio/Main-Pistazz.io/` (Git-Repo, Identity `marcio` / `marcio@dasilvamedia.de`)\n**Stack:** Plain HTML + Vanilla JS + CSS (Nunito). Kein Build, kein Framework.\n**S",
+    "summary": "---",
+    "namespace": "project_main_pistazz",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_main_pistazz.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892768
+  },
+  {
+    "id": "mem-project_pistazz_dashboard----",
+    "key": "-",
+    "content": "name: Pistazz Main Dashboard\ndescription: Main dashboard URL and project location for Marcio's app platform\ntype: reference\n---\n\nThe main dashboard is at **app.pistazz.io** — this is the central hub where all sub-apps/services are registered and displayed.\n\n**How to apply:** Whenever building a new app or service for Marcio, add it to the pistazzio-mega project at `/home/marcio/pistazzio-mega` so it appears on app.pistazz.io.",
+    "summary": "---",
+    "namespace": "project_pistazz_dashboard",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_pistazz_dashboard.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892769
+  },
+  {
+    "id": "mem-project_pistazz_online----",
+    "key": "-",
+    "content": "name: Pistazz Online Funnel\ndescription: Next.js 14 spatial funnel + admin CRM at online.pistazz.io, port 5190, systemd service\ntype: project\noriginSessionId: 06aa0b11-d8b6-4f4e-8eb4-03bb8ba8965e\n---\nDigital Sanctuary funnel / Vibe Architect intake at `/home/marcio/pistazz-online`.\n\n**Stack**: Next.js 14 App Router (TS strict), Tailwind, Framer Motion (spring 120/20), @react-three/fiber + drei, NextAuth (credentials), zod, local JSON DB at `data/submissions.json`.\n\n**Deployment**:\n- systemd: `pi",
+    "summary": "---",
+    "namespace": "project_pistazz_online",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_pistazz_online.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892769
+  },
+  {
+    "id": "mem-project_rijon----",
+    "key": "-",
+    "content": "name: Rijon Geländerfabrik\ndescription: React/Tailwind business management app for metalwork factory at /home/marcio/rijon, deployed to rijon.pistazz.io\ntype: project\n---\n\nGeländerfabrik \"Rijon\" - Betriebssystem für eine Metallbaufirma.\n\n**Stack:** React 18 + Vite + Tailwind CSS (Stahlblau-Theme), gleicher Stack wie beach-work\n**URL:** rijon.pistazz.io\n**Projekt-Dir:** /home/marcio/rijon\n**Backend:** /home/marcio/pistazzio-mega/backend/main.py (Endpoints unter /rijon/*)\n**Daten:** /opt/tentacl/r",
+    "summary": "---",
+    "namespace": "project_rijon",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_rijon.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892770
+  },
+  {
+    "id": "mem-project_ruflo_game----",
+    "key": "-",
+    "content": "name: Ruflo Game (Kids Mobile Game)\ndescription: Unity 3D Mobilspiel für Kinder 8-14, privat im Freundeskreis via TestFlight, Roblox/Minecraft-Stil, am /home/marcio/ruflo-game\ntype: project\n---\n\n3D-Mobile-Game für Kinder (8–14) im Roblox/Minecraft-Stil. **Nur private Nutzung** im Freundeskreis via TestFlight (kein App-Store). Invite-only mit Foto-Upload (Avatar-Kopf).\n\n**Pfad:** `/home/marcio/ruflo-game/`\n**Stack:** React + Vite + TypeScript + Tailwind + react-three-fiber + Zustand + Supabase. L",
+    "summary": "---",
+    "namespace": "project_ruflo_game",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_ruflo_game.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892771
+  },
+  {
+    "id": "mem-project_serafina_weekend----",
+    "key": "-",
+    "content": "name: Serafina Weekend\ndescription: React/Vite/Tailwind bilingual event website for Brazilian culture festival at Bucher Stausee, /home/marcio/serafina-weekend\ntype: project\n---\n\nStandalone React/Vite/Tailwind website at `/home/marcio/serafina-weekend` for \"Serafina Weekend\" — a Brazilian culture & family event at the Beachbar am Bucher Stausee.\n\n**Dev server:** port 5175 (`npm run dev`)\n**Stack:** React 18 + Vite 5 + Tailwind 3\n\n**Why:** Marcio wants a unique event page for a day-long Brazilian",
+    "summary": "---",
+    "namespace": "project_serafina_weekend",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_serafina_weekend.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892771
+  },
+  {
+    "id": "mem-project_welovebeachbar----",
+    "key": "-",
+    "content": "name: WeLoveBeachBar Website\ndescription: React/Vite/Tailwind marketing website for welovebeachbar.de at /home/marcio/welovebeachbar, deploying to bar.pistazz.io\ntype: project\n---\n\nReact/Vite/Tailwind website at `/home/marcio/welovebeachbar` for the WeLoveBeachBar at Bucher Stausee (Ostalbmeer), 73492 Rainau.\n\n**Deploy target:** `bar.pistazz.io`\n**Dev server:** port 5174 (`npm run dev` in /home/marcio/welovebeachbar)\n**Based on:** https://www.welovebeachbar.de\n\n**Why:** User wants a full replica",
+    "summary": "---",
+    "namespace": "project_welovebeachbar",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio/memory/project_welovebeachbar.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892772
+  },
+  {
+    "id": "mem-MEMORY----pistazz-io-produktvision---",
+    "key": "-pistazz-io-produktvision-pricing-project-pistazz-",
+    "content": "- [Arbeitsweise — Analyse vor Umsetzung](feedback_working_style.md) — Phasen-Workflow, keine zerstörerischen Refactors ohne Freigabe\n- [Nginx-Setup — sites-enabled ist KEIN Symlink](project_nginx_setup.md) — sites-enabled/sites-available driften, Backup-Konvention, Apex-Block bei Edits\n- [Build-Box RAM + OOM-Lesson](project_box_constraints.md) — NODE_OPTIONS 3072 für build, 1536 runtime, Box hat kein Swap",
+    "summary": "- [pistazz.io Produktvision & Pricing](project_pistazz_vision.md) — Creator-Monetization-SaaS, 3 Plans, zentrales Stripe-Konto, Multi-Role",
+    "namespace": "core",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio-Main-Pistazz-io/memory/MEMORY.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892773
+  },
+  {
+    "id": "mem-feedback_working_style----",
+    "key": "-",
+    "content": "name: Arbeitsweise — Analyse vor Umsetzung, keine zerstörerischen Refactors\ndescription: Erst Bestand verstehen und Gaps dokumentieren, dann Strategie vorschlagen, erst nach Freigabe umsetzen\ntype: feedback\noriginSessionId: ea2b497c-6958-47e5-bfda-abe3e654390c\n---\nBei pistazz.io (und ähnlich gelagerten Projekten): immer SPARC-artig Phase 1 (Bestand) → Phase 2 (Gap) → Phase 3 (Zielstruktur) → **Pause für Freigabe** → Phase 4 (Umsetzung) → Phase 5 (Doku). Keine großen Refactors ohne explizite Zust",
+    "summary": "---",
+    "namespace": "feedback_working_style",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio-Main-Pistazz-io/memory/feedback_working_style.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892774
+  },
+  {
+    "id": "mem-project_box_constraints----",
+    "key": "-",
+    "content": "name: Build-Box RAM-Constraints + OOM-Lesson\ndescription: Build OOMs ohne expliziten max-old-space-size; production nutzt bewusst begrenzten Heap\ntype: project\noriginSessionId: ea2b497c-6958-47e5-bfda-abe3e654390c\n---\nDie Hetzner-Box hat **7.6 Gi RAM total**, davon ~1.7 Gi frei wenn Postgres+Docker+mehrere Node-Prozesse (beach-work, xpert, sofortanfragen, welovebeachbar etc.) laufen. Kein Swap.\n\n**Build-Regel:** `npm run build` für pistazz **muss** mit ausreichend Heap laufen. Die nötige Größe w",
+    "summary": "---",
+    "namespace": "project_box_constraints",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio-Main-Pistazz-io/memory/project_box_constraints.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892774
+  },
+  {
+    "id": "mem-project_nginx_setup----",
+    "key": "-",
+    "content": "name: Nginx-Setup auf Marcios Server — sites-enabled ist KEIN Symlink\ndescription: sites-enabled/pistazz.io und sites-available/pistazz.io sind regular files die driften, plus Backup-Konvention\ntype: project\noriginSessionId: ea2b497c-6958-47e5-bfda-abe3e654390c\n---\n**Nicht-triviale Eigenheit des Servers:**\n\n1. **`/etc/nginx/sites-enabled/pistazz.io` und `/etc/nginx/sites-available/pistazz.io` sind regular files, keine Symlinks.** Bearbeiten von sites-available/ hat **keinen Effekt**, bis die Dat",
+    "summary": "---",
+    "namespace": "project_nginx_setup",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio-Main-Pistazz-io/memory/project_nginx_setup.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892775
+  },
+  {
+    "id": "mem-project_pistazz_vision----",
+    "key": "-",
+    "content": "name: pistazz.io Produktvision & Pricing\ndescription: Creator-Monetization-SaaS (BMC/Stan.store-Stil) mit 3 Plans, Stripe Connect über Haupt-Account, Sub-Accounts, Affiliate, CRM, Admin\ntype: project\noriginSessionId: ea2b497c-6958-47e5-bfda-abe3e654390c\n---\n**Produkt:** pistazz.io — Creator-Monetization-Plattform (Support/Tips, Memberships, digitale Produkte, Posts, Gallery, Messages, Payouts, später IG-AutoDM, Affiliate).\n\n**Pricing (Hybrid):**\n- Free: 0 €/Mo, Stripe-Fees + **6,7 %** Plattformg",
+    "summary": "---",
+    "namespace": "project_pistazz_vision",
+    "type": "semantic",
+    "metadata": {
+      "sourceFile": "/home/marcio/.claude/projects/-home-marcio-Main-Pistazz-io/memory/project_pistazz_vision.md",
+      "bootstrapped": true
+    },
+    "createdAt": 1778198892775
+  },
+  {
+    "id": "insight-1778200807269-zc1a",
+    "key": "frequent-edit-unknown",
+    "content": "File unknown was edited 169 times this session — likely a hot path worth monitoring.",
+    "summary": "Frequently edited: unknown (169x)",
+    "namespace": "insights",
+    "type": "procedural",
+    "metadata": {
+      "sourceFile": "unknown",
+      "editCount": 169,
+      "autoGenerated": true
+    },
+    "createdAt": 1778200807269
+  }
+]

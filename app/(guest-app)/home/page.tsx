@@ -164,19 +164,24 @@ export default function HomePage() {
     }
     load()
 
-    // Realtime: update deals live
+    // Realtime: update deals + restaurants live
     if (!IS_MOCK_MODE) {
       const channel = supabase
-        .channel('home-deals-realtime')
+        .channel('home-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' },
           async () => {
             const { data } = await supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5)
             if (data) setDeals(data)
           })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' },
+          async () => {
+            const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).limit(10)
+            if (data) setRestaurants(data)
+          })
         .subscribe()
       return () => { supabase.removeChannel(channel) }
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Gast'
 
@@ -219,7 +224,7 @@ export default function HomePage() {
             onClick={() => router.push('/entdecken')}
             className="gradient-primary text-white text-sm font-bold px-4 py-2 rounded-xl"
           >
-            Restaurant entdecken →
+            📸 Story erstellen →
           </button>
         </div>
 

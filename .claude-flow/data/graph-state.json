@@ -1,0 +1,355 @@
+{
+  "version": 1,
+  "updatedAt": 1778619283260,
+  "nodeCount": 34,
+  "nodes": {
+    "mem-MEMORY-projects": {
+      "id": "mem-MEMORY-projects",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892759
+    },
+    "mem-MEMORY-feedback": {
+      "id": "mem-MEMORY-feedback",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892759
+    },
+    "mem-feedback_sync_critical----": {
+      "id": "mem-feedback_sync_critical----",
+      "category": "feedback_sync_critical",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892760
+    },
+    "mem-project_beach_bar_shop----": {
+      "id": "mem-project_beach_bar_shop----",
+      "category": "project_beach_bar_shop",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892761
+    },
+    "mem-project_beach_work----": {
+      "id": "mem-project_beach_work----",
+      "category": "project_beach_work",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892762
+    },
+    "mem-project_dasilvalawyer----": {
+      "id": "mem-project_dasilvalawyer----",
+      "category": "project_dasilvalawyer",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892763
+    },
+    "mem-project_dayen_gleich_buchen----": {
+      "id": "mem-project_dayen_gleich_buchen----",
+      "category": "project_dayen_gleich_buchen",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892763
+    },
+    "mem-project_erp_dasilvamedia----": {
+      "id": "mem-project_erp_dasilvamedia----",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia-funnel-struktur": {
+      "id": "mem-project_erp_dasilvamedia-funnel-struktur",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia-build---deploy": {
+      "id": "mem-project_erp_dasilvamedia-build---deploy",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia-deploy": {
+      "id": "mem-project_erp_dasilvamedia-deploy",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia-gotchas": {
+      "id": "mem-project_erp_dasilvamedia-gotchas",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia-next-intl-konfiguration": {
+      "id": "mem-project_erp_dasilvamedia-next-intl-konfiguration",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia--htaccess--public--htaccess-": {
+      "id": "mem-project_erp_dasilvamedia--htaccess--public--htaccess-",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_erp_dasilvamedia-sprachen---messages": {
+      "id": "mem-project_erp_dasilvamedia-sprachen---messages",
+      "category": "project_erp_dasilvamedia",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892764
+    },
+    "mem-project_gastro_pistazz----": {
+      "id": "mem-project_gastro_pistazz----",
+      "category": "project_gastro_pistazz",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892765
+    },
+    "mem-project_gastro_pistazz-stack": {
+      "id": "mem-project_gastro_pistazz-stack",
+      "category": "project_gastro_pistazz",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892765
+    },
+    "mem-project_gastro_pistazz-route-struktur": {
+      "id": "mem-project_gastro_pistazz-route-struktur",
+      "category": "project_gastro_pistazz",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892765
+    },
+    "mem-project_gastro_pistazz-wichtige-pfade": {
+      "id": "mem-project_gastro_pistazz-wichtige-pfade",
+      "category": "project_gastro_pistazz",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892765
+    },
+    "mem-project_gastro_pistazz-brand": {
+      "id": "mem-project_gastro_pistazz-brand",
+      "category": "project_gastro_pistazz",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892765
+    },
+    "mem-project_leuchtturm_job----": {
+      "id": "mem-project_leuchtturm_job----",
+      "category": "project_leuchtturm_job",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892766
+    },
+    "mem-project_main_pistazz----": {
+      "id": "mem-project_main_pistazz----",
+      "category": "project_main_pistazz",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892768
+    },
+    "mem-project_pistazz_dashboard----": {
+      "id": "mem-project_pistazz_dashboard----",
+      "category": "project_pistazz_dashboard",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892769
+    },
+    "mem-project_pistazz_online----": {
+      "id": "mem-project_pistazz_online----",
+      "category": "project_pistazz_online",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892769
+    },
+    "mem-project_rijon----": {
+      "id": "mem-project_rijon----",
+      "category": "project_rijon",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892770
+    },
+    "mem-project_ruflo_game----": {
+      "id": "mem-project_ruflo_game----",
+      "category": "project_ruflo_game",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892771
+    },
+    "mem-project_serafina_weekend----": {
+      "id": "mem-project_serafina_weekend----",
+      "category": "project_serafina_weekend",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892771
+    },
+    "mem-project_welovebeachbar----": {
+      "id": "mem-project_welovebeachbar----",
+      "category": "project_welovebeachbar",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892772
+    },
+    "mem-MEMORY----pistazz-io-produktvision---": {
+      "id": "mem-MEMORY----pistazz-io-produktvision---",
+      "category": "core",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892773
+    },
+    "mem-feedback_working_style----": {
+      "id": "mem-feedback_working_style----",
+      "category": "feedback_working_style",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892774
+    },
+    "mem-project_box_constraints----": {
+      "id": "mem-project_box_constraints----",
+      "category": "project_box_constraints",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892774
+    },
+    "mem-project_nginx_setup----": {
+      "id": "mem-project_nginx_setup----",
+      "category": "project_nginx_setup",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892775
+    },
+    "mem-project_pistazz_vision----": {
+      "id": "mem-project_pistazz_vision----",
+      "category": "project_pistazz_vision",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778198892775
+    },
+    "insight-1778200807269-zc1a": {
+      "id": "insight-1778200807269-zc1a",
+      "category": "insights",
+      "confidence": 0.5,
+      "accessCount": 0,
+      "createdAt": 1778200807269
+    }
+  },
+  "edges": [
+    {
+      "sourceId": "mem-MEMORY-projects",
+      "targetId": "mem-MEMORY-feedback",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia----",
+      "targetId": "mem-project_erp_dasilvamedia-funnel-struktur",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia-funnel-struktur",
+      "targetId": "mem-project_erp_dasilvamedia-build---deploy",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia-build---deploy",
+      "targetId": "mem-project_erp_dasilvamedia-deploy",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia-deploy",
+      "targetId": "mem-project_erp_dasilvamedia-gotchas",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia-gotchas",
+      "targetId": "mem-project_erp_dasilvamedia-next-intl-konfiguration",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia-next-intl-konfiguration",
+      "targetId": "mem-project_erp_dasilvamedia--htaccess--public--htaccess-",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_erp_dasilvamedia--htaccess--public--htaccess-",
+      "targetId": "mem-project_erp_dasilvamedia-sprachen---messages",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_gastro_pistazz----",
+      "targetId": "mem-project_gastro_pistazz-stack",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_gastro_pistazz-stack",
+      "targetId": "mem-project_gastro_pistazz-route-struktur",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_gastro_pistazz-route-struktur",
+      "targetId": "mem-project_gastro_pistazz-wichtige-pfade",
+      "type": "temporal",
+      "weight": 0.5
+    },
+    {
+      "sourceId": "mem-project_gastro_pistazz-wichtige-pfade",
+      "targetId": "mem-project_gastro_pistazz-brand",
+      "type": "temporal",
+      "weight": 0.5
+    }
+  ],
+  "pageRanks": {
+    "mem-MEMORY-projects": 0.016661839959958968,
+    "mem-MEMORY-feedback": 0.03082439670718136,
+    "mem-feedback_sync_critical----": 0.016661839959958968,
+    "mem-project_beach_bar_shop----": 0.016661839959958968,
+    "mem-project_beach_work----": 0.016661839959958968,
+    "mem-project_dasilvalawyer----": 0.016661839959958968,
+    "mem-project_dayen_gleich_buchen----": 0.016661839959958968,
+    "mem-project_erp_dasilvamedia----": 0.016661839959958968,
+    "mem-project_erp_dasilvamedia-funnel-struktur": 0.03082439670718136,
+    "mem-project_erp_dasilvamedia-build---deploy": 0.04286255768699085,
+    "mem-project_erp_dasilvamedia-deploy": 0.05309498154666701,
+    "mem-project_erp_dasilvamedia-gotchas": 0.06179253667415335,
+    "mem-project_erp_dasilvamedia-next-intl-konfiguration": 0.06918548682985395,
+    "mem-project_erp_dasilvamedia--htaccess--public--htaccess-": 0.07546956826468218,
+    "mem-project_erp_dasilvamedia-sprachen---messages": 0.08081112384919993,
+    "mem-project_gastro_pistazz----": 0.016661839959958968,
+    "mem-project_gastro_pistazz-stack": 0.03082439670718136,
+    "mem-project_gastro_pistazz-route-struktur": 0.04286255768699085,
+    "mem-project_gastro_pistazz-wichtige-pfade": 0.05309498154666701,
+    "mem-project_gastro_pistazz-brand": 0.06179253667415335,
+    "mem-project_leuchtturm_job----": 0.016661839959958968,
+    "mem-project_main_pistazz----": 0.016661839959958968,
+    "mem-project_pistazz_dashboard----": 0.016661839959958968,
+    "mem-project_pistazz_online----": 0.016661839959958968,
+    "mem-project_rijon----": 0.016661839959958968,
+    "mem-project_ruflo_game----": 0.016661839959958968,
+    "mem-project_serafina_weekend----": 0.016661839959958968,
+    "mem-project_welovebeachbar----": 0.016661839959958968,
+    "mem-MEMORY----pistazz-io-produktvision---": 0.016661839959958968,
+    "mem-feedback_working_style----": 0.016661839959958968,
+    "mem-project_box_constraints----": 0.016661839959958968,
+    "mem-project_nginx_setup----": 0.016661839959958968,
+    "mem-project_pistazz_vision----": 0.016661839959958968,
+    "insight-1778200807269-zc1a": 0.016661839959958968
+  }
+}

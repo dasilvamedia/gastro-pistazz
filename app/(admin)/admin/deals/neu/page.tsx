@@ -23,12 +23,12 @@ export default function NewDealPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/admin/deals" className="text-gray-400 hover:text-[#8BB06A] transition-colors">
-          ← Zurueck
+          ← Zurück
         </Link>
         <h1 className="text-2xl font-bold text-[#1C1F1A]">Neuer Deal</h1>
       </div>
       {loading && <div className="skeleton h-96 rounded-xl" />}
-      {!loading && restaurantId && <DealForm restaurantId={restaurantId} />}
+      {!loading && restaurantId && <DealForm restaurantId={restaurantId} backPath="/admin/deals" />}
       {!loading && !restaurantId && (
         <div className="glass rounded-xl p-6 text-center text-gray-500">
           Kein Restaurant gefunden. Bitte zuerst das Restaurant-Profil einrichten.

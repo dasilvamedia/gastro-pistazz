@@ -1,0 +1,12 @@
+{
+  "id": "session-1778619283252",
+  "startedAt": "2026-05-12T20:54:43.252Z",
+  "cwd": "/home/marcio/gastro-pistazz",
+  "context": {},
+  "metrics": {
+    "edits": 20,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  }
+}

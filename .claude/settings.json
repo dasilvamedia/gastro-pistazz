@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm run build 2>&1 | tail *)",
+      "Bash(npm run lint *)",
+      "Bash(sudo systemctl status *)",
+      "Bash(sudo systemctl is-active *)",
+      "Bash(sudo journalctl -u * --no-pager*)",
+      "Bash(pm2 list)",
+      "Bash(pm2 status)",
+      "Bash(pm2 logs * --lines *)"
+    ]
+  }
+}

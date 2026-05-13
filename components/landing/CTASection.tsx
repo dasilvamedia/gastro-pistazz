@@ -1,26 +1,48 @@
+'use client'
+
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { useLang } from '@/lib/lang-context'
 
 export function CTASection() {
+  const { t } = useLang()
+  const c = t.cta
+
   return (
-    <section className="py-24 px-6 bg-white">
-      <div className="max-w-4xl mx-auto">
-        <div className="gradient-primary rounded-3xl p-12 md:p-16 text-center shadow-xl">
-          <h2
-            className="text-3xl md:text-4xl text-white mb-4"
-            style={{ fontFamily: 'DM Serif Display, serif' }}
-          >
-            Bereit, deine Gäste für dich arbeiten zu lassen? 🚀
-          </h2>
-          <p className="text-white/80 text-lg mb-8 max-w-lg mx-auto">
-            Starte jetzt kostenlos – keine Kreditkarte nötig.
-          </p>
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 bg-white text-[#8BB06A] font-bold px-8 py-4 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-200"
-          >
-            Los geht&apos;s 🫶🏽
-          </Link>
-        </div>
+    <section className="py-14 md:py-20 px-4 md:px-6 bg-[#1C1F1A]">
+      <div className="max-w-3xl mx-auto">
+        <motion.div
+          className="relative gradient-primary rounded-2xl p-8 md:p-12 text-center shadow-2xl shadow-[#8BB06A]/20 overflow-hidden"
+          initial={{ opacity: 0, scale: 0.97 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/10 pointer-events-none"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-white/08 pointer-events-none"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          />
+
+          <div className="relative z-10">
+            <h2 className="text-2xl md:text-3xl text-white font-bold mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              {c.h2}
+            </h2>
+            <p className="text-white/75 text-sm md:text-base font-semibold mb-1">{c.sub}</p>
+            <p className="text-white/55 text-sm mb-6">{c.p}</p>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 bg-white text-[#6D9450] font-bold px-8 py-3.5 rounded-full hover:shadow-xl hover:scale-105 active:scale-[0.98] transition-all duration-200 text-sm md:text-base"
+            >
+              {c.btn}
+            </Link>
+          </div>
+        </motion.div>
       </div>
     </section>
   )

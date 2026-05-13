@@ -23,7 +23,6 @@ export default async function AdminLayout({
         .single()
       role = profile?.role ?? null
 
-      // Check impersonation cookie server-side — reliable, no client async needed
       const cookieStore = await cookies()
       const impId = cookieStore.get('impersonate_restaurant_id')?.value
       if (impId && (role === 'super_admin' || role === 'admin')) {
@@ -43,7 +42,11 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-pale">
       <AdminSidebar role={role} impersonatingName={impersonatingName} />
-      <main className="flex-1 overflow-y-auto min-h-screen" style={{ marginLeft: 250 }}>
+      {/* marginLeft is set dynamically by AdminSidebar via JS (desktop: 250px, mobile: 0) */}
+      <main
+        className="flex-1 min-h-screen"
+        style={{ marginLeft: 250 }}
+      >
         {children}
       </main>
     </div>

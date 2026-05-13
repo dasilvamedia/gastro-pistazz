@@ -1,0 +1,53 @@
+## Todo
+- Onboarding-Flow für Gastronomen bauen
+- Bewertungsmanagement-Widget integrieren
+- E-Mail-Newsletter-Automation einrichten
+- Analytics-Dashboard für Restaurantbesitzer
+- Mobile-App Wrapper evaluieren
+- Alle Seiten durchklicken, Console-Errors fixen
+- Auth-Flow: Register, Login, Logout, Password-Reset
+- Story-Submit: Upload, KI-Prüfung, Punkte-Vergabe
+- Deal einlösen: Punkte abziehen, Code generieren
+- RLS prüfen: Owner sieht NUR sein Restaurant
+- Gast-App auf iPhone + Android testen (Safari, Chrome)
+- Bottom-Navigation sticky & korrekt
+- Story Creator: Kamera, Filter, Sticker auf Mobile
+- Touch-Targets mindestens 44px, Scrolling smooth
+- Seed-Script ausführen: 18 Owner-Accounts erstellen
+- Jeden Account testen: Login → Dashboard → nur eigene Daten
+- Impersonate: Admin → als Owner einloggen → zurück
+- Restaurant-Profile mit echten Daten befüllen
+- KPI-Cards: Stories, Reichweite, Deals, Gäste — live Daten
+- Charts: 7-Tage Stories & Reichweite (Recharts)
+- Aktivitäts-Feed: Echtzeit aus Supabase Realtime
+- Deal-Management: CRUD, Toggle An/Aus, Stats
+- Story-Prüfung: Genehmigen/Ablehnen mit KI-Badge
+- Super-Admin Dashboard: Globale KPIs alle 18 Restaurants
+- Account-Management: Tabelle + Aktionen
+- Middleware: Role-Based Routing wasserdicht
+- RLS Policies komplett durchtesten
+- manifest.json: Name, Icons 192px + 512px, Theme-Color
+- Service Worker: Offline-Fallback, Caching
+- "Zum Startbildschirm" auf iOS + Android testen
+- Lighthouse: Ziel > 90 auf allen Kategorien
+- Meta-Tags, OG-Image, Favicon
+- npm run build — keine Errors
+- PM2 restart auf VPS
+- SSL prüfen: gastro.pistazz.io
+- Alle 18 Owner-Logins live testen
+- Komplett-Durchlauf: Gast → Story → Punkte → Deal
+- Owner: Login → Dashboard → Story prüfen
+- Admin: Impersonate → Accounts → zurück
+- Capacitor installieren & iOS Build
+- TWA für Android / Play Store
+- Store-Screenshots erstellen
+- Beide Stores einreichen
+
+## In Arbeit
+- Google My Business API-Integration
+- Landing-Page SEO-Optimierung
+
+## Fertig
+- Projektsetup abgeschlossen
+- Next.js 14 Basis-Setup
+- Brand-Design umgesetzt

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
+import { PlanGate } from '@/components/admin/PlanGate'
 import { Restaurant } from '@/types'
 
 interface StampStats {
@@ -11,7 +12,7 @@ interface StampStats {
   redeemed: number
 }
 
-export default function StempelkartePage() {
+function StempelkarteContent() {
   const supabase = createClient()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [loading, setLoading] = useState(true)
@@ -130,5 +131,13 @@ export default function StempelkartePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function StempelkartePage() {
+  return (
+    <PlanGate feature="has_stempelkarte">
+      <StempelkarteContent />
+    </PlanGate>
   )
 }

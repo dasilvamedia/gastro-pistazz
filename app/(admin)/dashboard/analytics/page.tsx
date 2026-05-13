@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { MOCK_CHART_DATA, IS_MOCK_MODE } from '@/lib/mock-data'
+import { PlanGate } from '@/components/admin/PlanGate'
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -24,7 +25,7 @@ interface KPISummary {
 
 const COLORS = ['#8BB06A', '#E5B84C', '#E86B5A', '#6D9450']
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const supabase = createClient()
   const [range, setRange] = useState<Range>('7')
   const [restaurantId, setRestaurantId] = useState<string | null>(null)
@@ -207,5 +208,13 @@ export default function AnalyticsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  return (
+    <PlanGate feature="has_analytics">
+      <AnalyticsContent />
+    </PlanGate>
   )
 }
