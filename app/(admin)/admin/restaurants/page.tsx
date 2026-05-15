@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, RefreshCw, Eye } from 'lucide-react'
+import { Search, Plus, RefreshCw, Eye, ToggleLeft, ToggleRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { RestaurantType } from '@/types'
 
@@ -102,6 +102,15 @@ export default function AdminRestaurantsPage() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [loadRestaurants]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggleActive = async (restaurantId: string, currentActive: boolean) => {
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ is_active: !currentActive })
+      .eq('id', restaurantId)
+    if (error) toast.error('Fehler beim Ändern des Status')
+    else toast.success(!currentActive ? 'Restaurant aktiviert' : 'Restaurant deaktiviert')
+  }
 
   // Kundenansicht: öffnet das Restaurant-Dashboard als wärst du der Inhaber
   const handleKundenansicht = (restaurantId: string, restaurantName: string) => {
@@ -223,15 +232,31 @@ export default function AdminRestaurantsPage() {
                       <StatusBadge active={r.is_active} />
                     </td>
                     <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => handleKundenansicht(r.id, r.name)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95"
-                        style={{ background: '#FF6B35' }}
-                        title="Restaurant-Dashboard öffnen"
-                      >
-                        <Eye className="w-3 h-3" />
-                        Kundenansicht
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleActive(r.id, r.is_active)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all hover:opacity-90 active:scale-95 ${
+                            r.is_active
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          }`}
+                          title={r.is_active ? 'Deaktivieren' : 'Aktivieren'}
+                        >
+                          {r.is_active
+                            ? <><ToggleRight className="w-3.5 h-3.5" /> Aktiv</>
+                            : <><ToggleLeft className="w-3.5 h-3.5" /> Inaktiv</>
+                          }
+                        </button>
+                        <button
+                          onClick={() => handleKundenansicht(r.id, r.name)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95"
+                          style={{ background: '#FF6B35' }}
+                          title="Restaurant-Dashboard öffnen"
+                        >
+                          <Eye className="w-3 h-3" />
+                          Ansicht
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

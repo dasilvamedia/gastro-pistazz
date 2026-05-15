@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const VALID_DB_TYPES = ['restaurant', 'bar', 'cafe', 'fine_dining', 'biergarten', 'eisdiele']
     const safeType = type && VALID_DB_TYPES.includes(type) ? type : 'restaurant'
 
-    const { error: restaurantError } = await admin.from('restaurants').insert({
+    const { error: restaurantError } = await admin.from('restaurants').upsert({
       name,
       slug,
       type: safeType,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       points_per_story: points_per_story ?? 500,
       owner_id: ownerId,
       is_active: true,
-    })
+    }, { onConflict: 'slug' })
 
     if (restaurantError) {
       await admin.auth.admin.deleteUser(ownerId)

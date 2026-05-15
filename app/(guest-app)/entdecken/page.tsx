@@ -444,19 +444,22 @@ export default function EntdeckenPage() {
   const [cityCoords, setCityCoords] = useState<Record<string, [number, number]>>({})
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
+  const hasLoadedOnce = useRef(false)
 
-  const fetchRestaurants = useCallback(async () => {
-    setLoading(true)
+  const fetchRestaurants = useCallback(async (silent = false) => {
+    // Only show skeleton on very first load — all subsequent updates are silent
+    if (!silent && !hasLoadedOnce.current) setLoading(true)
+
     if (IS_MOCK_MODE) {
       let filtered = MOCK_RESTAURANTS
       if (filter !== 'alle') filtered = filtered.filter(r => r.type === filter)
       if (search) filtered = filtered.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
       setRestaurants(filtered)
+      hasLoadedOnce.current = true
       setLoading(false)
       return
     }
     try {
-      // Only cities with active restaurants that have map coordinates — also capture coords
       supabase.from('restaurants').select('city, latitude, longitude')
         .eq('is_active', true)
         .not('latitude', 'is', null)
@@ -465,7 +468,6 @@ export default function EntdeckenPage() {
           if (data) {
             const cities = [...new Set(data.map(r => r.city).filter(Boolean) as string[])].sort()
             setAvailableCities(cities)
-            // First coordinate per city — used for smooth flyTo without GERMAN_CITIES guesswork
             const coords: Record<string, [number, number]> = {}
             data.forEach(r => {
               if (r.city && r.latitude && r.longitude && !coords[r.city]) {
@@ -487,18 +489,19 @@ export default function EntdeckenPage() {
       if (error) throw error
       setRestaurants(data ?? [])
     } catch {
-      toast.error('Fehler beim Laden der Restaurants')
+      if (!hasLoadedOnce.current) toast.error('Fehler beim Laden der Restaurants')
     } finally {
+      hasLoadedOnce.current = true
       setLoading(false)
     }
   }, [filter, sort, search, selectedCity])
 
   useEffect(() => {
-    const t = setTimeout(fetchRestaurants, 300)
+    const t = setTimeout(() => fetchRestaurants(hasLoadedOnce.current), 300)
     return () => clearTimeout(t)
   }, [fetchRestaurants])
 
-  // Realtime + polling (fetchRef prevents stale closure in subscription)
+  // Realtime + polling — always silent after first load
   const fetchRef = useRef(fetchRestaurants)
   useEffect(() => { fetchRef.current = fetchRestaurants }, [fetchRestaurants])
 
@@ -507,19 +510,19 @@ export default function EntdeckenPage() {
 
     const channel = supabase
       .channel('entdecken-live')
-      .on('broadcast', { event: 'restaurant_updated' }, () => fetchRef.current())
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, () => fetchRef.current())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'restaurants' }, () => fetchRef.current())
+      .on('broadcast', { event: 'restaurant_updated' }, () => fetchRef.current(true))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, () => fetchRef.current(true))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'restaurants' }, () => fetchRef.current(true))
       .subscribe()
 
-    // 5s polling fallback — fast enough to feel live without DB pub/sub config
-    const poll = setInterval(() => fetchRef.current(), 5_000)
+    // Silent background refresh every 60s — no skeleton, no scroll jump
+    const poll = setInterval(() => fetchRef.current(true), 60_000)
 
     return () => {
       supabase.removeChannel(channel)
       clearInterval(poll)
     }
-  }, []) // subscribe once only
+  }, [])
 
   return (
     <div className="fixed inset-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
