@@ -124,7 +124,7 @@ export default function ProfilPage() {
     if (!restaurant) return
     setSaving(true)
     try {
-      const parsedRating = parseFloat(googleRating)
+      const parsedRating = parseFloat(googleRating.replace(',', '.'))
       const parsedCount  = parseInt(googleReviewCount, 10)
       const res = await fetch('/api/dashboard/restaurant', {
         method: 'PATCH',
@@ -132,7 +132,7 @@ export default function ProfilPage() {
         body: JSON.stringify({
           ...values,
           opening_hours: openingHours,
-          google_rating:       isNaN(parsedRating) ? null : Math.min(5, Math.max(1, parsedRating)),
+          google_rating:       isNaN(parsedRating) || parsedRating <= 0 ? null : Math.min(5, parsedRating),
           google_review_count: isNaN(parsedCount)  ? null : parsedCount,
         }),
       })

@@ -115,8 +115,23 @@ export async function PATCH(request: NextRequest) {
       return p
     }
 
+    // Auto-geocode if address/city changed and no coordinates yet
+    if ((body.address || body.city) && !restaurant.latitude) {
+      try {
+        const q = encodeURIComponent(`${body.address || restaurant.address}, ${body.zip || restaurant.zip} ${body.city || restaurant.city}, Germany`)
+        const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, { headers: { 'User-Agent': 'gastro-pistazz/1.0' } })
+        const geoData = await geo.json()
+        if (geoData?.[0]?.lat) {
+          body.latitude  = parseFloat(geoData[0].lat)
+          body.longitude = parseFloat(geoData[0].lon)
+        }
+      } catch { /* non-blocking */ }
+    }
+
     // Try full payload first; if optional columns are missing, retry without them
     let payload = buildPayload(true)
+    if (body.latitude)  payload.latitude  = body.latitude
+    if (body.longitude) payload.longitude = body.longitude
     let { data, error } = await admin
       .from('restaurants').update(payload).eq('id', restaurant.id).select().single()
 

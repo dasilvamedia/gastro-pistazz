@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, RefreshCw, Eye, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Search, Plus, RefreshCw, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { RestaurantType } from '@/types'
 
@@ -34,15 +34,19 @@ function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`skeleton ${className}`} />
 }
 
-function StatusBadge({ active }: { active: boolean }) {
+function StatusToggle({ active, onClick }: { active: boolean; onClick: () => void }) {
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all hover:opacity-80 active:scale-95 ${
+        active
+          ? 'bg-green-50 text-green-700 border-green-200'
+          : 'bg-gray-50 text-gray-400 border-gray-200'
       }`}
     >
+      <span className={`w-2 h-2 rounded-full ${active ? 'bg-green-500' : 'bg-gray-300'}`} />
       {active ? 'Aktiv' : 'Inaktiv'}
-    </span>
+    </button>
   )
 }
 
@@ -229,34 +233,20 @@ export default function AdminRestaurantsPage() {
                     <td className="px-5 py-3.5 font-semibold text-primary">{r.total_stories}</td>
                     <td className="px-5 py-3.5 text-gray-600">{r.total_customers}</td>
                     <td className="px-5 py-3.5">
-                      <StatusBadge active={r.is_active} />
+                      <StatusToggle
+                        active={r.is_active}
+                        onClick={() => handleToggleActive(r.id, r.is_active)}
+                      />
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleToggleActive(r.id, r.is_active)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all hover:opacity-90 active:scale-95 ${
-                            r.is_active
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                          }`}
-                          title={r.is_active ? 'Deaktivieren' : 'Aktivieren'}
-                        >
-                          {r.is_active
-                            ? <><ToggleRight className="w-3.5 h-3.5" /> Aktiv</>
-                            : <><ToggleLeft className="w-3.5 h-3.5" /> Inaktiv</>
-                          }
-                        </button>
-                        <button
-                          onClick={() => handleKundenansicht(r.id, r.name)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95"
-                          style={{ background: '#FF6B35' }}
-                          title="Restaurant-Dashboard öffnen"
-                        >
-                          <Eye className="w-3 h-3" />
-                          Ansicht
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleKundenansicht(r.id, r.name)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95"
+                        style={{ background: '#FF6B35' }}
+                      >
+                        <Eye className="w-3 h-3" />
+                        Ansicht
+                      </button>
                     </td>
                   </tr>
                 ))}

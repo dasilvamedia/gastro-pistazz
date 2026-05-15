@@ -306,10 +306,21 @@ export default function RestaurantDetailPage() {
           <div className="space-y-3">
             <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6] space-y-3">
               {restaurant.address && (
-                <div className="flex items-start gap-3">
+                <a
+                  href={
+                    restaurant.latitude && restaurant.longitude
+                      ? `https://www.google.com/maps/search/?api=1&query=${restaurant.latitude},${restaurant.longitude}`
+                      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.address}, ${restaurant.zip} ${restaurant.city}`)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-3 group"
+                >
                   <MapPin size={18} className="text-[#8BB06A] flex-shrink-0 mt-0.5" />
-                  <p className="text-[#1C1F1A] text-sm">{restaurant.address}, {restaurant.zip} {restaurant.city}</p>
-                </div>
+                  <span className="text-[#1C1F1A] text-sm group-hover:text-[#6D9450] group-hover:underline transition-colors">
+                    {restaurant.address}, {restaurant.zip} {restaurant.city}
+                  </span>
+                </a>
               )}
               {restaurant.phone && (
                 <div className="flex items-center gap-3">
