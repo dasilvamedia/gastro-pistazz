@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 const restaurantSchema = z.object({
   name: z.string().min(2, 'Name mindestens 2 Zeichen'),
   slug: z.string().min(2, 'Slug mindestens 2 Zeichen').regex(/^[a-z0-9-]+$/, 'Nur Kleinbuchstaben, Zahlen und Bindestriche'),
-  type: z.enum(['restaurant', 'bar', 'bistro', 'cafe', 'imbiss', 'food_truck', 'hotel']),
+  type: z.enum(['restaurant', 'bar', 'cafe', 'fine_dining', 'biergarten', 'eisdiele']),
   city: z.string().min(2, 'Stadt angeben'),
   address: z.string().optional(),
   zip: z.string().optional(),
@@ -134,11 +134,10 @@ function NeuesRestaurantForm() {
               <select {...register('type')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
                 <option value="restaurant">Restaurant</option>
                 <option value="bar">Bar</option>
-                <option value="bistro">Bistro</option>
                 <option value="cafe">Café</option>
-                <option value="imbiss">Imbiss</option>
-                <option value="food_truck">Food Truck</option>
-                <option value="hotel">Hotel</option>
+                <option value="fine_dining">Fine Dining</option>
+                <option value="biergarten">Biergarten</option>
+                <option value="eisdiele">Eisdiele</option>
               </select>
             </div>
 

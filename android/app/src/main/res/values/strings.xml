@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pistazz</string>
+    <string name="title_activity_main">Pistazz</string>
+    <string name="package_name">io.pistazz.gastro</string>
+    <string name="custom_url_scheme">io.pistazz.gastro</string>
+</resources>

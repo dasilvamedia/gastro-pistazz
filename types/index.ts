@@ -1,6 +1,6 @@
 export type UserRole = 'guest' | 'restaurant_owner' | 'admin'
 export type UserTier = 'bronze' | 'silber' | 'gold' | 'platin'
-export type RestaurantType = 'restaurant' | 'bar' | 'bistro' | 'cafe' | 'imbiss' | 'food_truck' | 'hotel'
+export type RestaurantType = 'restaurant' | 'bar' | 'bistro' | 'cafe' | 'imbiss' | 'food_truck' | 'hotel' | 'fine_dining' | 'biergarten' | 'eisdiele'
 export type DealTrigger = 'instagram_story' | 'instagram_reel' | 'instagram_post' | 'google_review' | 'receipt_upload' | 'stamp_card' | 'custom'
 export type DealStatus = 'active' | 'paused' | 'expired' | 'draft'
 export type RewardType = 'discount_percent' | 'discount_fixed' | 'free_item' | 'bogo' | 'custom'
@@ -234,4 +234,7 @@ export const RESTAURANT_TYPE_LABELS: Record<RestaurantType, string> = {
   imbiss: 'Imbiss',
   food_truck: 'Food Truck',
   hotel: 'Hotel',
+  fine_dining: 'Fine Dining',
+  biergarten: 'Biergarten',
+  eisdiele: 'Eisdiele',
 }

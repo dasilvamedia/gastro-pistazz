@@ -24,11 +24,10 @@ interface RestaurantRow {
 const RESTAURANT_TYPE_LABELS: Record<string, string> = {
   restaurant: 'Restaurant',
   bar: 'Bar',
-  bistro: 'Bistro',
   cafe: 'Café',
-  imbiss: 'Imbiss',
-  food_truck: 'Food Truck',
-  hotel: 'Hotel',
+  fine_dining: 'Fine Dining',
+  biergarten: 'Biergarten',
+  eisdiele: 'Eisdiele',
 }
 
 function Skeleton({ className = '' }: { className?: string }) {
