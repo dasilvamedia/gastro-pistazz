@@ -10,7 +10,7 @@ workflows:
         BUNDLE_ID: io.pistazz.gastro
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
-      node: 20
+      node: v20.0.0
       xcode: latest
       cocoapods: default
     triggering:
@@ -23,11 +23,11 @@ workflows:
       - name: Install dependencies
         script: npm ci
       - name: Build Next.js
-        script: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: $NEXT_PUBLIC_SUPABASE_ANON_KEY
-          NEXT_PUBLIC_APP_URL: https://gastro.pistazz.io
+        script: |
+          export NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+          export NEXT_PUBLIC_APP_URL=https://gastro.pistazz.io
+          npm run build
       - name: Capacitor sync
         script: npx cap sync ios
       - name: Install CocoaPods
@@ -44,6 +44,8 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
+      integrations:
+        app_store_connect: Pistazz_ASC
       app_store_connect:
         auth: integration
         submit_to_testflight: true
