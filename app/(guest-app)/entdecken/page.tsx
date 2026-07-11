@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronDown, SlidersHorizontal, LayoutList, Map as MapIcon, X, MapPin } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, LayoutList, Map, X, MapPin } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -72,21 +72,20 @@ const GERMAN_CITIES: Record<string, [number, number]> = {
 
 // ── Module-level map helpers (no React deps) ─────────────────────────────────
 
-function createPinIcon(L: any, id: string, selected = false) {
-  const pathFill   = selected ? '#FF4800' : 'white'
-  const circleFill = selected ? '#fff3ee' : '#f0f8ec'
-  const stroke     = selected ? '#FF4800' : '#8BB06A'
-  const sw         = selected ? 2.5 : 1.5
-  const shadow     = selected ? 0.45 : 0.28
+function createPinIcon(L: any, id: string) {
   return L.divIcon({
     className: '',
-    html: `<div style="filter:drop-shadow(0 4px 10px rgba(0,0,0,${shadow}))">
+    html: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.28))">
       <svg width="48" height="60" viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
-        <defs><clipPath id="clip-${id}"><circle cx="24" cy="22" r="18"/></clipPath></defs>
-        <path d="M24 0C10.7 0 0 10.7 0 24C0 37.3 24 60 24 60C24 60 48 37.3 48 24C48 10.7 37.3 0 24 0Z" fill="${pathFill}"/>
-        <circle cx="24" cy="22" r="18" fill="${circleFill}"/>
+        <defs>
+          <clipPath id="clip-${id}">
+            <circle cx="24" cy="22" r="18"/>
+          </clipPath>
+        </defs>
+        <path d="M24 0C10.7 0 0 10.7 0 24C0 37.3 24 60 24 60C24 60 48 37.3 48 24C48 10.7 37.3 0 24 0Z" fill="white"/>
+        <circle cx="24" cy="22" r="18" fill="#f0f8ec"/>
         <image href="/marker-pistazz.png" x="6" y="4" width="36" height="36" clip-path="url(#clip-${id})"/>
-        <circle cx="24" cy="22" r="18" fill="none" stroke="${stroke}" stroke-width="${sw}"/>
+        <circle cx="24" cy="22" r="18" fill="none" stroke="#8BB06A" stroke-width="1.5"/>
       </svg>
     </div>`,
     iconSize: [48, 60],
@@ -101,30 +100,22 @@ function placeMapMarkers(
   map: any,
   restaurants: Restaurant[],
   city: string,
-  onSelectRef: React.MutableRefObject<(r: Restaurant) => void>,
-  selectedId: string | null,
-  markersByIdRef: React.MutableRefObject<Map<string, any>>
+  onSelectRef: React.MutableRefObject<(r: Restaurant) => void>
 ) {
   layer.clearLayers()
-  markersByIdRef.current.clear()
   const withCoords = restaurants.filter(r => r.latitude && r.longitude)
   withCoords.forEach(r => {
-    const selected = r.id === selectedId
-    const m = L.marker([r.latitude!, r.longitude!], {
-      icon: createPinIcon(L, r.id, selected),
-      zIndexOffset: selected ? 1000 : 0,
-    })
+    const m = L.marker([r.latitude!, r.longitude!], { icon: createPinIcon(L, r.id) })
     m.on('click', () => onSelectRef.current(r))
     m.addTo(layer)
-    markersByIdRef.current.set(r.id, m)
   })
-  if (withCoords.length > 1 && !selectedId) {
+  if (withCoords.length > 1) {
     const bounds = L.latLngBounds(withCoords.map(r => [r.latitude!, r.longitude!] as [number, number]))
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
   } else if (withCoords.length === 0) {
     const isAll = city === 'alle'
     const coords: [number, number] = isAll ? [51.1657, 10.4515] : (GERMAN_CITIES[city] ?? [48.7758, 9.1829])
-    L.marker(coords, { icon: createPinIcon(L, 'demo', false) }).addTo(layer)
+    L.marker(coords, { icon: createPinIcon(L, 'demo') }).addTo(layer)
   }
 }
 
@@ -223,35 +214,25 @@ function LeafletMap({
   city,
   restaurants,
   onSelect,
-  selectedId,
-  cityCoords,
 }: {
   city: string
   restaurants: Restaurant[]
   onSelect: (r: Restaurant) => void
-  selectedId: string | null
-  cityCoords: Record<string, [number, number]>
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const markersLayerRef = useRef<any>(null)
-  const markersById = useRef<Map<string, any>>(new Map())
   const locationLayerRef = useRef<any>(null)
-  const lastRestSigRef = useRef('')
 
   // Stable refs — updated every render, never invalidate effects
   const onSelectRef = useRef(onSelect)
   const restaurantsRef = useRef(restaurants)
   const cityRef = useRef(city)
-  const selectedIdRef = useRef(selectedId)
-  const cityCoordsRef = useRef(cityCoords)
   onSelectRef.current = onSelect
   restaurantsRef.current = restaurants
   cityRef.current = city
-  selectedIdRef.current = selectedId
-  cityCoordsRef.current = cityCoords
 
-  // ── Effect 1: Mount → create map once ───────────────────────────────────
+  // ── Effect 1: City change → full map reinit ──────────────────────────────
   useEffect(() => {
     let mounted = true
 
@@ -265,12 +246,14 @@ function LeafletMap({
       }
 
       const L = (await import('leaflet')).default
-      if (!mounted || !containerRef.current || mapRef.current) return
+      if (!mounted || !containerRef.current) return
+
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
+      markersLayerRef.current = null
 
       const isAll = cityRef.current === 'alle'
       const coords: [number, number] = isAll ? [51.1657, 10.4515] : (GERMAN_CITIES[cityRef.current] ?? [48.7758, 9.1829])
       const zoom = isAll ? 6 : 13
-
       const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false }).setView(coords, zoom)
       mapRef.current = map
 
@@ -282,79 +265,27 @@ function LeafletMap({
       const layer = L.layerGroup().addTo(map)
       markersLayerRef.current = layer
 
-      placeMapMarkers(L, layer, map, restaurantsRef.current, cityRef.current, onSelectRef, selectedIdRef.current, markersById)
-      lastRestSigRef.current = restaurantsRef.current.map(r => r.id).join(',')
+      // Place markers using the freshest restaurant data available
+      placeMapMarkers(L, layer, map, restaurantsRef.current, cityRef.current, onSelectRef)
     }
 
     init()
-
-    // Destroy map only on component unmount, not on city change
     return () => {
       mounted = false
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
       markersLayerRef.current = null
-      markersById.current.clear()
-      lastRestSigRef.current = ''
     }
-  }, []) // mount only
+  }, [city]) // Only city — no restaurant dependency → no flicker on data refresh
 
-  // ── Effect 2: City changes → smooth flyTo to actual restaurant location ──
+  // ── Effect 2: Restaurants change → update markers only, no map destroy ───
   useEffect(() => {
-    if (!mapRef.current) return
-    ;(async () => {
-      const L = (await import('leaflet')).default
-      const map = mapRef.current
-      if (!map) return
-      const isAll = city === 'alle'
-
-      if (isAll) {
-        map.flyTo([51.1657, 10.4515], 6, { animate: true, duration: 1.2, easeLinearity: 0.25 })
-      } else {
-        // Use real restaurant coordinates from DB (cityCoordsRef) — falls back to GERMAN_CITIES
-        const coords: [number, number] =
-          cityCoordsRef.current[city] ?? GERMAN_CITIES[city] ?? [51.1657, 10.4515]
-        map.flyTo(coords, 14, { animate: true, duration: 1.0, easeLinearity: 0.25 })
-      }
-
-      if (markersLayerRef.current) {
-        placeMapMarkers(L, markersLayerRef.current, map, restaurantsRef.current, city, onSelectRef, selectedIdRef.current, markersById)
-        lastRestSigRef.current = restaurantsRef.current.map(r => r.id).join(',')
-      }
-    })()
-  }, [city])
-
-  // ── Effect 3: Restaurants list changed → update markers only ────────────
-  // Skip if IDs are identical (same data, no visual change needed → no flicker)
-  useEffect(() => {
-    const sig = restaurants.map(r => r.id).join(',')
-    if (sig === lastRestSigRef.current) return
-    lastRestSigRef.current = sig
-
     if (!markersLayerRef.current || !mapRef.current) return
     ;(async () => {
       const L = (await import('leaflet')).default
       if (!markersLayerRef.current || !mapRef.current) return
-      placeMapMarkers(L, markersLayerRef.current, mapRef.current, restaurants, cityRef.current, onSelectRef, selectedIdRef.current, markersById)
+      placeMapMarkers(L, markersLayerRef.current, mapRef.current, restaurants, cityRef.current, onSelectRef)
     })()
   }, [restaurants])
-
-  // ── Effect 4: Selected pin changes → swap icon only, zero flicker ────────
-  useEffect(() => {
-    if (!markersById.current.size) return
-    ;(async () => {
-      const L = (await import('leaflet')).default
-      // Reset all to normal icon
-      markersById.current.forEach((marker, id) => {
-        marker.setIcon(createPinIcon(L, id, false))
-        marker.setZIndexOffset(0)
-      })
-      // Highlight the newly selected pin
-      if (selectedId) {
-        const m = markersById.current.get(selectedId)
-        if (m) { m.setIcon(createPinIcon(L, selectedId, true)); m.setZIndexOffset(1000) }
-      }
-    })()
-  }, [selectedId])
 
   // ── Location button ───────────────────────────────────────────────────────
   const handleLocate = async () => {
@@ -379,7 +310,7 @@ function LeafletMap({
         }).addTo(group)
         group.addTo(currentMap)
         locationLayerRef.current = group
-        currentMap.flyTo([lat, lng], 15, { animate: true, duration: 1.0, easeLinearity: 0.25 })
+        currentMap.setView([lat, lng], 15)
       },
       () => {},
       { enableHighAccuracy: true }
@@ -441,43 +372,20 @@ export default function EntdeckenPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('karte')
   const [selectedCity, setSelectedCity] = useState<string>('alle')
   const [availableCities, setAvailableCities] = useState<string[]>([])
-  const [cityCoords, setCityCoords] = useState<Record<string, [number, number]>>({})
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
-  const hasLoadedOnce = useRef(false)
 
-  const fetchRestaurants = useCallback(async (silent = false) => {
-    // Only show skeleton on very first load — all subsequent updates are silent
-    if (!silent && !hasLoadedOnce.current) setLoading(true)
-
+  const fetchRestaurants = useCallback(async () => {
+    setLoading(true)
     if (IS_MOCK_MODE) {
       let filtered = MOCK_RESTAURANTS
       if (filter !== 'alle') filtered = filtered.filter(r => r.type === filter)
       if (search) filtered = filtered.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
       setRestaurants(filtered)
-      hasLoadedOnce.current = true
       setLoading(false)
       return
     }
     try {
-      supabase.from('restaurants').select('city, latitude, longitude')
-        .eq('is_active', true)
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
-        .then(({ data }) => {
-          if (data) {
-            const cities = [...new Set(data.map(r => r.city).filter(Boolean) as string[])].sort()
-            setAvailableCities(cities)
-            const coords: Record<string, [number, number]> = {}
-            data.forEach(r => {
-              if (r.city && r.latitude && r.longitude && !coords[r.city]) {
-                coords[r.city] = [r.latitude, r.longitude]
-              }
-            })
-            setCityCoords(coords)
-          }
-        })
-
       let query = supabase.from('restaurants').select('*').eq('is_active', true)
       if (filter !== 'alle') query = query.eq('type', filter)
       if (selectedCity !== 'alle') query = query.eq('city', selectedCity)
@@ -487,21 +395,36 @@ export default function EntdeckenPage() {
       else query = query.order('total_customers', { ascending: false })
       const { data, error } = await query.limit(50)
       if (error) throw error
-      setRestaurants(data ?? [])
+      const list = data ?? []
+      setRestaurants(list)
+      if (selectedCity === 'alle') {
+        const cities = [...new Set(list.map(r => r.city).filter(Boolean) as string[])].sort()
+        setAvailableCities(cities)
+      }
     } catch {
-      if (!hasLoadedOnce.current) toast.error('Fehler beim Laden der Restaurants')
+      toast.error('Fehler beim Laden der Restaurants')
     } finally {
-      hasLoadedOnce.current = true
       setLoading(false)
     }
   }, [filter, sort, search, selectedCity])
 
+  // Populate available cities on first load
   useEffect(() => {
-    const t = setTimeout(() => fetchRestaurants(hasLoadedOnce.current), 300)
+    if (IS_MOCK_MODE) return
+    supabase.from('restaurants').select('city').eq('is_active', true).then(({ data }) => {
+      if (data) {
+        const cities = [...new Set(data.map(r => r.city).filter(Boolean) as string[])].sort()
+        setAvailableCities(cities)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(fetchRestaurants, 300)
     return () => clearTimeout(t)
   }, [fetchRestaurants])
 
-  // Realtime + polling — always silent after first load
+  // Realtime + polling (fetchRef prevents stale closure in subscription)
   const fetchRef = useRef(fetchRestaurants)
   useEffect(() => { fetchRef.current = fetchRestaurants }, [fetchRestaurants])
 
@@ -510,19 +433,19 @@ export default function EntdeckenPage() {
 
     const channel = supabase
       .channel('entdecken-live')
-      .on('broadcast', { event: 'restaurant_updated' }, () => fetchRef.current(true))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, () => fetchRef.current(true))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'restaurants' }, () => fetchRef.current(true))
+      .on('broadcast', { event: 'restaurant_updated' }, () => fetchRef.current())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, () => fetchRef.current())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'restaurants' }, () => fetchRef.current())
       .subscribe()
 
-    // Silent background refresh every 60s — no skeleton, no scroll jump
-    const poll = setInterval(() => fetchRef.current(true), 60_000)
+    // 5s polling fallback — fast enough to feel live without DB pub/sub config
+    const poll = setInterval(() => fetchRef.current(), 5_000)
 
     return () => {
       supabase.removeChannel(channel)
       clearInterval(poll)
     }
-  }, [])
+  }, []) // subscribe once only
 
   return (
     <div className="fixed inset-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -537,7 +460,7 @@ export default function EntdeckenPage() {
             transition={{ duration: 0.2 }}
             className="absolute inset-0"
           >
-            <LeafletMap city={selectedCity} restaurants={restaurants} onSelect={handlePinSelect} selectedId={selectedRestaurant?.id ?? null} cityCoords={cityCoords} />
+            <LeafletMap city={selectedCity} restaurants={restaurants} onSelect={handlePinSelect} />
 
             {/* Top floating header */}
             <div className="absolute top-0 inset-x-0 z-[1000] px-4 pt-12 pb-4">
@@ -706,7 +629,7 @@ export default function EntdeckenPage() {
           >
             {viewMode === 'karte'
               ? <><LayoutList size={14} className="text-[#6D9450]" />Liste</>
-              : <><MapIcon size={14} className="text-[#6D9450]" />Karte</>
+              : <><Map size={14} className="text-[#6D9450]" />Karte</>
             }
           </button>
         </motion.div>

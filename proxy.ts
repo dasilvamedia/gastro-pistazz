@@ -45,9 +45,8 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
-  // Redirect logged-in users away from auth pages to their dashboard
-  // NOTE: '/' (landing page) is intentionally NOT redirected — anyone can see it
-  if (user && (path === '/login' || path === '/register' || path === '/restaurant-login')) {
+  // Redirect logged-in users away from auth/landing to their dashboard
+  if (user && (path === '/' || path === '/login' || path === '/register' || path === '/restaurant-login')) {
     const role = await getUserRole(supabase, user.id)
     if (role === 'super_admin' || role === 'admin') {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
@@ -64,15 +63,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/home', request.url))
   }
 
-  // Protected guest routes — unauthenticated users get redirected to login
+  // Protected guest routes
   const guestRoutes = ['/home', '/entdecken', '/deals', '/profil', '/story', '/restaurant', '/onboarding']
   if (guestRoutes.some(r => path.startsWith(r)) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // /r/[slug] — public customer landing pages, always accessible (no auth required)
-  if (path.startsWith('/r/')) {
-    return NextResponse.next({ request })
   }
 
   // Protected /dashboard/* — restaurant_owner or super_admin
