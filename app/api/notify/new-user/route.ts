@@ -8,16 +8,17 @@ const transporter = nodemailer.createTransport({
   secure: false,           // STARTTLS auf Port 587
   auth: {
     user: process.env.SMTP_USER ?? 'w01c832d',
-    pass: process.env.SMTP_PASS ?? 'Li@m23Lim@23',
+    pass: process.env.SMTP_PASS,
   },
-  tls: { rejectUnauthorized: false },
+  tls: { rejectUnauthorized: true },
 })
 
 export async function POST(request: NextRequest) {
   try {
     // Einfache interne Absicherung
     const secret = request.headers.get('x-internal-secret')
-    if (secret !== (process.env.INTERNAL_NOTIFY_SECRET ?? 'pistazz-internal')) {
+    const expectedSecret = process.env.INTERNAL_NOTIFY_SECRET
+    if (!expectedSecret || secret !== expectedSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

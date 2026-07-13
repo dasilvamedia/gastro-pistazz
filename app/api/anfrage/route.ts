@@ -27,9 +27,9 @@ const transporter = nodemailer.createTransport({
   secure: false,
   auth: {
     user: process.env.SMTP_USER ?? 'w01c832d',
-    pass: process.env.SMTP_PASS ?? 'Li@m23Lim@23',
+    pass: process.env.SMTP_PASS,
   },
-  tls: { rejectUnauthorized: false },
+  tls: { rejectUnauthorized: true },
 })
 
 function formatDate() {

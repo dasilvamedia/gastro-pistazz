@@ -41,6 +41,10 @@ export async function POST(request: Request) {
     if (!restaurant_id || !type) {
       return NextResponse.json({ error: 'restaurant_id and type are required' }, { status: 400 })
     }
+    // Caption Längenbegrenzung gegen DoS
+    if (caption && caption.length > 2000) {
+      return NextResponse.json({ error: 'Caption zu lang (max. 2000 Zeichen)' }, { status: 400 })
+    }
 
     const validTypes = ['instagram_story', 'instagram_reel', 'instagram_post', 'google_review', 'receipt']
     if (!validTypes.includes(type)) {
@@ -61,7 +65,15 @@ export async function POST(request: Request) {
     }
 
     // Haupt-Datei hochladen (z.B. Kassenbon)
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic']
+    const MAX_SIZE = 50 * 1024 * 1024 // 50MB
     if (file && file.size > 0) {
+      if (file.size > MAX_SIZE) {
+        return NextResponse.json({ error: 'Datei zu groß (max. 50 MB)' }, { status: 400 })
+      }
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        return NextResponse.json({ error: 'Ungültiger Dateityp. Nur Bilder erlaubt.' }, { status: 400 })
+      }
       const ext = file.name.split('.').pop() ?? 'jpg'
       const path = `${user.id}/${restaurant_id}/${Date.now()}.${ext}`
       const arrayBuffer = await file.arrayBuffer()
@@ -78,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     // Screenshot hochladen (für Instagram-Verifikation)
-    if (screenshotFile && screenshotFile.size > 0) {
+    if (screenshotFile && screenshotFile.size > 0 && screenshotFile.size <= MAX_SIZE && ALLOWED_TYPES.includes(screenshotFile.type)) {
       const ext = screenshotFile.name.split('.').pop() ?? 'jpg'
       const path = `screenshots/${user.id}/${restaurant_id}/${Date.now()}.${ext}`
       const arrayBuffer = await screenshotFile.arrayBuffer()

@@ -22,6 +22,13 @@ export async function POST(request: NextRequest) {
     const { user_id, title, body, url } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'user_id required' }, { status: 400 })
 
+    // Nur interne Aufrufe erlaubt (Server-Side)
+    const internalSecret = process.env.INTERNAL_NOTIFY_SECRET
+    const callerSecret = request.headers.get('x-internal-secret')
+    if (!internalSecret || callerSecret !== internalSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const admin = createAdminClient()
     const { data: subs } = await admin
       .from('push_subscriptions')
