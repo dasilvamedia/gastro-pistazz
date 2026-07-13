@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Datenschutzerklärung – Pistazz',
-  description: 'Datenschutzerklärung der Pistazz Gastro-Marketing-Plattform',
+  title: 'Datenschutzerklärung | gastro.pistazz.io',
+  description: 'Datenschutzerklärung der gastro.pistazz.io Gastro-Marketing-Plattform',
 }
 
 export default function DatenschutzPage() {
@@ -54,8 +54,8 @@ export default function DatenschutzPage() {
             <h2 className="text-lg font-bold text-[#1C1F1A] mb-3">4. Datenweitergabe</h2>
             <p>Wir geben Daten nur weiter an:</p>
             <ul className="list-disc pl-5 space-y-1 mt-2">
-              <li><strong>Supabase Inc.</strong> (Datenbank &amp; Authentifizierung, USA) – Datenverarbeitungsvertrag geschlossen</li>
-              <li><strong>Anthropic PBC</strong> (KI-Analyse von Screenshots, USA) – keine dauerhafte Speicherung</li>
+              <li><strong>Supabase Inc.</strong> (Datenbank &amp; Authentifizierung, USA), Datenverarbeitungsvertrag geschlossen</li>
+              <li><strong>Anthropic PBC</strong> (KI-Analyse von Screenshots, USA), keine dauerhafte Speicherung</li>
               <li>Restaurantpartner erhalten nur aggregierte Statistiken, keine persönlichen Daten ohne Einwilligung</li>
             </ul>
           </section>

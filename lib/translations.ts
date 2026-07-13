@@ -9,13 +9,13 @@ export const translations = {
       cta: 'Kostenlos starten',
     },
     hero: {
-      badge: '🏆 Nr. 1 Loyalty-Plattform für Gastronomie',
+      badge: '🏆 Die Loyalty-Plattform für Gastronomie',
       h1: 'Deine Gäste werden dein',
       h1accent: 'bestes Marketing',
       p: 'Social-Media Loyalty, digitale Stempelkarten & Gäste-CRM in einer Plattform. Null Aufwand, maximale Reichweite durch echte Gäste.',
       ctaPrimary: '🚀 Kostenlos starten',
       ctaSecondary: 'Demo ansehen',
-      social: '<b>500+</b> Betriebe: Restaurants, Bars, Cafés, Biergärten',
+      social: 'Gebaut für Restaurants, Bars, Cafés und Biergärten',
     },
     howItWorks: {
       label: 'So einfach geht\'s',
@@ -132,7 +132,7 @@ export const translations = {
     },
     roi: {
       label: 'ROI-Rechner',
-      h2: 'Was bringt pistazz.io deinem Betrieb?',
+      h2: 'Was bringt gastro.gastro.pistazz.io deinem Betrieb?',
       sub: 'Schiebe die Regler und sieh in Echtzeit, was dein Betrieb gewinnen kann.',
       fields: {
         guests: 'Gäste pro Tag',
@@ -153,16 +153,16 @@ export const translations = {
         newGuests: 'Neue Gäste durch Reichweite',
         newGuestsUnit: 'Neugäste',
         revenue: 'Zusätzlicher Umsatz',
-        roiLabel: 'Dein ROI mit pistazz.io',
+        roiLabel: 'Dein ROI mit gastro.gastro.pistazz.io',
         roiSub: 'Rendite auf das Plattform-Investment',
       },
-      disclaimer: 'Schätzwerte basieren auf Durchschnittswerten unserer Betriebe. Individuelle Ergebnisse können abweichen.',
+      disclaimer: 'Schätzwerte basieren auf branchenüblichen Durchschnittswerten. Individuelle Ergebnisse können abweichen.',
     },
     guarantee: {
       label: 'Unsere Garantie',
       days: 'Tage Garantie',
       h2: '90 Tage Geld-zurück-Garantie',
-      p: 'Wir sind von pistazz.io überzeugt und du solltest es auch sein. Wenn du innerhalb von 90 Tagen nicht zufrieden bist, erstatten wir dir jeden Cent. Kein Kleingedrucktes, keine Fragen.',
+      p: 'Wir sind von gastro.gastro.pistazz.io überzeugt und du solltest es auch sein. Wenn du innerhalb von 90 Tagen nicht zufrieden bist, erstatten wir dir jeden Cent. Kein Kleingedrucktes, keine Fragen.',
       items: ['Keine Fragen', 'Volle Erstattung', 'Sofort wirksam'],
     },
     faq: {
@@ -172,7 +172,7 @@ export const translations = {
       items: [
         {
           q: 'Brauchen meine Gäste eine App?',
-          a: 'Nein. pistazz.io läuft komplett im Browser. Deine Gäste scannen den QR-Code am Tisch, das war es. Kein App Store, kein Login, keine Hürde.',
+          a: 'Nein. gastro.pistazz.io läuft komplett im Browser. Deine Gäste scannen den QR-Code am Tisch, das war es. Kein App Store, kein Login, keine Hürde.',
         },
         {
           q: 'Wie funktioniert die KI-Verifizierung?',
@@ -180,7 +180,7 @@ export const translations = {
         },
         {
           q: 'Kann ich jederzeit kündigen?',
-          a: 'Ja. pistazz.io ist monatlich kündbar ohne Mindestlaufzeit. Deine Gästedaten kannst du vor der Kündigung exportieren.',
+          a: 'Ja. gastro.pistazz.io ist monatlich kündbar ohne Mindestlaufzeit. Deine Gästedaten kannst du vor der Kündigung exportieren.',
         },
         {
           q: 'Was ist die 90-Tage-Garantie genau?',
@@ -188,7 +188,7 @@ export const translations = {
         },
         {
           q: 'Funktioniert das auch für mein Café oder meinen Biergarten?',
-          a: 'pistazz.io ist für alle Gastronomiebetriebe gebaut: Restaurants, Bars, Cafés, Biergärten, Imbisse und mehr. Die Plattform passt sich deinem Betrieb an.',
+          a: 'gastro.pistazz.io ist für alle Gastronomiebetriebe gebaut: Restaurants, Bars, Cafés, Biergärten, Imbisse und mehr. Die Plattform passt sich deinem Betrieb an.',
         },
         {
           q: 'Was passiert mit den Daten meiner Gäste?',
@@ -223,13 +223,13 @@ export const translations = {
       cta: 'Começar grátis',
     },
     hero: {
-      badge: '🏆 Nr. 1 Plataforma de Fidelidade para Gastronomia',
+      badge: '🏆 A plataforma de fidelidade para gastronomia',
       h1: 'Seus clientes se tornam seu',
       h1accent: 'melhor marketing',
       p: 'Social Loyalty, cartões de fidelidade digitais e CRM de clientes em uma plataforma. Zero esforço, máximo alcance por clientes reais.',
       ctaPrimary: '🚀 Começar grátis',
       ctaSecondary: 'Ver demo',
-      social: '<b>500+</b> negócios: restaurantes, bares, cafés, biergartens',
+      social: 'Feito para restaurantes, bares, cafés e biergartens',
     },
     howItWorks: {
       label: 'Simples assim',
@@ -346,7 +346,7 @@ export const translations = {
     },
     roi: {
       label: 'Calculadora de ROI',
-      h2: 'O que o pistazz.io traz para o seu negócio?',
+      h2: 'O que o gastro.pistazz.io traz para o seu negócio?',
       sub: 'Ajuste os controles e veja em tempo real o que seu negócio pode ganhar.',
       fields: {
         guests: 'Clientes por dia',
@@ -367,16 +367,16 @@ export const translations = {
         newGuests: 'Novos clientes pelo alcance',
         newGuestsUnit: 'novos clientes',
         revenue: 'Receita adicional',
-        roiLabel: 'Seu ROI com pistazz.io',
+        roiLabel: 'Seu ROI com gastro.pistazz.io',
         roiSub: 'Retorno sobre o investimento na plataforma',
       },
-      disclaimer: 'Estimativas baseadas em médias dos nossos negócios. Resultados individuais podem variar.',
+      disclaimer: 'Estimativas baseadas em médias típicas do setor. Resultados individuais podem variar.',
     },
     guarantee: {
       label: 'Nossa Garantia',
       days: 'Dias de Garantia',
       h2: 'Garantia de 90 dias sem risco',
-      p: 'Estamos convictos do pistazz.io e você também deve estar. Se não estiver satisfeito em 90 dias, devolvemos cada centavo. Sem letras miúdas, sem perguntas.',
+      p: 'Estamos convictos do gastro.pistazz.io e você também deve estar. Se não estiver satisfeito em 90 dias, devolvemos cada centavo. Sem letras miúdas, sem perguntas.',
       items: ['Sem perguntas', 'Reembolso total', 'Efeito imediato'],
     },
     faq: {
@@ -386,7 +386,7 @@ export const translations = {
       items: [
         {
           q: 'Meus clientes precisam de um app?',
-          a: 'Não. O pistazz.io funciona totalmente no browser. Seus clientes escaneiam o QR Code na mesa e pronto. Sem App Store, sem login, sem barreira.',
+          a: 'Não. O gastro.pistazz.io funciona totalmente no browser. Seus clientes escaneiam o QR Code na mesa e pronto. Sem App Store, sem login, sem barreira.',
         },
         {
           q: 'Como funciona a verificação por IA?',
@@ -394,7 +394,7 @@ export const translations = {
         },
         {
           q: 'Posso cancelar a qualquer momento?',
-          a: 'Sim. O pistazz.io tem cancelamento mensal sem fidelidade mínima. Você pode exportar os dados dos seus clientes antes de cancelar.',
+          a: 'Sim. O gastro.pistazz.io tem cancelamento mensal sem fidelidade mínima. Você pode exportar os dados dos seus clientes antes de cancelar.',
         },
         {
           q: 'O que é exatamente a garantia de 90 dias?',
@@ -402,7 +402,7 @@ export const translations = {
         },
         {
           q: 'Funciona para café ou biergarten também?',
-          a: 'O pistazz.io foi desenvolvido para todos os tipos de negócios gastronômicos: restaurantes, bares, cafés, biergartens, lanchonetes e mais.',
+          a: 'O gastro.pistazz.io foi desenvolvido para todos os tipos de negócios gastronômicos: restaurantes, bares, cafés, biergartens, lanchonetes e mais.',
         },
         {
           q: 'O que acontece com os dados dos meus clientes?',
@@ -437,13 +437,13 @@ export const translations = {
       cta: 'Start for free',
     },
     hero: {
-      badge: '🏆 No. 1 Loyalty Platform for Hospitality',
+      badge: '🏆 The loyalty platform for hospitality',
       h1: 'Your guests become your',
       h1accent: 'best marketing',
       p: 'Social Media Loyalty, digital loyalty cards and guest CRM in one platform. Zero effort, maximum reach through real guests.',
       ctaPrimary: '🚀 Start for free',
       ctaSecondary: 'See demo',
-      social: '<b>500+</b> venues: restaurants, bars, cafés, beer gardens',
+      social: 'Built for restaurants, bars, cafés and beer gardens',
     },
     howItWorks: {
       label: 'That simple',
@@ -560,7 +560,7 @@ export const translations = {
     },
     roi: {
       label: 'ROI Calculator',
-      h2: 'What does pistazz.io bring your venue?',
+      h2: 'What does gastro.pistazz.io bring your venue?',
       sub: 'Move the sliders and see in real time what your venue could gain.',
       fields: {
         guests: 'Guests per day',
@@ -581,16 +581,16 @@ export const translations = {
         newGuests: 'New guests from reach',
         newGuestsUnit: 'new guests',
         revenue: 'Additional revenue',
-        roiLabel: 'Your ROI with pistazz.io',
+        roiLabel: 'Your ROI with gastro.pistazz.io',
         roiSub: 'Return on platform investment',
       },
-      disclaimer: 'Estimates based on averages from our venues. Individual results may vary.',
+      disclaimer: 'Estimates are based on typical industry averages. Individual results may vary.',
     },
     guarantee: {
       label: 'Our Guarantee',
       days: 'Day Guarantee',
       h2: '90-day money-back guarantee',
-      p: 'We believe in pistazz.io and you should too. If you are not satisfied within 90 days, we refund every cent. No fine print, no questions asked.',
+      p: 'We believe in gastro.pistazz.io and you should too. If you are not satisfied within 90 days, we refund every cent. No fine print, no questions asked.',
       items: ['No questions asked', 'Full refund', 'Immediate effect'],
     },
     faq: {
@@ -600,7 +600,7 @@ export const translations = {
       items: [
         {
           q: 'Do my guests need an app?',
-          a: 'No. pistazz.io runs entirely in the browser. Your guests scan the QR code at the table and that is it. No App Store, no login, no friction.',
+          a: 'No. gastro.pistazz.io runs entirely in the browser. Your guests scan the QR code at the table and that is it. No App Store, no login, no friction.',
         },
         {
           q: 'How does AI verification work?',
@@ -608,7 +608,7 @@ export const translations = {
         },
         {
           q: 'Can I cancel anytime?',
-          a: 'Yes. pistazz.io is billed monthly with no minimum term. You can export your guest data before cancelling.',
+          a: 'Yes. gastro.pistazz.io is billed monthly with no minimum term. You can export your guest data before cancelling.',
         },
         {
           q: 'What exactly is the 90-day guarantee?',
@@ -616,7 +616,7 @@ export const translations = {
         },
         {
           q: 'Does it work for my café or beer garden too?',
-          a: 'pistazz.io is built for all hospitality businesses: restaurants, bars, cafés, beer gardens, fast food and more. The platform adapts to your venue.',
+          a: 'gastro.pistazz.io is built for all hospitality businesses: restaurants, bars, cafés, beer gardens, fast food and more. The platform adapts to your venue.',
         },
         {
           q: 'What happens to my guest data?',

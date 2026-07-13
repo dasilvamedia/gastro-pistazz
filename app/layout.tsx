@@ -17,13 +17,13 @@ const dmSerifDisplay = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'Pistazz',
-  description: 'Dein Loyalty-Erlebnis für Gastronomie',
+  title: 'gastro.pistazz.io',
+  description: 'Die Loyalty-Plattform für Gastronomie',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Pistazz',
+    title: 'gastro.pistazz.io',
   },
   other: {
     'mobile-web-app-capable': 'yes',

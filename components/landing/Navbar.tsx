@@ -32,7 +32,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-baseline gap-0 shrink-0">
           <span className="text-xl font-bold text-[#8BB06A]" style={{ fontFamily: 'var(--font-display)' }}>
-            pistazz
+            gastro.pistazz
           </span>
           <span className="text-xl font-bold text-[#1C1F1A]" style={{ fontFamily: 'var(--font-display)' }}>
             .io

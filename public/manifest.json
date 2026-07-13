@@ -1,7 +1,7 @@
 {
-  "name": "Pistazz",
-  "short_name": "Pistazz",
-  "description": "Dein Loyalty-Erlebnis für Gastronomie",
+  "name": "gastro.pistazz.io",
+  "short_name": "gastro.pistazz.io",
+  "description": "Die Loyalty-Plattform für Gastronomie",
   "start_url": "/home",
   "display": "standalone",
   "background_color": "#F5F5F0",
@@ -28,7 +28,7 @@
       "src": "/screenshots/home.png",
       "sizes": "1170x2532",
       "type": "image/png",
-      "label": "Pistazz Home"
+      "label": "gastro.pistazz.io Home"
     }
   ]
 }

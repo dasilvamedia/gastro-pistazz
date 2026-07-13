@@ -11,12 +11,12 @@ const BETRIEBSARTEN = [
 ]
 
 const GROESSEN = [
-  'Bis 30 Sitzplätze', '30–60 Sitzplätze', '60–100 Sitzplätze',
-  '100–200 Sitzplätze', 'Über 200 Sitzplätze',
+  'Bis 30 Sitzplätze', '30 bis 60 Sitzplätze', '60 bis 100 Sitzplätze',
+  '100 bis 200 Sitzplätze', 'Über 200 Sitzplätze',
 ]
 
 const MITARBEITER = [
-  '1–3', '4–10', '11–25', '26–50', 'Über 50',
+  '1 bis 3', '4 bis 10', '11 bis 25', '26 bis 50', 'Über 50',
 ]
 
 function Field({ label, required, children, hint }: {
@@ -92,8 +92,8 @@ export default function AnfragePage() {
           </h1>
           <p className="text-[#1C1F1A]/60 text-sm leading-relaxed mb-6">
             Vielen Dank! Wir haben deine Anfrage erhalten und melden uns innerhalb von
-            <strong className="text-[#1C1F1A]"> 24–48 Stunden</strong> persönlich bei dir.
-            Schau auch in deinen Spam-Ordner — du hast eine Bestätigung per E-Mail bekommen.
+            <strong className="text-[#1C1F1A]"> 24 bis 48 Stunden</strong> persönlich bei dir.
+            Schau auch in deinen Spam-Ordner, du hast eine Bestätigung per E-Mail bekommen.
           </p>
           <Link
             href="/"
@@ -111,14 +111,14 @@ export default function AnfragePage() {
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-10 text-center">
         <Link href="/" className="inline-flex items-baseline gap-0 mb-8">
-          <span className="text-2xl font-bold text-[#8BB06A]" style={{ fontFamily: 'DM Serif Display, serif' }}>pistazz</span>
+          <span className="text-2xl font-bold text-[#8BB06A]" style={{ fontFamily: 'DM Serif Display, serif' }}>gastro.pistazz</span>
           <span className="text-2xl font-bold text-[#1C1F1A]" style={{ fontFamily: 'DM Serif Display, serif' }}>.io</span>
         </Link>
         <h1 className="text-4xl md:text-5xl text-[#1C1F1A] font-bold leading-tight mb-4" style={{ fontFamily: 'DM Serif Display, serif' }}>
-          pistazz.io für dein Lokal nutzen
+          gastro.pistazz.io für dein Lokal nutzen
         </h1>
         <p className="text-[#1C1F1A]/55 text-base leading-relaxed max-w-lg mx-auto">
-          Füll das Formular aus — wir melden uns persönlich innerhalb von 24 Stunden.
+          Füll das Formular aus, wir melden uns persönlich innerhalb von 24 Stunden.
           Kein Vertrag, kein Risiko. 90 Tage Geld-zurück-Garantie.
         </p>
 
