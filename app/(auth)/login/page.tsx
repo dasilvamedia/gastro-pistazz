@@ -64,7 +64,9 @@ function LoginInner() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role === 'restaurant_owner' || profile?.role === 'admin') {
+      if (profile?.role === 'super_admin' || profile?.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else if (profile?.role === 'restaurant_owner') {
         router.push('/dashboard')
       } else if (!profile?.onboarding_completed) {
         router.push(restaurantSlug ? `/onboarding?restaurant=${restaurantSlug}` : '/onboarding')

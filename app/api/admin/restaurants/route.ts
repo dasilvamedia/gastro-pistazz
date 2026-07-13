@@ -2,30 +2,51 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-export async function GET(request: NextRequest) {
+async function assertSuperAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  if (!user) return null
   const admin = createAdminClient()
-  const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'super_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { data: p } = await admin.from('profiles').select('role').eq('id', user.id).single()
+  if (p?.role !== 'super_admin') return null
+  return { admin }
+}
 
-  const { searchParams } = new URL(request.url)
-  const filterStatus = searchParams.get('status') ?? 'all'
-  const filterCity   = searchParams.get('city')   ?? ''
+export async function GET() {
+  const auth = await assertSuperAdmin()
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  let query = admin
+  const { data, error } = await auth.admin
     .from('restaurants')
-    .select('id, slug, name, type, city, total_stories, total_customers, is_active, is_verified, owner:profiles!owner_id(full_name)')
+    .select('id, slug, name, type, city, total_stories, total_customers, is_active, is_verified, owner_id, owner:profiles!owner_id(full_name)')
     .order('created_at', { ascending: false })
 
-  if (filterStatus === 'active')   query = query.eq('is_active', true)
-  if (filterStatus === 'inactive') query = query.eq('is_active', false)
-  if (filterCity)                  query = query.eq('city', filterCity)
-
-  const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ restaurants: data ?? [] })
+  const restaurants = (data ?? []).map((r: Record<string, unknown>) => {
+    const ownerRaw = r.owner
+    const ownerName = Array.isArray(ownerRaw)
+      ? (ownerRaw[0] as { full_name: string | null } | undefined)?.full_name ?? null
+      : (ownerRaw as { full_name: string | null } | null)?.full_name ?? null
+    return { ...r, owner: undefined, owner_name: ownerName }
+  })
+
+  return NextResponse.json({ restaurants })
+}
+
+export async function PATCH(request: NextRequest) {
+  const auth = await assertSuperAdmin()
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const body = await request.json()
+  const { id, is_active } = body
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+  const { error } = await auth.admin
+    .from('restaurants')
+    .update({ is_active })
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

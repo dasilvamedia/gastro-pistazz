@@ -22,11 +22,38 @@ function timeAgo(date: string) {
   return `vor ${Math.floor(diff / 86400)} Tagen`
 }
 
+type IgChecks = {
+  url_user_match: boolean | null
+  has_restaurant_tag?: boolean
+  is_recent?: boolean
+  oembed_verified?: boolean | null
+  user_handle?: string | null
+}
+
 type StoryWithUser = StorySubmission & {
   user: { full_name: string | null; instagram_handle: string | null } | null
   ai_verdict?: string | null
   ai_confidence?: number | null
   ai_notes?: string | null
+  ig_checks?: IgChecks | null
+  screenshot_url?: string | null
+}
+
+function IgCheckBadge({ ok, label }: { ok: boolean | null | undefined; label: string }) {
+  if (ok === null || ok === undefined) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-400">
+        ⚪ {label}
+      </span>
+    )
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded font-medium ${ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}
+    >
+      {ok ? '✅' : '❌'} {label}
+    </span>
+  )
 }
 
 function AIBadge({ verdict, confidence, notes }: { verdict?: string | null; confidence?: number | null; notes?: string | null }) {
@@ -176,8 +203,24 @@ export default function StoriesPage() {
                     </span>
                   </div>
                   <AIBadge verdict={story.ai_verdict} confidence={story.ai_confidence} notes={story.ai_notes} />
+                  {story.ig_checks && (
+                    <div className="flex gap-1 flex-wrap mt-1">
+                      <IgCheckBadge ok={story.ig_checks.url_user_match} label="URL-Match" />
+                      <IgCheckBadge ok={story.ig_checks.has_restaurant_tag} label="Restaurant-Tag" />
+                      <IgCheckBadge ok={story.ig_checks.is_recent} label="Aktuell" />
+                      {story.ig_checks.oembed_verified !== null && story.ig_checks.oembed_verified !== undefined && (
+                        <IgCheckBadge ok={story.ig_checks.oembed_verified} label="Post verifiziert" />
+                      )}
+                    </div>
+                  )}
                   {story.ai_notes && story.ai_verdict !== 'pending' && (
                     <p className="text-xs text-gray-500 italic mt-1">{story.ai_notes}</p>
+                  )}
+                  {story.screenshot_url && (
+                    <a href={story.screenshot_url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-purple-500 underline hover:no-underline">
+                      Screenshot ansehen
+                    </a>
                   )}
                   {story.instagram_permalink && (
                     <a href={story.instagram_permalink} target="_blank" rel="noopener noreferrer"

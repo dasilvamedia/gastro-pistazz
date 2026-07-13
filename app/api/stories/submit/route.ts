@@ -15,8 +15,10 @@ export async function POST(request: Request) {
     let type: string
     let instagram_permalink: string | undefined
     let media_url: string | undefined
+    let screenshot_url: string | undefined
     let caption: string | undefined
     let file: File | null = null
+    let screenshotFile: File | null = null
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
@@ -25,12 +27,14 @@ export async function POST(request: Request) {
       instagram_permalink = (formData.get('instagram_permalink') as string) || undefined
       caption = (formData.get('caption') as string) || undefined
       file = (formData.get('file') as File) || null
+      screenshotFile = (formData.get('screenshot') as File) || null
     } else {
       const body = await request.json()
       restaurant_id = body.restaurant_id
       type = body.type
       instagram_permalink = body.instagram_permalink
       media_url = body.media_url
+      screenshot_url = body.screenshot_url
       caption = body.caption
     }
 
@@ -45,7 +49,6 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
 
-    // Verify restaurant exists
     const { data: restaurant, error: restaurantError } = await admin
       .from('restaurants')
       .select('id')
@@ -57,24 +60,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 })
     }
 
-    // Upload file to Supabase Storage if provided
+    // Haupt-Datei hochladen (z.B. Kassenbon)
     if (file && file.size > 0) {
       const ext = file.name.split('.').pop() ?? 'jpg'
       const path = `${user.id}/${restaurant_id}/${Date.now()}.${ext}`
       const arrayBuffer = await file.arrayBuffer()
       const { data: uploadData, error: uploadError } = await admin.storage
         .from('story-media')
-        .upload(path, arrayBuffer, {
-          contentType: file.type,
-          upsert: false,
-        })
+        .upload(path, arrayBuffer, { contentType: file.type, upsert: false })
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError)
-        // Don't fail submission just because upload failed
-      } else if (uploadData) {
+      if (!uploadError && uploadData) {
         const { data: urlData } = admin.storage.from('story-media').getPublicUrl(uploadData.path)
         media_url = urlData.publicUrl
+      } else if (uploadError) {
+        console.error('Storage upload error:', uploadError)
+      }
+    }
+
+    // Screenshot hochladen (für Instagram-Verifikation)
+    if (screenshotFile && screenshotFile.size > 0) {
+      const ext = screenshotFile.name.split('.').pop() ?? 'jpg'
+      const path = `screenshots/${user.id}/${restaurant_id}/${Date.now()}.${ext}`
+      const arrayBuffer = await screenshotFile.arrayBuffer()
+      const { data: uploadData, error: uploadError } = await admin.storage
+        .from('story-media')
+        .upload(path, arrayBuffer, { contentType: screenshotFile.type, upsert: false })
+
+      if (!uploadError && uploadData) {
+        const { data: urlData } = admin.storage.from('story-media').getPublicUrl(uploadData.path)
+        screenshot_url = urlData.publicUrl
+      } else if (uploadError) {
+        console.error('Screenshot upload error:', uploadError)
       }
     }
 
@@ -87,6 +103,7 @@ export async function POST(request: Request) {
         status: 'pending',
         instagram_permalink: instagram_permalink ?? null,
         media_url: media_url ?? null,
+        screenshot_url: screenshot_url ?? null,
         caption: caption ?? null,
         ai_verdict: 'pending',
       })
@@ -98,13 +115,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to submit story' }, { status: 500 })
     }
 
-    // Trigger AI analysis asynchronously (fire-and-forget – don't block the response)
+    // Instagram-Verifikation triggern (URL-Match + oEmbed + dann AI-Analyse)
+    // Für nicht-Instagram-Typen direkt AI-Analyse triggern
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
-    fetch(`${baseUrl}/api/stories/ai-analyze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ submission_id: submission.id }),
-    }).catch(err => console.error('AI analyze trigger error:', err))
+    const isInstagram = ['instagram_story', 'instagram_reel', 'instagram_post'].includes(type)
+
+    if (isInstagram) {
+      fetch(`${baseUrl}/api/stories/ig-verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: submission.id }),
+      }).catch(err => console.error('IG verify trigger error:', err))
+    } else {
+      fetch(`${baseUrl}/api/stories/ai-analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: submission.id }),
+      }).catch(err => console.error('AI analyze trigger error:', err))
+    }
 
     return NextResponse.json({ success: true, submission_id: submission.id }, { status: 201 })
   } catch (err) {

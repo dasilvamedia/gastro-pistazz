@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRef, useEffect } from 'react'
-import { motion, useMotionValue, useSpring, useTransform, MotionValue } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useTransform, useScroll, MotionValue } from 'framer-motion'
 import { PhoneMockup } from './PhoneMockup'
 import { useLang } from '@/lib/lang-context'
 
@@ -35,7 +35,7 @@ const ORBS = [
 export function HeroSection() {
   const { t } = useLang()
   const h = t.hero
-  const containerRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
 
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
@@ -46,8 +46,16 @@ export function HeroSection() {
   const rotateX = useTransform(springY, [-300, 300], [12, -12])
   const rotateY = useTransform(springX, [-300, 300], [-12, 12])
 
+  // Scroll parallax for background + text
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] })
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
+  const textY = useTransform(scrollYProgress, [0, 1], ['0%', '18%'])
+  const phoneY = useTransform(scrollYProgress, [0, 1], ['0%', '-12%'])
+  const orbScrollY1 = useTransform(scrollYProgress, [0, 1], ['0%', '-40%'])
+  const orbScrollY2 = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
+
   useEffect(() => {
-    const el = containerRef.current
+    const el = sectionRef.current
     if (!el) return
     const onMove = (e: MouseEvent) => {
       const r = el.getBoundingClientRect()
@@ -62,23 +70,31 @@ export function HeroSection() {
 
   return (
     <section
-      ref={containerRef}
+      ref={sectionRef}
       className="relative min-h-screen flex items-center pt-20 pb-10 px-4 md:px-6 overflow-hidden"
       style={{ background: 'linear-gradient(140deg, #EEF5E6 0%, #D4E8C2 55%, #c8e0a8 100%)' }}
     >
-      {/* Parallax orbs */}
-      {ORBS.map((o, i) => (
-        <ParallaxOrb key={i} size={o.size} left={o.left} top={o.top} color={o.color}
-          dur={o.dur} springX={springX} springY={springY} factorX={o.fx} factorY={o.fy} />
-      ))}
+      {/* Scroll-parallax background layer */}
+      <motion.div className="absolute inset-0 pointer-events-none" style={{ y: bgY }}>
+        <div className="absolute inset-0 opacity-[0.035]"
+          style={{ backgroundImage: 'radial-gradient(circle, #1C1F1A 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+      </motion.div>
 
-      {/* Subtle dot grid */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.035]"
-        style={{ backgroundImage: 'radial-gradient(circle, #1C1F1A 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+      {/* Parallax orbs — mouse + scroll combined */}
+      <motion.div style={{ y: orbScrollY1 }} className="absolute inset-0 pointer-events-none">
+        {ORBS.slice(0, 2).map((o, i) => (
+          <ParallaxOrb key={i} size={o.size} left={o.left} top={o.top} color={o.color}
+            dur={o.dur} springX={springX} springY={springY} factorX={o.fx} factorY={o.fy} />
+        ))}
+      </motion.div>
+      <motion.div style={{ y: orbScrollY2 }} className="absolute inset-0 pointer-events-none">
+        <ParallaxOrb size={ORBS[2].size} left={ORBS[2].left} top={ORBS[2].top} color={ORBS[2].color}
+          dur={ORBS[2].dur} springX={springX} springY={springY} factorX={ORBS[2].fx} factorY={ORBS[2].fy} />
+      </motion.div>
 
       <div className="relative max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-8 lg:gap-12 items-center z-10">
         {/* LEFT */}
-        <div className="space-y-5">
+        <motion.div className="space-y-5" style={{ y: textY }}>
 
           {/* Badge */}
           <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
@@ -115,20 +131,20 @@ export function HeroSection() {
 
           {/* CTAs */}
           <motion.div
-            className="flex flex-wrap gap-3"
+            className="flex flex-col sm:flex-row gap-3"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.22 }}
           >
             <Link
               href="/register"
-              className="gradient-primary text-white font-bold px-7 py-3.5 rounded-full hover:opacity-90 hover:scale-[1.03] active:scale-[0.98] transition-all shadow-lg shadow-[#8BB06A]/30 text-sm md:text-base"
+              className="gradient-primary text-white font-bold px-7 py-3.5 rounded-full hover:opacity-90 hover:scale-[1.03] active:scale-[0.98] transition-all shadow-lg shadow-[#8BB06A]/30 text-sm text-center whitespace-nowrap"
             >
               {h.ctaPrimary}
             </Link>
             <a
               href="#how-it-works"
-              className="border-2 border-[#8BB06A] text-[#8BB06A] font-semibold px-7 py-3.5 rounded-full hover:bg-white/60 hover:scale-[1.02] transition-all text-sm md:text-base"
+              className="border-2 border-[#8BB06A] text-[#8BB06A] font-semibold px-7 py-3.5 rounded-full hover:bg-white/60 hover:scale-[1.02] transition-all text-sm text-center whitespace-nowrap"
             >
               {h.ctaSecondary}
             </a>
@@ -150,12 +166,12 @@ export function HeroSection() {
             </div>
             <p className="text-xs text-[#1C1F1A]/55" dangerouslySetInnerHTML={{ __html: h.social }} />
           </motion.div>
-        </div>
+        </motion.div>
 
-        {/* RIGHT – 3D phone */}
+        {/* RIGHT – 3D phone with scroll parallax */}
         <motion.div
           className="flex justify-center lg:justify-end"
-          style={{ perspective: 1200 }}
+          style={{ perspective: 1200, y: phoneY }}
           initial={{ opacity: 0, x: 36 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.65, delay: 0.1 }}

@@ -43,7 +43,7 @@ function FlipCard({ icon, title, description, index }: {
           y: entered ? 0 : 20,
         }}
         transition={{ duration: 0.38, delay: entered ? index * 0.06 : 0 }}
-        className="relative w-full h-44 cursor-default"
+        className="relative w-full h-52 sm:h-48 lg:h-44 cursor-default"
         style={{ perspective: '1000px' }}
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
@@ -74,7 +74,7 @@ function FlipCard({ icon, title, description, index }: {
 
           {/* ── Back ── */}
           <div
-            className="absolute inset-0 rounded-xl p-4 flex flex-col justify-center items-center text-center"
+            className="absolute inset-0 rounded-xl p-5 flex flex-col justify-center items-center text-center"
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',

@@ -115,7 +115,7 @@ async function exportCanvas(
       // 5. @tag pill at bottom
       const handles = [
         restaurantHandle ? `@${restaurantHandle.replace(/^@/, '')}` : null,
-        '@gastropistazz.io',
+        '@gastropistazz',
       ].filter(Boolean).join('  ')
 
       const fs2 = 28 * (W / 390)
@@ -307,7 +307,7 @@ function ShareSheet({
 }) {
   const handles = [
     restaurantHandle ? `@${restaurantHandle.replace(/^@/, '')}` : null,
-    '@gastropistazz.io',
+    '@gastropistazz',
   ].filter(Boolean) as string[]
 
   const copyHandle = (h: string) => {
@@ -530,45 +530,42 @@ function StoryCreateInner() {
         stickerColor, stickerPos.x, stickerPos.y, stickerPos.scale, cW, cH,
       )
 
-      // ── Primär: Bild in Zwischenablage → Instagram direkt öffnen ──────────
+      if (exportedBlobUrl) URL.revokeObjectURL(exportedBlobUrl)
+      setExportedBlob(blob)
+      setExportedBlobUrl(URL.createObjectURL(blob))
+
+      // ── Primär: Web Share API → iOS/Android Share Sheet → User wählt Instagram ──
+      const file = new File([blob], 'pistazz-story.jpg', { type: 'image/jpeg' })
+      const canShare = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
+      if (canShare) {
+        try {
+          await navigator.share({ files: [file], title: 'pistazz Story' })
+          // Nach erfolgreichem Share → zur URL-Eingabe weiterleiten
+          setSubmitting(false)
+          router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
+          return
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') {
+            // User hat Share-Sheet abgebrochen
+            setSubmitting(false)
+            return
+          }
+          // Anderer Fehler → Fallback
+        }
+      }
+
+      // ── Fallback: Zwischenablage + Instagram öffnen ──
       let ok = false
       if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
         try {
           await navigator.clipboard.write([new ClipboardItem({ 'image/jpeg': blob })])
           ok = true
-        } catch { /* Clipboard nicht erlaubt → Fallback */ }
+        } catch { /* Clipboard nicht erlaubt */ }
       }
-
-      if (exportedBlobUrl) URL.revokeObjectURL(exportedBlobUrl)
-      setExportedBlob(blob)
-      setExportedBlobUrl(URL.createObjectURL(blob))
       setClipboardCopied(ok)
+      if (ok) window.location.href = 'instagram://camera'
+      setStep('share-options')
 
-      if (ok) {
-        // Direkt Instagram öffnen — kein Teilen-Menü
-        window.location.href = 'instagram://camera'
-        setStep('share-options')
-      } else {
-        // Fallback: natives Teilen-Menü (iOS Share Sheet)
-        const file = new File([blob], 'pistazz-story.jpg', { type: 'image/jpeg' })
-        const canShare = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
-        if (canShare) {
-          try {
-            await navigator.share({ files: [file], title: 'pistazz Story' })
-            await submitToPlatform(blob)
-            setStep('success')
-            setSubmitting(false)
-            return
-          } catch (err) {
-            if (err instanceof Error && err.name === 'AbortError') {
-              setSubmitting(false)
-              return
-            }
-          }
-        }
-        // Kein Share-API → manuelle Anleitung
-        setStep('share-options')
-      }
     } catch {
       toast.error('Fehler beim Exportieren')
     }
@@ -719,16 +716,12 @@ function StoryCreateInner() {
             </>
           )}
 
-          {/* Punkte einreichen — immer sichtbar */}
+          {/* Nach dem Share: zur URL-Eingabe weiterleiten */}
           <button
-            onClick={handleSubmitToPlatform}
-            disabled={submitting}
-            className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-60"
+            onClick={() => router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)}
+            className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
           >
-            {submitting
-              ? <span className="animate-pulse text-sm">Wird eingereicht…</span>
-              : <><CheckCircle className="w-5 h-5" />Punkte einreichen</>
-            }
+            <CheckCircle className="w-5 h-5" />Ich habe geteilt — Punkte anfordern →
           </button>
         </div>
       </div>
@@ -863,7 +856,7 @@ function StoryCreateInner() {
               <span style={{ color: '#E1306C' }}>▲</span>
               {[
                 restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@/, '')}` : null,
-                '@gastropistazz.io',
+                '@gastropistazz',
               ].filter(Boolean).join('  ')}
             </div>
           </div>

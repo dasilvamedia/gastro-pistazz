@@ -56,7 +56,7 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Right side: lang switcher + CTA */}
+        {/* Right side: lang switcher + CTAs */}
         <div className="flex items-center gap-2 md:gap-3">
           {/* Language switcher */}
           <div className="flex items-center gap-1 bg-white/60 backdrop-blur-sm border border-gray-100 rounded-full px-2 py-1 shadow-sm">
@@ -76,6 +76,14 @@ export function Navbar() {
               </button>
             ))}
           </div>
+
+          {/* "Für Restaurants" link (desktop only) */}
+          <Link
+            href="/anfrage"
+            className="hidden lg:inline-flex items-center border border-[#8BB06A] text-[#6D9450] text-xs font-semibold px-4 py-2 rounded-full hover:bg-[#EEF5E6] transition-colors whitespace-nowrap"
+          >
+            Für Restaurants
+          </Link>
 
           {/* CTA button (desktop) */}
           <Link
@@ -116,9 +124,16 @@ export function Navbar() {
             </a>
           ))}
           <Link
+            href="/anfrage"
+            onClick={() => setMenuOpen(false)}
+            className="block border border-[#8BB06A] text-[#6D9450] text-sm font-semibold px-5 py-3 rounded-full hover:bg-[#EEF5E6] transition-colors text-center"
+          >
+            Für Restaurants bewerben
+          </Link>
+          <Link
             href="/register"
             onClick={() => setMenuOpen(false)}
-            className="block gradient-primary text-white text-sm font-semibold px-5 py-3 rounded-full hover:opacity-90 transition-opacity text-center mt-2"
+            className="block gradient-primary text-white text-sm font-semibold px-5 py-3 rounded-full hover:opacity-90 transition-opacity text-center"
           >
             {t.nav.cta}
           </Link>

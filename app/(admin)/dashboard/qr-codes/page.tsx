@@ -29,10 +29,9 @@ export default function QRCodesPage() {
       if (!rest) { setLoading(false); return }
       setRestaurantId(rest.id)
       setRestaurantSlug(rest.slug)
-      // Use production URL — never localhost
+      // target_url = Restaurantseite (intern, für den Redirect)
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gastro.pistazz.io'
-      const defaultUrl = `${siteUrl}/r/${rest.slug}`
-      setTargetUrl(defaultUrl)
+      setTargetUrl(`${siteUrl}/r/${rest.slug}`)
       const { data: codes } = await supabase.from('qr_codes').select('*').eq('restaurant_id', rest.id).order('created_at', { ascending: false })
       setQrCodes(codes ?? [])
       setLoading(false)
@@ -116,6 +115,19 @@ export default function QRCodesPage() {
         <p className="text-sm text-gray-500 mt-1">Erstelle und verwalte QR-Codes fuer dein Restaurant</p>
       </div>
 
+      {/* Permanenz-Hinweis */}
+      <div className="bg-[#EEF5E6] border border-[#D4E8C2] rounded-2xl px-5 py-4 flex items-start gap-3">
+        <span className="text-2xl mt-0.5">🔒</span>
+        <div>
+          <p className="font-semibold text-[#3d5a27] text-sm">Permanente QR-Codes</p>
+          <p className="text-xs text-[#3d5a27]/70 mt-0.5 leading-relaxed">
+            Alle QR-Codes nutzen eine permanente Weiterleitungs-URL (<code className="font-mono bg-[#D4E8C2] px-1 rounded">/q/CODE</code>).
+            Selbst wenn sich dein Restaurantname oder die Webseite ändert, funktioniert der gedruckte QR-Code weiterhin.
+            Du kannst das Ziel jederzeit in deinem Account aktualisieren.
+          </p>
+        </div>
+      </div>
+
       {/* Create form */}
       <div className="bg-white rounded-2xl p-6 border border-[#EEF5E6] space-y-4">
         <div className="flex items-center gap-2">
@@ -166,7 +178,7 @@ export default function QRCodesPage() {
               <div className="flex gap-4">
                 <div className="flex-shrink-0 bg-gray-50 rounded-xl p-2">
                   <QRCodeSVG
-                    value={qr.target_url ?? `https://gastro.pistazz.io/r/${restaurantSlug}`}
+                    value={`${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gastro.pistazz.io'}/q/${qr.code}`}
                     size={150}
                     ref={(el: SVGSVGElement | null) => { svgRefs.current[qr.id] = el }}
                   />
@@ -174,7 +186,10 @@ export default function QRCodesPage() {
                 <div className="flex-1 min-w-0 space-y-2">
                   <div>
                     <p className="font-semibold text-[#1C1F1A] truncate">{qr.label ?? qr.code}</p>
-                    <p className="text-xs text-gray-400 truncate">{qr.target_url}</p>
+                    <p className="text-xs text-[#8BB06A] font-mono truncate">
+                      /q/{qr.code}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">→ {qr.target_url}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-[#EEF5E6] text-[#6D9450] px-2 py-0.5 rounded-full font-medium">

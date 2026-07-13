@@ -169,9 +169,9 @@ export default function ProfilPage() {
           emoji="🃏"
           label="Stempelkarten"
           sub={`${stampCards.filter(s => !s.is_completed).length} aktiv`}
-          onClick={() => {}}
+          onClick={() => router.push('/entdecken')}
         />
-        <MenuCard emoji="📊" label="Punkte-Verlauf" onClick={() => {}} />
+        <MenuCard emoji="📊" label="Punkte-Verlauf" onClick={() => router.push('/profil/punkte')} />
         <MenuCard emoji="⚙️" label="Einstellungen" onClick={() => router.push('/profil/einstellungen')} />
 
         {/* Points transactions */}

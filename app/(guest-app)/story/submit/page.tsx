@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Check, Upload, CheckCircle, ExternalLink } from 'lucide-react'
+import { Search, Check, Upload, CheckCircle, ExternalLink, AlertTriangle, Copy, CheckCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant, SubmissionType } from '@/types'
@@ -16,10 +16,6 @@ function buildGoogleMapsUrl(restaurant: Restaurant): string {
   }
   const query = encodeURIComponent(`${restaurant.name} ${restaurant.city ?? ''}`.trim())
   return `https://www.google.com/maps/search/?api=1&query=${query}`
-}
-
-function buildInstagramSearchUrl(type: SubmissionType): string {
-  return 'https://www.instagram.com/'
 }
 
 function ProgressBar({ step, total }: { step: number; total: number }) {
@@ -43,18 +39,23 @@ function StorySubmitInner() {
   const restaurantSlug = searchParams.get('restaurant') ?? ''
   const supabase = createClient()
 
-  const [step, setStep] = useState(restaurantSlug ? 1 : 0)
+  const alreadyShared = searchParams.get('shared') === 'true'
+  const preType = (searchParams.get('type') as SubmissionType | null) ?? null
+  const [step, setStep] = useState(alreadyShared && restaurantSlug ? 2 : restaurantSlug ? 1 : 0)
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [search, setSearch] = useState('')
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
-  const [selectedType, setSelectedType] = useState<SubmissionType | null>(null)
+  const [selectedType, setSelectedType] = useState<SubmissionType | null>(preType)
   const [link, setLink] = useState('')
   const [caption, setCaption] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [screenshot, setScreenshot] = useState<File | null>(null)
+  const [userInstagramHandle, setUserInstagramHandle] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [copiedHandle, setCopiedHandle] = useState<'restaurant' | 'platform' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const screenshotRef = useRef<HTMLInputElement>(null)
 
-  // Dynamic types with points from restaurant config (Instagram Story always first)
   const getTypes = (r: Restaurant | null): { value: SubmissionType; emoji: string; label: string; points: number; primary?: boolean }[] => [
     { value: 'instagram_story', emoji: '📸', label: 'Instagram Story', points: r?.points_per_story ?? 500, primary: true },
     { value: 'instagram_reel', emoji: '🎬', label: 'Instagram Reel', points: r?.points_per_reel ?? 750 },
@@ -68,6 +69,17 @@ function StorySubmitInner() {
 
   useEffect(() => {
     const load = async () => {
+      // Nutzer-Instagram-Handle laden
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('instagram_handle')
+          .eq('id', user.id)
+          .single()
+        setUserInstagramHandle(profile?.instagram_handle ?? null)
+      }
+
       if (restaurantSlug) {
         const { data } = await supabase
           .from('restaurants')
@@ -96,7 +108,14 @@ function StorySubmitInner() {
 
   const step2Valid = () => {
     if (!selectedType) return false
-    if (INSTAGRAM_TYPES.includes(selectedType) || selectedType === 'google_review') {
+    if (selectedType === 'instagram_story') {
+      // Story: Link Pflicht, Screenshot optional (verbessert Verifikation)
+      return link.trim().length > 0
+    }
+    if (selectedType === 'instagram_reel' || selectedType === 'instagram_post') {
+      return link.trim().length > 0
+    }
+    if (selectedType === 'google_review') {
       return link.trim().length > 0
     }
     if (selectedType === 'receipt') return file !== null
@@ -114,7 +133,8 @@ function StorySubmitInner() {
   const handleSubmit = async () => {
     if (!selectedRestaurant || !selectedType) return
     if (!step2Valid()) {
-      toast.error(selectedType === 'receipt' ? 'Bitte lade einen Beleg hoch' : 'Bitte füge einen Link ein')
+      if (selectedType === 'receipt') toast.error('Bitte lade einen Beleg hoch')
+      else toast.error('Bitte füge einen Link ein')
       return
     }
     setSubmitting(true)
@@ -125,6 +145,7 @@ function StorySubmitInner() {
       if (link) formData.append('instagram_permalink', link)
       if (caption) formData.append('caption', caption)
       if (file) formData.append('file', file)
+      if (screenshot) formData.append('screenshot', screenshot)
 
       const res = await fetch('/api/stories/submit', { method: 'POST', body: formData })
       if (!res.ok) {
@@ -151,6 +172,21 @@ function StorySubmitInner() {
 
   const types = getTypes(selectedRestaurant)
   const selectedTypeInfo = types.find(t => t.value === selectedType)
+  const isInstagramType = selectedType && INSTAGRAM_TYPES.includes(selectedType)
+  const restaurantIgHandle = selectedRestaurant?.instagram_handle
+
+  function copyTag(text: string, which: 'restaurant' | 'platform') {
+    navigator.clipboard.writeText(text).catch(() => {
+      const el = document.createElement('textarea')
+      el.value = text
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    })
+    setCopiedHandle(which)
+    setTimeout(() => setCopiedHandle(null), 2000)
+  }
 
   return (
     <div className="min-h-screen bg-[#EEF5E6] flex flex-col">
@@ -204,7 +240,7 @@ function StorySubmitInner() {
             </motion.div>
           )}
 
-          {/* Step 1: Type — Instagram Story always primary/highlighted */}
+          {/* Step 1: Type */}
           {step === 1 && (
             <motion.div key="step1" initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -60, opacity: 0 }}>
               <h1 className="text-2xl font-bold text-[#1C1F1A] mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>Was hast du gemacht?</h1>
@@ -256,11 +292,128 @@ function StorySubmitInner() {
           {/* Step 2: Content */}
           {step === 2 && (
             <motion.div key="step2" initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -60, opacity: 0 }} className="space-y-4">
+              {alreadyShared && (
+                <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
+                  <span className="text-2xl">🎉</span>
+                  <div>
+                    <p className="text-green-800 font-bold text-sm">Story geteilt!</p>
+                    <p className="text-green-700 text-xs">Gib jetzt die URL deiner Instagram-Story ein um deine Punkte zu erhalten.</p>
+                  </div>
+                </div>
+              )}
               <h1 className="text-2xl font-bold text-[#1C1F1A] mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
                 {selectedType === 'receipt' ? 'Beleg hochladen' : selectedType === 'google_review' ? 'Google Bewertung' : 'Link einreichen'}
               </h1>
 
-              {/* Google Review: show direct link to restaurant's Google page */}
+              {/* Warnung: kein Instagram-Handle gesetzt */}
+              {isInstagramType && !userInstagramHandle && (
+                <div className="flex items-start gap-3 bg-amber-50 rounded-2xl p-4 border border-amber-200">
+                  <AlertTriangle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-amber-800 font-semibold text-sm">Instagram-Handle fehlt</p>
+                    <p className="text-amber-700 text-xs mt-0.5 leading-relaxed">
+                      Damit wir deine Story verifizieren können, hinterlege deinen Instagram-Handle in den{' '}
+                      <a href="/profil/einstellungen" className="underline font-medium">Einstellungen</a>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Instagram: Anleitung + Copy-Buttons */}
+              {isInstagramType && (
+                <div className="bg-white rounded-2xl p-4 border border-[#D4E8C2] space-y-4">
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#ig2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#f9a825"/>
+                          <stop offset="50%" stopColor="#e91e8c"/>
+                          <stop offset="100%" stopColor="#9c27b0"/>
+                        </linearGradient>
+                      </defs>
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                    </svg>
+                    <p className="text-[#1C1F1A] font-semibold text-sm">So bekommst du deine Punkte</p>
+                  </div>
+
+                  <ol className="space-y-2">
+                    <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                      <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
+                      <span>
+                        Tags unten kopieren &amp; als @Mention-Sticker in deine{' '}
+                        {selectedType === 'instagram_story' ? 'Story' : selectedType === 'instagram_reel' ? 'Reel' : 'Post'} einfügen
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                      <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
+                      <span>
+                        {selectedType === 'instagram_story' ? 'Story erstellen & teilen' : selectedType === 'instagram_reel' ? 'Reel veröffentlichen' : 'Post veröffentlichen'}
+                      </span>
+                    </li>
+                    {selectedType === 'instagram_story' && (
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D] bg-red-50 rounded-xl p-2 border border-red-100">
+                        <span className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
+                        <span><strong className="text-red-700">Sofort nach dem Teilen</strong> einen Screenshot machen — beide Tags müssen sichtbar sein. Dann hier hochladen.</span>
+                      </li>
+                    )}
+                  </ol>
+
+                  {/* Copy-Buttons */}
+                  <div className="space-y-2 pt-1">
+                    <p className="text-[#1C1F1A] font-semibold text-xs uppercase tracking-wide">Tags zum Kopieren:</p>
+
+                    {restaurantIgHandle ? (
+                      <button
+                        onClick={() => copyTag(`@${restaurantIgHandle}`, 'restaurant')}
+                        className="w-full flex items-center justify-between gap-3 bg-[#EEF5E6] border border-[#8BB06A] rounded-xl px-4 py-3 transition-all active:scale-95"
+                      >
+                        <span className="text-[#1C1F1A] font-bold text-sm">@{restaurantIgHandle}</span>
+                        <span className="flex items-center gap-1.5 text-[#577A3D] text-xs font-medium flex-shrink-0">
+                          {copiedHandle === 'restaurant' ? (
+                            <><CheckCheck size={15} className="text-[#8BB06A]" /> Kopiert!</>
+                          ) : (
+                            <><Copy size={15} /> Kopieren</>
+                          )}
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                        <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+                        <span className="text-amber-700 text-xs">Kein Instagram-Handle für {selectedRestaurant?.name} hinterlegt</span>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => copyTag('@gastro.pistazz.io', 'platform')}
+                      className="w-full flex items-center justify-between gap-3 bg-[#EEF5E6] border border-[#8BB06A] rounded-xl px-4 py-3 transition-all active:scale-95"
+                    >
+                      <span className="text-[#1C1F1A] font-bold text-sm">@gastro.pistazz.io</span>
+                      <span className="flex items-center gap-1.5 text-[#577A3D] text-xs font-medium flex-shrink-0">
+                        {copiedHandle === 'platform' ? (
+                          <><CheckCheck size={15} className="text-[#8BB06A]" /> Kopiert!</>
+                        ) : (
+                          <><Copy size={15} /> Kopieren</>
+                        )}
+                      </span>
+                    </button>
+                  </div>
+
+                  <a
+                    href="https://www.instagram.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm"
+                    style={{ background: 'linear-gradient(135deg, #f9a825, #e91e8c, #9c27b0)' }}
+                  >
+                    <ExternalLink size={16} />
+                    Instagram öffnen
+                  </a>
+                </div>
+              )}
+
+              {/* Google Review */}
               {selectedType === 'google_review' && selectedRestaurant && (
                 <div className="bg-white rounded-2xl p-4 border border-[#D4E8C2] space-y-3">
                   <div className="flex items-center gap-2">
@@ -297,58 +450,75 @@ function StorySubmitInner() {
                 </div>
               )}
 
-              {/* Instagram types */}
-              {selectedType && INSTAGRAM_TYPES.includes(selectedType) && (
-                <div className="space-y-3">
-                  <div className="bg-white rounded-2xl p-4 border border-[#D4E8C2]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#ig)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <defs>
-                          <linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stopColor="#f9a825"/>
-                            <stop offset="50%" stopColor="#e91e8c"/>
-                            <stop offset="100%" stopColor="#9c27b0"/>
-                          </linearGradient>
-                        </defs>
-                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-                      </svg>
-                      <p className="text-[#1C1F1A] font-semibold text-sm">Schritt 1: {selectedType === 'instagram_story' ? 'Story posten' : selectedType === 'instagram_reel' ? 'Reel posten' : 'Post erstellen'}</p>
-                    </div>
-                    <p className="text-[#6D7A6D] text-xs leading-relaxed mb-3">
-                      Öffne Instagram, erstelle deine{' '}
-                      {selectedType === 'instagram_story' ? 'Story' : selectedType === 'instagram_reel' ? 'Reel' : 'Post'}{' '}
-                      mit Bezug auf <strong>{selectedRestaurant?.name}</strong> und kopiere dann den Link.
+              {/* Instagram Link-Input */}
+              {isInstagramType && (
+                <div>
+                  <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
+                    {selectedType === 'instagram_story' ? 'Schritt 3: ' : 'Schritt 2: '}Instagram Permalink *
+                  </label>
+                  <input
+                    value={link}
+                    onChange={e => setLink(e.target.value)}
+                    placeholder={
+                      selectedType === 'instagram_story'
+                        ? 'https://www.instagram.com/stories/dein_name/...'
+                        : selectedType === 'instagram_reel'
+                        ? 'https://www.instagram.com/reel/...'
+                        : 'https://www.instagram.com/dein_name/p/...'
+                    }
+                    className={`w-full bg-white border rounded-2xl px-4 py-3 text-sm text-[#1C1F1A] outline-none transition-colors ${link.trim() ? 'border-[#8BB06A]' : 'border-[#D4E8C2] focus:border-[#8BB06A]'}`}
+                  />
+                  {!link.trim() && <p className="text-[#E86B5A] text-xs mt-1">Link wird zur Verifizierung benötigt</p>}
+                  {userInstagramHandle && (
+                    <p className="text-[#8BB06A] text-xs mt-1">
+                      Dein Handle: @{userInstagramHandle} — stelle sicher, dass der Link deinen Account enthält.
                     </p>
-                    <a
-                      href="https://www.instagram.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm"
-                      style={{ background: 'linear-gradient(135deg, #f9a825, #e91e8c, #9c27b0)' }}
-                    >
-                      <ExternalLink size={16} />
-                      Instagram öffnen
-                    </a>
-                  </div>
+                  )}
+                </div>
+              )}
 
-                  <div>
-                    <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">Schritt 2: Instagram Permalink einfügen *</label>
-                    <input
-                      value={link}
-                      onChange={e => setLink(e.target.value)}
-                      placeholder={
-                        selectedType === 'instagram_story'
-                          ? 'https://www.instagram.com/stories/...'
-                          : selectedType === 'instagram_reel'
-                          ? 'https://www.instagram.com/reel/...'
-                          : 'https://www.instagram.com/p/...'
-                      }
-                      className={`w-full bg-white border rounded-2xl px-4 py-3 text-sm text-[#1C1F1A] outline-none transition-colors ${link.trim() ? 'border-[#8BB06A]' : 'border-[#D4E8C2] focus:border-[#8BB06A]'}`}
-                    />
-                    {!link.trim() && <p className="text-[#E86B5A] text-xs mt-1">Link wird zur Verifizierung benötigt</p>}
-                  </div>
+              {/* Screenshot-Upload (nur für Stories: Pflicht; für Reels/Posts: optional) */}
+              {isInstagramType && (
+                <div>
+                  <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
+                    Screenshot{' '}
+                    <span className="text-[#8BB06A]/70 font-normal">(optional — erhöht Chance auf sofortige Genehmigung)</span>
+                  </label>
+                  <p className="text-[#6D7A6D] text-xs mb-2">
+                    📱 iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.
+                  </p>
+                  <input
+                    type="file"
+                    ref={screenshotRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => setScreenshot(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    onClick={() => screenshotRef.current?.click()}
+                    className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center gap-2 transition-all ${screenshot ? 'border-[#8BB06A] bg-[#EEF5E6]' : 'border-[#D4E8C2] bg-white'}`}
+                  >
+                    {screenshot ? (
+                      <>
+                        <CheckCircle size={28} className="text-[#8BB06A]" />
+                        <p className="text-[#6D9450] font-semibold text-sm">{screenshot.name}</p>
+                        <p className="text-[#8BB06A] text-xs">Tippen zum Ändern</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={28} className="text-[#8BB06A]" />
+                        <p className="text-[#6D9450] font-semibold text-sm">Screenshot hochladen</p>
+                        <p className="text-[#8BB06A] text-xs">
+                          {selectedType === 'instagram_story'
+                            ? 'Zeige den Restaurant-Tag und den Timestamp'
+                            : 'Zeige deinen Beitrag mit Restaurantbezug'}
+                        </p>
+                      </>
+                    )}
+                  </button>
+                  {!screenshot && (
+                    <p className="text-[#8BB06A] text-xs mt-1">Mit Screenshot wird deine Story schneller und automatisch genehmigt.</p>
+                  )}
                 </div>
               )}
 
@@ -380,8 +550,6 @@ function StorySubmitInner() {
                     </button>
                     {!file && <p className="text-[#E86B5A] text-xs mt-2">Beleg wird zur Prüfung benötigt</p>}
                   </div>
-
-                  {/* Verification notice */}
                   <div className="flex items-start gap-2 bg-[#EEF5E6] rounded-xl p-3 border border-[#D4E8C2]">
                     <span className="text-base flex-shrink-0">✅</span>
                     <p className="text-[#577A3D] text-xs leading-relaxed">
@@ -391,18 +559,19 @@ function StorySubmitInner() {
                 </div>
               )}
 
-              {/* Verification notice for links */}
+              {/* Verifikations-Hinweis */}
               {selectedType && selectedType !== 'receipt' && (
                 <div className="flex items-start gap-2 bg-[#EEF5E6] rounded-xl p-3 border border-[#D4E8C2]">
                   <span className="text-base flex-shrink-0">✅</span>
                   <p className="text-[#577A3D] text-xs leading-relaxed">
-                    Der eingereichte Link wird zur Verifizierung benötigt. Nur echte{' '}
-                    {selectedType === 'google_review' ? 'Google-Bewertungen' : 'Instagram-Beiträge'} werden akzeptiert.
+                    {isInstagramType
+                      ? 'Link und Screenshot werden automatisch geprüft. Die Story muss aktuell sein (von heute) und das Restaurant getaggt haben.'
+                      : 'Der eingereichte Link wird zur Verifizierung benötigt. Nur echte Google-Bewertungen werden akzeptiert.'}
                   </p>
                 </div>
               )}
 
-              {/* Optional caption */}
+              {/* Optionale Beschreibung */}
               <div>
                 <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">Beschreibung <span className="text-[#8BB06A]/70 font-normal">(optional)</span></label>
                 <textarea
@@ -416,7 +585,7 @@ function StorySubmitInner() {
             </motion.div>
           )}
 
-          {/* Step 3: Success */}
+          {/* Step 3: Erfolg */}
           {step === 3 && (
             <motion.div key="step3" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center text-center pt-12">
               <div className="w-24 h-24 rounded-full bg-[#EEF5E6] flex items-center justify-center mb-6" style={{ boxShadow: '0 0 0 12px #d4e8c2' }}>

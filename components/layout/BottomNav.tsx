@@ -14,7 +14,7 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
 
-  if (pathname === '/onboarding' || pathname === '/story/submit') return null
+  if (['/onboarding', '/story/submit', '/story/create'].some(p => pathname.startsWith(p))) return null
 
   return (
     <nav

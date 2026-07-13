@@ -35,12 +35,20 @@ export function CTASection() {
             </h2>
             <p className="text-white/75 text-sm md:text-base font-semibold mb-1">{c.sub}</p>
             <p className="text-white/55 text-sm mb-6">{c.p}</p>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 bg-white text-[#6D9450] font-bold px-8 py-3.5 rounded-full hover:shadow-xl hover:scale-105 active:scale-[0.98] transition-all duration-200 text-sm md:text-base"
-            >
-              {c.btn}
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 bg-white text-[#6D9450] font-bold px-8 py-3.5 rounded-full hover:shadow-xl hover:scale-105 active:scale-[0.98] transition-all duration-200 text-sm md:text-base whitespace-nowrap"
+              >
+                {c.btn}
+              </Link>
+              <Link
+                href="/anfrage"
+                className="inline-flex items-center gap-2 bg-white/15 border border-white/30 text-white font-semibold px-6 py-3.5 rounded-full hover:bg-white/25 transition-all duration-200 text-sm whitespace-nowrap"
+              >
+                🏪 Für mein Restaurant anfragen
+              </Link>
+            </div>
           </div>
         </motion.div>
       </div>
