@@ -63,9 +63,23 @@ export default function EinstellungenPage() {
   }, [supabase])
 
   const changePassword = async () => {
-    if (newPw !== confirmPw) { toast.error('Passwörter stimmen nicht übereinstimmen'); return }
-    if (newPw.length < 6) { toast.error('Mindestens 6 Zeichen'); return }
+    if (newPw !== confirmPw) { toast.error('Passwörter stimmen nicht überein'); return }
+    if (newPw.length < 8) { toast.error('Mindestens 8 Zeichen'); return }
     setPwSaving(true)
+    // Aktuelles Passwort wirklich verifizieren (Re-Auth) — vorher war das Feld reine Fassade
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user?.email && currentPw) {
+      const { error: reauthError } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPw })
+      if (reauthError) {
+        toast.error('Aktuelles Passwort ist falsch')
+        setPwSaving(false)
+        return
+      }
+    } else if (!currentPw) {
+      toast.error('Bitte aktuelles Passwort eingeben')
+      setPwSaving(false)
+      return
+    }
     const { error } = await supabase.auth.updateUser({ password: newPw })
     if (error) toast.error('Fehler: ' + error.message)
     else { toast.success('Passwort geändert'); setCurrentPw(''); setNewPw(''); setConfirmPw('') }

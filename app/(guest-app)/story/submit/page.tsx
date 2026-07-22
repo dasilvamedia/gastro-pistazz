@@ -386,10 +386,10 @@ function StorySubmitInner() {
                     )}
 
                     <button
-                      onClick={() => copyTag('@gastro.pistazz.io', 'platform')}
+                      onClick={() => copyTag('@gastropistazz', 'platform')}
                       className="w-full flex items-center justify-between gap-3 bg-[#EEF5E6] border border-[#8BB06A] rounded-xl px-4 py-3 transition-all active:scale-95"
                     >
-                      <span className="text-[#1C1F1A] font-bold text-sm">@gastro.pistazz.io</span>
+                      <span className="text-[#1C1F1A] font-bold text-sm">@gastropistazz</span>
                       <span className="flex items-center gap-1.5 text-[#577A3D] text-xs font-medium flex-shrink-0">
                         {copiedHandle === 'platform' ? (
                           <><CheckCheck size={15} className="text-[#8BB06A]" /> Kopiert!</>
@@ -599,8 +599,7 @@ function StorySubmitInner() {
               </p>
               <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2.5 border border-[#D4E8C2] mb-8">
                 <span className="text-base">✅</span>
-                <span className="text-[#577A3D] text-xs font-medium">Wird zur Prüfung weitergeleitet…</span>
-                <span className="w-4 h-4 border-2 border-[#8BB06A] border-t-transparent rounded-full animate-spin" />
+                <span className="text-[#577A3D] text-xs font-medium">Eingereicht. Du wirst benachrichtigt, sobald geprüft wurde.</span>
               </div>
               {selectedTypeInfo && (
                 <div className="bg-[#EEF5E6] rounded-2xl px-6 py-4 mb-8 border border-[#D4E8C2]">

@@ -25,11 +25,37 @@ const schema = z.object({
   valid_days: z.array(z.number()),
   valid_hours_start: z.string().optional(),
   valid_hours_end: z.string().optional(),
-  max_redemptions: z.number().optional(),
+  max_redemptions: z.number().min(1, 'Mindestens 1').optional(),
   max_per_user: z.number().min(1),
   badge_text: z.string().optional(),
   badge_color: z.string(),
   status: z.enum(['draft', 'active', 'paused']),
+}).superRefine((data, ctx) => {
+  // Zeitraum: Ende darf nicht vor Start liegen
+  if (data.valid_from && data.valid_until && data.valid_until < data.valid_from) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['valid_until'], message: 'Enddatum liegt vor dem Startdatum' })
+  }
+  // Uhrzeiten: Ende nach Start
+  if (data.valid_hours_start && data.valid_hours_end && data.valid_hours_end <= data.valid_hours_start) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['valid_hours_end'], message: 'Endzeit muss nach der Startzeit liegen' })
+  }
+  // Mindestens ein Wochentag
+  if (data.valid_days.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['valid_days'], message: 'Mindestens einen Wochentag auswählen' })
+  }
+  // Rabattwert je nach Typ prüfen
+  if (data.reward_type === 'discount_percent') {
+    const v = Number(data.reward_value)
+    if (!data.reward_value || isNaN(v) || v < 1 || v > 100) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['reward_value'], message: 'Prozentwert zwischen 1 und 100 angeben' })
+    }
+  }
+  if (data.reward_type === 'discount_fixed') {
+    const v = Number(data.reward_value)
+    if (!data.reward_value || isNaN(v) || v <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['reward_value'], message: 'Gültigen Betrag angeben' })
+    }
+  }
 })
 
 type FormValues = z.infer<typeof schema>

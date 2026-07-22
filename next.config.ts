@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      {
+        // Icons/Screenshots für Store-Uploads von externen Konsolen abrufbar
+        source: '/icons/:path*',
+        headers: [{ key: 'Access-Control-Allow-Origin', value: '*' }],
+      },
     ]
   },
 };

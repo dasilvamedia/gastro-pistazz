@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -32,6 +32,13 @@ function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const restaurantSlug = searchParams.get('restaurant') ?? ''
+
+  // OAuth-Fehler aus dem Callback anzeigen (sonst landet der User kommentarlos hier)
+  useEffect(() => {
+    if (searchParams.get('error') === 'timeout') {
+      toast.error('Die Anmeldung hat zu lange gedauert. Bitte versuche es erneut.')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const supabase = createClient()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)

@@ -419,6 +419,15 @@ function StoryCreateInner() {
 
   const filterCss = FILTERS.find(f => f.id === filter)?.css ?? 'none'
 
+  // ── Auth-Guard: ohne Login zur Registrierung (verhindert Unauthorized am Flow-Ende) ──
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.replace(slug ? `/register?restaurant=${slug}` : '/register')
+      }
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Load restaurant ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!slug) return

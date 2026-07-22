@@ -135,7 +135,13 @@ export default function HomePage() {
 
         const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         if (p) {
-          if (!p.onboarding_completed) { router.push('/onboarding'); return }
+          // Loop-Guard: nur EINMAL pro Session zum Onboarding umleiten.
+          // Sonst: Onboarding-Update schlägt fehl → /home → /onboarding → /home → Endlosschleife.
+          if (!p.onboarding_completed && !sessionStorage.getItem('ob_redirected')) {
+            sessionStorage.setItem('ob_redirected', '1')
+            router.push('/onboarding')
+            return
+          }
           if (!p.full_name) {
             const metaName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null
             if (metaName) {
@@ -194,9 +200,12 @@ export default function HomePage() {
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
               <span className="text-lg">🫙</span>
             </div>
-            <span className="text-white font-bold text-base">pistazz.io</span>
+            <span className="text-white font-bold text-base">gastro.pistazz.io</span>
           </div>
-          <button className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+          <button
+            onClick={() => router.push('/profil')}
+            className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center"
+          >
             <Bell size={18} className="text-white" />
           </button>
         </div>
@@ -209,10 +218,13 @@ export default function HomePage() {
           <span className="text-white text-sm font-semibold">🏆 {profile?.available_points ?? 0} Punkte</span>
         </div>
 
-        <div className="flex items-center gap-2 bg-white/25 rounded-full px-4 py-2.5">
+        <button
+          onClick={() => router.push('/entdecken')}
+          className="w-full flex items-center gap-2 bg-white/25 rounded-full px-4 py-2.5 text-left"
+        >
           <Search size={16} className="text-white/70" />
           <span className="text-white/70 text-sm">Restaurants suchen...</span>
-        </div>
+        </button>
       </div>
 
       <div className="px-5 pt-5 space-y-5">
@@ -224,7 +236,7 @@ export default function HomePage() {
             onClick={() => router.push('/entdecken')}
             className="gradient-primary text-white text-sm font-bold px-4 py-2 rounded-xl"
           >
-            📸 Story erstellen →
+            📍 Restaurant wählen →
           </button>
         </div>
 

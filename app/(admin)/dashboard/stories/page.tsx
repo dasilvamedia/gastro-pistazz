@@ -121,17 +121,34 @@ export default function StoriesPage() {
     return () => { supabase.removeChannel(channel) }
   }, [restaurantId, fetchStories, supabase])
 
+  // Über die API-Route: prüft Ownership, Idempotenz und setzt verified_by (Audit-Trail)
   const approve = async (id: string) => {
-    const { error } = await supabase.from('story_submissions').update({ status: 'approved', verified_at: new Date().toISOString() }).eq('id', id)
-    if (error) { toast.error('Fehler'); return }
+    const res = await fetch('/api/stories/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: id, action: 'approve' }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Fehler bei der Freigabe')
+      return
+    }
     setStories(prev => prev.map(s => s.id === id ? { ...s, status: 'approved' } : s))
     toast.success('Story genehmigt')
   }
 
   const reject = async () => {
     if (!rejectId) return
-    const { error } = await supabase.from('story_submissions').update({ status: 'rejected', rejection_reason: rejectReason }).eq('id', rejectId)
-    if (error) { toast.error('Fehler'); return }
+    const res = await fetch('/api/stories/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: rejectId, action: 'reject', rejection_reason: rejectReason }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Fehler beim Ablehnen')
+      return
+    }
     setStories(prev => prev.map(s => s.id === rejectId ? { ...s, status: 'rejected' } : s))
     setRejectId(null)
     setRejectReason('')

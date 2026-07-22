@@ -158,6 +158,12 @@ export default function RestaurantLandingPage() {
         <QrCode className="w-12 h-12 text-[#8BB06A]/40" />
         <h1 className="text-white font-display text-xl">Restaurant nicht gefunden</h1>
         <p className="text-white/40 text-sm">Dieser QR-Code ist möglicherweise nicht mehr aktiv.</p>
+        <a
+          href="/register"
+          className="mt-2 bg-[#8BB06A] text-white font-semibold px-6 py-3 rounded-full text-sm"
+        >
+          Zur App und Punkte sammeln
+        </a>
       </div>
     )
   }

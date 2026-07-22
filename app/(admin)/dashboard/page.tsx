@@ -63,8 +63,9 @@ export default function DashboardPage() {
         .eq('restaurant_id', rid).eq('status', 'approved'),
       supabase.from('deal_redemptions').select('id', { count: 'exact', head: true })
         .eq('restaurant_id', rid),
-      supabase.from('profiles').select('id', { count: 'exact', head: true })
-        .gte('created_at', weekAgo),
+      // Restaurant-gebunden: neue Besucher DIESES Restaurants (nicht plattformweit!)
+      supabase.from('visits').select('id', { count: 'exact', head: true })
+        .eq('restaurant_id', rid).gte('visited_at', weekAgo),
       supabase.from('story_submissions').select('*, user:profiles(full_name)')
         .eq('restaurant_id', rid).order('created_at', { ascending: false }).limit(10),
       supabase.from('stamp_cards').select('id', { count: 'exact', head: true })
