@@ -20,11 +20,14 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
   const hasCover = !!restaurant.cover_url
   return (
     <motion.div
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.96 }}
       onClick={() => router.push(`/restaurant/${restaurant.id}`)}
-      className="flex-shrink-0 w-44 cursor-pointer"
+      className="flex-shrink-0 w-64 cursor-pointer snap-start"
     >
-      <div className="w-44 h-28 rounded-2xl mb-2 relative overflow-hidden">
+      <div
+        className="w-64 h-40 rounded-3xl relative overflow-hidden"
+        style={{ boxShadow: '0 8px 24px rgba(28,31,26,0.10)' }}
+      >
         {hasCover ? (
           <img
             src={restaurant.cover_url!}
@@ -39,36 +42,33 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
               : 'linear-gradient(135deg, #8BB06A, #577A3D)',
           }} />
         )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%)' }} />
+        {/* Sanfter Verlauf für Lesbarkeit */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.12) 45%, transparent 65%)' }} />
 
-        {/* Logo top-left */}
-        {restaurant.logo_url && (
-          <div style={{ position: 'absolute', top: 6, left: 6, width: 28, height: 28, borderRadius: 6, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <img src={restaurant.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }} />
-          </div>
+        {/* Rating oben rechts — Glas-Pill */}
+        {(hasGoogle || restaurant.avg_rating > 0) && (
+          <span style={{
+            position: 'absolute', top: 10, right: 10,
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
+            borderRadius: 99, padding: '3px 9px',
+            color: '#1C1F1A', fontSize: '0.72rem', fontWeight: 700,
+          }}>
+            <Star size={11} fill="#E5B84C" stroke="#E5B84C" />
+            {(hasGoogle ? restaurant.google_rating! : restaurant.avg_rating).toFixed(1)}
+          </span>
         )}
 
-        {/* Rating bottom-right */}
-        <div style={{ position: 'absolute', bottom: 6, right: 6 }}>
-          {hasGoogle ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(0,0,0,0.35)', borderRadius: 99, padding: '2px 7px' }}>
-              <svg width="10" height="10" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
-                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
-                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
-                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
-              </svg>
-              <span style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>{restaurant.google_rating!.toFixed(1)}</span>
-            </span>
-          ) : restaurant.avg_rating > 0 ? (
-            <span style={{ background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '2px 7px', borderRadius: 99 }}>
-              ⭐ {restaurant.avg_rating.toFixed(1)}
-            </span>
-          ) : null}
+        {/* Name + Typ auf dem Bild */}
+        <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
+          <p className="text-white font-bold text-base leading-tight truncate drop-shadow" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            {restaurant.name}
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem', fontWeight: 500, marginTop: 2 }}>
+            {RESTAURANT_TYPE_LABELS[restaurant.type]}{restaurant.city ? ` · ${restaurant.city}` : ''}
+          </p>
         </div>
       </div>
-      <p className="text-[#1C1F1A] font-semibold text-sm truncate">{restaurant.name}</p>
-      <p className="text-[#6D9450] text-xs">{RESTAURANT_TYPE_LABELS[restaurant.type]}</p>
     </motion.div>
   )
 }
@@ -77,31 +77,34 @@ function DealCard({ deal }: { deal: Deal }) {
   const router = useRouter()
   const trigger = TRIGGER_CONFIG[deal.trigger]
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#EEF5E6]">
+    <div
+      className="bg-white rounded-3xl overflow-hidden"
+      style={{ boxShadow: '0 8px 24px rgba(28,31,26,0.07)' }}
+    >
       {deal.image_url && (
-        <div className="h-28 w-full relative overflow-hidden">
+        <div className="h-32 w-full relative overflow-hidden">
           <img src={deal.image_url} alt={deal.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
           {deal.badge_text && (
-            <span className="absolute bottom-2 left-2 text-xs bg-[#E5B84C] text-[#1C1F1A] font-bold px-2 py-0.5 rounded-full">
+            <span className="absolute bottom-2.5 left-3 text-xs bg-[#E5B84C] text-[#1C1F1A] font-bold px-2.5 py-1 rounded-full">
               {deal.badge_text}
             </span>
           )}
         </div>
       )}
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-3 p-4">
         {!deal.image_url && (
-          <div className="w-12 h-12 rounded-xl bg-[#EEF5E6] flex items-center justify-center text-2xl flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#EEF5E6] flex items-center justify-center text-2xl flex-shrink-0">
             {trigger.emoji}
           </div>
         )}
         <div className="flex-1 min-w-0">
           <p className="text-[#1C1F1A] font-semibold text-sm truncate">{deal.title}</p>
-          <p className="text-[#6D9450] text-xs truncate">{deal.restaurant?.name ?? ''}</p>
+          <p className="text-[#1C1F1A]/45 text-xs truncate mt-0.5">{deal.restaurant?.name ?? ''}</p>
         </div>
         <button
           onClick={() => router.push(`/deals/${deal.id}`)}
-          className="flex-shrink-0 gradient-primary text-white text-xs font-bold px-3 py-2 rounded-xl"
+          className="flex-shrink-0 gradient-primary text-white text-xs font-bold px-4 py-2.5 rounded-full active:scale-95 transition-transform"
         >
           Einlösen
         </button>
@@ -194,59 +197,71 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
       {/* Header */}
-      <div className="gradient-primary rounded-b-3xl pb-6 pt-12 px-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-lg">🫙</span>
-            </div>
-            <span className="text-white font-bold text-base">gastro.pistazz.io</span>
+      <div className="gradient-primary rounded-b-[2rem] pb-7 pt-14 px-5">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo-white.png" alt="" className="w-8 h-8" />
+            <span className="text-white font-bold text-base tracking-tight">gastro.pistazz.io</span>
           </div>
           <button
             onClick={() => router.push('/profil')}
-            className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center"
+            className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center active:bg-white/25 transition-colors"
           >
             <Bell size={18} className="text-white" />
           </button>
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-          Hey, {firstName}! 🤩
+        <h1 className="text-[1.75rem] font-bold text-white leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          Hey, {firstName}!
         </h1>
+        <p className="text-white/70 text-sm mt-0.5 mb-4">Schön, dass du da bist.</p>
 
-        <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 mb-4">
-          <span className="text-white text-sm font-semibold">🏆 {profile?.available_points ?? 0} Punkte</span>
+        <div className="inline-flex items-center gap-1.5 bg-white/15 rounded-full pl-2.5 pr-3.5 py-1.5 mb-5">
+          <Star size={14} fill="#E5B84C" stroke="#E5B84C" />
+          <span className="text-white text-sm font-semibold">{(profile?.available_points ?? 0).toLocaleString('de-DE')} Punkte</span>
         </div>
 
         <button
           onClick={() => router.push('/entdecken')}
-          className="w-full flex items-center gap-2 bg-white/25 rounded-full px-4 py-2.5 text-left"
+          className="w-full flex items-center gap-2.5 bg-white/95 rounded-2xl px-4 py-3 text-left"
+          style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}
         >
-          <Search size={16} className="text-white/70" />
-          <span className="text-white/70 text-sm">Restaurants suchen...</span>
+          <Search size={17} className="text-[#6D9450]" />
+          <span className="text-[#1C1F1A]/45 text-sm">Restaurants suchen…</span>
         </button>
       </div>
 
-      <div className="px-5 pt-5 space-y-5">
+      <div className="px-5 pt-6 space-y-7 pb-8">
         {/* Story CTA */}
-        <div className="bg-white rounded-2xl p-4 border-l-4 border-[#8BB06A] shadow-sm">
-          <p className="text-[#1C1F1A] font-bold text-base">📸 Story posten = Punkte 🎉</p>
-          <p className="text-[#6D9450] text-sm mt-1 mb-3">Besuche ein Restaurant, scan den QR-Code und sammle Punkte!</p>
+        <div
+          className="bg-white rounded-3xl p-5"
+          style={{ boxShadow: '0 8px 24px rgba(28,31,26,0.07)' }}
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#EEF5E6] flex items-center justify-center text-xl flex-shrink-0">📸</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[#1C1F1A] font-bold text-base leading-snug">Story posten, Punkte sammeln</p>
+              <p className="text-[#1C1F1A]/50 text-sm mt-0.5">QR-Code am Tisch scannen und loslegen.</p>
+            </div>
+          </div>
           <button
             onClick={() => router.push('/entdecken')}
-            className="gradient-primary text-white text-sm font-bold px-4 py-2 rounded-xl"
+            className="mt-4 w-full gradient-primary text-white text-sm font-bold py-3 rounded-2xl active:scale-[0.98] transition-transform"
           >
-            📍 Restaurant wählen →
+            Restaurant wählen
           </button>
         </div>
 
         {/* Nearby restaurants */}
         <div>
-          <h2 className="text-[#1C1F1A] font-bold text-lg mb-3">In deiner Nähe 📍</h2>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex items-baseline justify-between mb-3.5">
+            <h2 className="text-[#1C1F1A] font-bold text-lg" style={{ fontFamily: 'DM Serif Display, serif' }}>In deiner Nähe</h2>
+            <button onClick={() => router.push('/entdecken')} className="text-[#6D9450] text-sm font-semibold">Alle</button>
+          </div>
+          <div className="flex gap-3.5 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5 snap-x snap-mandatory">
             {loadingRestaurants
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <SkeletonCard key={i} className="flex-shrink-0 w-40 h-28" />
+                  <SkeletonCard key={i} className="flex-shrink-0 w-64 h-40" />
                 ))
               : restaurants.map((r) => <RestaurantCard key={r.id} restaurant={r} />)}
           </div>
@@ -254,8 +269,11 @@ export default function HomePage() {
 
         {/* Deals */}
         <div>
-          <h2 className="text-[#1C1F1A] font-bold text-lg mb-3">Deine Deals 🔥</h2>
-          <div className="space-y-2">
+          <div className="flex items-baseline justify-between mb-3.5">
+            <h2 className="text-[#1C1F1A] font-bold text-lg" style={{ fontFamily: 'DM Serif Display, serif' }}>Deine Deals</h2>
+            <button onClick={() => router.push('/deals')} className="text-[#6D9450] text-sm font-semibold">Alle</button>
+          </div>
+          <div className="space-y-3">
             {loadingDeals
               ? Array.from({ length: 3 }).map((_, i) => (
                   <SkeletonCard key={i} className="h-16 w-full" />
