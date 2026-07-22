@@ -226,6 +226,8 @@ function LeafletMap({
   const mapRef = useRef<any>(null)
   const markersLayerRef = useRef<any>(null)
   const locationLayerRef = useRef<any>(null)
+  const cleanupTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const resizeObsRef = useRef<ResizeObserver | null>(null)
 
   // Stable refs — updated every render, never invalidate effects
   const onSelectRef = useRef(onSelect)
@@ -270,11 +272,36 @@ function LeafletMap({
 
       // Erst-Render: Marker setzen UND Karte einpassen
       placeMapMarkers(L, layer, map, restaurantsRef.current, cityRef.current, onSelectRef, true)
+
+      // ── KRITISCH (Mobile-Fix): Container hat beim Init oft noch nicht die finale Größe
+      // (AnimatePresence/Layout) → Leaflet rendert nur ein kleines Tile-Quadrat.
+      // invalidateSize nach Layout-Settle + ResizeObserver für spätere Größenänderungen.
+      const refit = () => {
+        if (!mapRef.current || !markersLayerRef.current) return
+        mapRef.current.invalidateSize({ animate: false })
+        placeMapMarkers(L, markersLayerRef.current, mapRef.current, restaurantsRef.current, cityRef.current, onSelectRef, true)
+      }
+      requestAnimationFrame(() => { mapRef.current?.invalidateSize({ animate: false }) })
+      const t1 = setTimeout(refit, 350)
+      const t2 = setTimeout(refit, 1200)
+      cleanupTimersRef.current = [t1, t2]
+
+      if (containerRef.current && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => {
+          mapRef.current?.invalidateSize({ animate: false })
+        })
+        ro.observe(containerRef.current)
+        resizeObsRef.current = ro
+      }
     }
 
     init()
     return () => {
       mounted = false
+      cleanupTimersRef.current.forEach(clearTimeout)
+      cleanupTimersRef.current = []
+      resizeObsRef.current?.disconnect()
+      resizeObsRef.current = null
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
       markersLayerRef.current = null
     }
