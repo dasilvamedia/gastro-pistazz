@@ -145,7 +145,10 @@ export default function DealsPage() {
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
       {/* Header */}
-      <div className="gradient-primary rounded-b-3xl pb-6 pt-12 px-5">
+      <div
+        className="gradient-primary rounded-b-[2rem] pb-6 px-5"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}
+      >
         <h1 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
           Deine Deals 💰
         </h1>

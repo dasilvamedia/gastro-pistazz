@@ -132,7 +132,10 @@ export default function ProfilPage() {
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
       {/* Header */}
-      <div className="gradient-primary rounded-b-3xl pb-6 pt-12 px-5">
+      <div
+        className="gradient-primary rounded-b-[2rem] pb-6 px-5"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}
+      >
         <div className="flex items-start justify-between mb-4">
           <Avatar name={profile?.full_name ?? null} />
           <button
