@@ -194,7 +194,7 @@ export default function HomePage() {
         }
 
         const [{ data: rData, error: rErr }, { data: dData, error: dErr }] = await Promise.all([
-          supabase.from('restaurants').select('*').eq('is_active', true).limit(10),
+          supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(10),
           supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5),
         ])
 
@@ -222,7 +222,7 @@ export default function HomePage() {
           })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' },
           async () => {
-            const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).limit(10)
+            const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(10)
             if (data) setRestaurants(await sortNearby(data))
           })
         .subscribe()
