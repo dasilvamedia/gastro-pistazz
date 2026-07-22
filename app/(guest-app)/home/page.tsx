@@ -14,6 +14,44 @@ function SkeletonCard({ className }: { className?: string }) {
   return <div className={`skeleton rounded-2xl ${className}`} />
 }
 
+// ── "In deiner Nähe": echte Entfernung wenn Standort erlaubt, sonst Featured zuerst ──
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function sortByFeatured(list: Restaurant[]) {
+  return [...list].sort((a, b) => {
+    if (!!b.is_featured !== !!a.is_featured) return b.is_featured ? 1 : -1
+    return a.name.localeCompare(b.name, 'de')
+  })
+}
+
+async function sortNearby(list: Restaurant[]): Promise<Restaurant[]> {
+  // Standort nur nutzen wenn Erlaubnis bereits erteilt wurde — kein aufdringlicher Prompt beim App-Start
+  try {
+    if (typeof navigator !== 'undefined' && navigator.permissions && navigator.geolocation) {
+      const perm = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+      if (perm.state === 'granted') {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000, maximumAge: 300000 })
+        )
+        const { latitude, longitude } = pos.coords
+        return [...list].sort((a, b) => {
+          const da = a.latitude && a.longitude ? haversineKm(latitude, longitude, a.latitude, a.longitude) : Infinity
+          const db = b.latitude && b.longitude ? haversineKm(latitude, longitude, b.latitude, b.longitude) : Infinity
+          return da - db
+        })
+      }
+    }
+  } catch { /* Fallback unten */ }
+  return sortByFeatured(list)
+}
+
 function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
   const router = useRouter()
   const hasGoogle = restaurant.google_rating != null && restaurant.google_rating > 0
@@ -162,7 +200,7 @@ export default function HomePage() {
 
         if (rErr) throw rErr
         if (dErr) throw dErr
-        setRestaurants(rData ?? [])
+        setRestaurants(await sortNearby(rData ?? []))
         setDeals(dData ?? [])
       } catch {
         toast.error('Fehler beim Laden der Daten')
@@ -185,7 +223,7 @@ export default function HomePage() {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' },
           async () => {
             const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).limit(10)
-            if (data) setRestaurants(data)
+            if (data) setRestaurants(await sortNearby(data))
           })
         .subscribe()
       return () => { supabase.removeChannel(channel) }
