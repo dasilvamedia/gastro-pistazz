@@ -1,5 +1,6 @@
 'use client'
 
+import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronDown, SlidersHorizontal, LayoutList, Map, X, MapPin } from 'lucide-react'
@@ -242,14 +243,6 @@ function LeafletMap({
     let mounted = true
 
     async function init() {
-      if (!document.querySelector('#leaflet-css')) {
-        const link = document.createElement('link')
-        link.id = 'leaflet-css'
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
-      }
-
       const L = (await import('leaflet')).default
       if (!mounted || !containerRef.current) return
 
