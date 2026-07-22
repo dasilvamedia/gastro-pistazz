@@ -131,13 +131,14 @@ h1, h2, h3, h4 {
 }
 
 /* ─── Mobile Admin: space below hamburger button ─────────────────────── */
+/* Nur Admin-Dashboard (main.admin-main)! Vorher traf 'main > *' auch die
+   Gast-App → hässlicher 56px-Streifen über dem Home-Header. */
 @media (max-width: 1023px) {
-  /* Add top padding so content clears the hamburger button */
-  main > * {
+  main.admin-main > * {
     padding-top: max(env(safe-area-inset-top), 0px);
   }
-  main > div:first-child,
-  main > section:first-child {
+  main.admin-main > div:first-child,
+  main.admin-main > section:first-child {
     padding-top: 56px !important;
   }
   /* Tables on mobile: make them scroll horizontally */

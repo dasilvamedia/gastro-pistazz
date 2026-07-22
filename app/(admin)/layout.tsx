@@ -44,7 +44,7 @@ export default async function AdminLayout({
       <AdminSidebar role={role} impersonatingName={impersonatingName} />
       {/* marginLeft is set dynamically by AdminSidebar via JS (desktop: 250px, mobile: 0) */}
       <main
-        className="flex-1 min-h-screen"
+        className="admin-main flex-1 min-h-screen"
         style={{ marginLeft: 250 }}
       >
         {children}

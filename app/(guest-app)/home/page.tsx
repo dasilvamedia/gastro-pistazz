@@ -196,8 +196,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
-      {/* Header */}
-      <div className="gradient-primary rounded-b-[2rem] pb-7 pt-14 px-5">
+      {/* Header — läuft hinter die Statusleiste (Safe-Area), wie native iOS-Apps */}
+      <div
+        className="gradient-primary rounded-b-[2rem] pb-7 px-5"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}
+      >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <img src="/logo-white.png" alt="" className="w-8 h-8" />
