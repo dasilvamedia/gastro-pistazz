@@ -18,8 +18,8 @@ const SEGMENTS: { key: SegmentKey; label: string }[] = [
 ]
 
 const TEMPLATES = [
-  { label: 'Event ankuendigen', icon: '🎉', subject: 'Einladung zu unserem Event!', body: 'Wir laden dich herzlich zu unserem naechsten Event ein. Komm vorbei und genieße tolle Angebote!' },
-  { label: 'Spezial-Deal', icon: '💰', subject: 'Exklusiver Deal nur fuer dich!', body: 'Als treuer Gast erhaeltst du heute einen besonderen Rabatt. Komm vorbei und loese deinen Deal ein!' },
+  { label: 'Event ankündigen', icon: '🎉', subject: 'Einladung zu unserem Event!', body: 'Wir laden dich herzlich zu unserem nächsten Event ein. Komm vorbei und genieße tolle Angebote!' },
+  { label: 'Spezial-Deal', icon: '💰', subject: 'Exklusiver Deal nur für dich!', body: 'Als treuer Gast erhältst du heute einen besonderen Rabatt. Komm vorbei und löse deinen Deal ein!' },
   { label: 'Feedback anfragen', icon: '⭐', subject: 'Wie war dein Besuch?', body: 'Wir hoffen, dir hat dein letzter Besuch bei uns gefallen! Teile uns dein Feedback mit und erhalte Bonuspunkte.' },
 ]
 

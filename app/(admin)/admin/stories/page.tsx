@@ -91,7 +91,7 @@ export default function StoriesPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-[#1C1F1A]">Story-Pruefung</h1>
+        <h1 className="text-2xl font-bold text-[#1C1F1A]">Story-Prüfung</h1>
         {pendingCount > 0 && (
           <span className="bg-[#E86B5A] text-white text-sm px-2.5 py-0.5 rounded-full font-medium">{pendingCount}</span>
         )}

@@ -403,7 +403,7 @@ export default function EinstellungenPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="glass rounded-xl p-6 max-w-sm w-full mx-4 border border-red-200">
             <h3 className="text-lg font-semibold text-[#E86B5A] mb-2">Achtung!</h3>
-            <p className="text-sm text-gray-500 mb-4">Diese Funktion ist noch nicht verfuegbar. Bitte wende dich an den Support.</p>
+            <p className="text-sm text-gray-500 mb-4">Diese Funktion ist noch nicht verfügbar. Bitte wende dich an den Support.</p>
             <button onClick={() => setDeleteOpen(false)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50">
               Schliessen

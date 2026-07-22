@@ -100,7 +100,8 @@ function placeMapMarkers(
   map: any,
   restaurants: Restaurant[],
   city: string,
-  onSelectRef: React.MutableRefObject<(r: Restaurant) => void>
+  onSelectRef: React.MutableRefObject<(r: Restaurant) => void>,
+  shouldFit: boolean = true, // fitBounds nur bei Stadt-/Erst-Render — nicht bei jedem Datenrefresh (verhindert Freeze)
 ) {
   layer.clearLayers()
   const withCoords = restaurants.filter(r => r.latitude && r.longitude)
@@ -109,9 +110,11 @@ function placeMapMarkers(
     m.on('click', () => onSelectRef.current(r))
     m.addTo(layer)
   })
+  if (!shouldFit) return
   if (withCoords.length > 1) {
     const bounds = L.latLngBounds(withCoords.map(r => [r.latitude!, r.longitude!] as [number, number]))
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
+    // animate:false → kein Animations-Loop der den Main-Thread blockiert
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14, animate: false })
   } else if (withCoords.length === 0) {
     const isAll = city === 'alle'
     const coords: [number, number] = isAll ? [51.1657, 10.4515] : (GERMAN_CITIES[city] ?? [48.7758, 9.1829])
@@ -265,8 +268,8 @@ function LeafletMap({
       const layer = L.layerGroup().addTo(map)
       markersLayerRef.current = layer
 
-      // Place markers using the freshest restaurant data available
-      placeMapMarkers(L, layer, map, restaurantsRef.current, cityRef.current, onSelectRef)
+      // Erst-Render: Marker setzen UND Karte einpassen
+      placeMapMarkers(L, layer, map, restaurantsRef.current, cityRef.current, onSelectRef, true)
     }
 
     init()
@@ -277,13 +280,13 @@ function LeafletMap({
     }
   }, [city]) // Only city — no restaurant dependency → no flicker on data refresh
 
-  // ── Effect 2: Restaurants change → update markers only, no map destroy ───
+  // ── Effect 2: Restaurants change → NUR Marker updaten, KEIN fitBounds (verhindert Freeze) ───
   useEffect(() => {
     if (!markersLayerRef.current || !mapRef.current) return
     ;(async () => {
       const L = (await import('leaflet')).default
       if (!markersLayerRef.current || !mapRef.current) return
-      placeMapMarkers(L, markersLayerRef.current, mapRef.current, restaurants, cityRef.current, onSelectRef)
+      placeMapMarkers(L, markersLayerRef.current, mapRef.current, restaurants, cityRef.current, onSelectRef, false)
     })()
   }, [restaurants])
 

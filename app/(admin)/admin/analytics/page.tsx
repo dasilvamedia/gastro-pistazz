@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
     const totalVisits = visitsRes.count ?? 0
     const repeatGuests = Math.floor(totalVisits * 0.4)
     setPieData([
-      { name: 'Neue Gaeste', value: totalVisits - repeatGuests },
+      { name: 'Neue Gäste', value: totalVisits - repeatGuests },
       { name: 'Wiederkehrend', value: repeatGuests },
     ])
 
@@ -162,7 +162,7 @@ export default function AnalyticsPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className={chartCls}>
-            <h2 className="font-semibold text-[#1C1F1A] mb-3">Stories ueber Zeit</h2>
+            <h2 className="font-semibold text-[#1C1F1A] mb-3">Stories über Zeit</h2>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={storiesData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF5E6" />
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className={chartCls}>
-            <h2 className="font-semibold text-[#1C1F1A] mb-3">Neue vs. wiederkehrende Gaeste</h2>
+            <h2 className="font-semibold text-[#1C1F1A] mb-3">Neue vs. wiederkehrende Gäste</h2>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, percent }) => `${name ?? ''} ${(((percent as number | undefined) ?? 0) * 100).toFixed(0)}%`}>

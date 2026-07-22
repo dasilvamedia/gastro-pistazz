@@ -112,7 +112,7 @@ export default function QRCodesPage() {
     <div className="p-6 space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-[#1C1F1A]">QR-Codes</h1>
-        <p className="text-sm text-gray-500 mt-1">Erstelle und verwalte QR-Codes fuer dein Restaurant</p>
+        <p className="text-sm text-gray-500 mt-1">Erstelle und verwalte QR-Codes für dein Restaurant</p>
       </div>
 
       {/* Permanenz-Hinweis */}
