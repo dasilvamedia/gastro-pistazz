@@ -375,8 +375,11 @@ export default function EntdeckenPage() {
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
 
-  const fetchRestaurants = useCallback(async () => {
-    setLoading(true)
+  // Hash der letzten Daten — verhindert unnötige Re-Renders (Map-Marker-Rebuild) bei unveränderten Daten
+  const lastDataHashRef = useRef('')
+
+  const fetchRestaurants = useCallback(async (background = false) => {
+    if (!background) setLoading(true)
     if (IS_MOCK_MODE) {
       let filtered = MOCK_RESTAURANTS
       if (filter !== 'alle') filtered = filtered.filter(r => r.type === filter)
@@ -396,15 +399,20 @@ export default function EntdeckenPage() {
       const { data, error } = await query.limit(50)
       if (error) throw error
       const list = data ?? []
-      setRestaurants(list)
-      if (selectedCity === 'alle') {
-        const cities = [...new Set(list.map(r => r.city).filter(Boolean) as string[])].sort()
-        setAvailableCities(cities)
+      // Nur updaten wenn sich die Daten wirklich geändert haben
+      const hash = list.map(r => `${r.id}:${r.updated_at ?? ''}:${r.latitude}:${r.longitude}:${r.is_active}`).join('|')
+      if (hash !== lastDataHashRef.current) {
+        lastDataHashRef.current = hash
+        setRestaurants(list)
+        if (selectedCity === 'alle') {
+          const cities = [...new Set(list.map(r => r.city).filter(Boolean) as string[])].sort()
+          setAvailableCities(cities)
+        }
       }
     } catch {
-      toast.error('Fehler beim Laden der Restaurants')
+      if (!background) toast.error('Fehler beim Laden der Restaurants')
     } finally {
-      setLoading(false)
+      if (!background) setLoading(false)
     }
   }, [filter, sort, search, selectedCity])
 
@@ -433,13 +441,13 @@ export default function EntdeckenPage() {
 
     const channel = supabase
       .channel('entdecken-live')
-      .on('broadcast', { event: 'restaurant_updated' }, () => fetchRef.current())
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, () => fetchRef.current())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'restaurants' }, () => fetchRef.current())
+      .on('broadcast', { event: 'restaurant_updated' }, () => fetchRef.current(true))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, () => fetchRef.current(true))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'restaurants' }, () => fetchRef.current(true))
       .subscribe()
 
-    // 5s polling fallback — fast enough to feel live without DB pub/sub config
-    const poll = setInterval(() => fetchRef.current(), 5_000)
+    // 60s Polling-Fallback (Realtime ist primär) — 5s hat Map-Marker permanent neu gebaut → Karte fror ein
+    const poll = setInterval(() => fetchRef.current(true), 60_000)
 
     return () => {
       supabase.removeChannel(channel)
