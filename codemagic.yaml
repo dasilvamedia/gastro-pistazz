@@ -2,6 +2,8 @@ workflows:
   ios-release:
     name: Pistazz iOS Release
     max_build_duration: 60
+    integrations:
+      app_store_connect: pistazz-asc
     environment:
       ios_signing:
         distribution_type: app_store
@@ -43,11 +45,10 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-    # Publishing iOS — wird aktiviert sobald Apple Developer Account aktiv
-    # publishing:
-    #   app_store_connect:
-    #     auth: integration
-    #     submit_to_testflight: true
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
 
   android-release:
     name: Pistazz Android Release

@@ -60,9 +60,9 @@ function RegisterInner() {
       password: data.password,
       options: { data: { full_name: data.full_name } },
     })
-    setLoading(false)
 
     if (error) {
+      setLoading(false)
       toast.error(error.message)
       return
     }
@@ -70,18 +70,33 @@ function RegisterInner() {
     // Benachrichtigung an info@pistazz.io (nicht-blockierend)
     notifyNewUser({ email: data.email, name: data.full_name, method: 'email' })
 
-    // If session was created immediately (email confirmation disabled in Supabase),
-    // skip login page and go directly to onboarding with the restaurant context.
+    const dest = restaurantSlug ? `/onboarding?restaurant=${restaurantSlug}` : '/onboarding'
+
+    // Session sofort vorhanden (E-Mail-Bestätigung deaktiviert) → direkt weiter, kein Login nötig
     if (authData.session) {
-      const dest = restaurantSlug
-        ? `/onboarding?restaurant=${restaurantSlug}`
-        : '/onboarding'
       router.push(dest)
       return
     }
 
-    // Email confirmation required — tell user to check inbox
-    toast.success('Konto erstellt! Bitte bestätige deine E-Mail, dann kannst du dich einloggen.')
+    // Fallback: keine Session zurückgegeben → sofort automatisch einloggen,
+    // damit der Nutzer die Daten NICHT erneut eingeben muss.
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
+    setLoading(false)
+
+    if (signInData?.session) {
+      router.push(dest)
+      return
+    }
+
+    // Nur wenn wirklich E-Mail-Bestätigung erzwungen wird (Server-seitig)
+    if (signInError?.message?.toLowerCase().includes('not confirmed') || signInError?.message?.toLowerCase().includes('confirm')) {
+      toast.success('Konto erstellt! Bitte bestätige deine E-Mail, dann kannst du dich einloggen.')
+    } else if (signInError) {
+      toast.error(signInError.message)
+    }
     router.push('/login' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : ''))
   }
 
