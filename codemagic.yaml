@@ -14,7 +14,7 @@ workflows:
         NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRydmhkcmh5amJ5amlsYXh1eGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTYwNDcsImV4cCI6MjA5MzY3MjA0N30.UhQf2TtH6MZdluqlJ691CSgBzr_iOxnZyekHpxQQujU
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
-      node: 20
+      node: 22
       xcode: latest
       cocoapods: default
     triggering:
@@ -58,7 +58,7 @@ workflows:
         - pistazz_keystore
       vars:
         PACKAGE_NAME: io.pistazz.gastro
-      node: v20.0.0
+      node: 22
     triggering:
       events:
         - push
