@@ -12,11 +12,10 @@ workflows:
         BUNDLE_ID: io.pistazz.gastro
         NEXT_PUBLIC_SUPABASE_URL: https://drvhdrhyjbyjilaxuxjy.supabase.co
         NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRydmhkcmh5amJ5amlsYXh1eGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTYwNDcsImV4cCI6MjA5MzY3MjA0N30.UhQf2TtH6MZdluqlJ691CSgBzr_iOxnZyekHpxQQujU
-        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
       node: 22
       xcode: latest
-      cocoapods: default
     triggering:
       events:
         - push
@@ -32,15 +31,11 @@ workflows:
           printf '<!doctype html><html><head><meta charset="utf-8"><title>gastro.pistazz.io</title></head><body></body></html>' > out/index.html
       - name: Capacitor sync
         script: npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
       - name: Build iOS
         script: |
           xcode-project use-profiles
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
