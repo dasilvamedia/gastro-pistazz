@@ -4,7 +4,7 @@ android {
     namespace = "io.pistazz.gastro"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.pistazz.gastro"
+        applicationId "gastro.pistazz.io"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
