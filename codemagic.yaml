@@ -10,6 +10,8 @@ workflows:
         bundle_identifier: io.pistazz.gastro
       vars:
         BUNDLE_ID: io.pistazz.gastro
+        NEXT_PUBLIC_SUPABASE_URL: https://drvhdrhyjbyjilaxuxjy.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRydmhkcmh5amJ5amlsYXh1eGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTYwNDcsImV4cCI6MjA5MzY3MjA0N30.UhQf2TtH6MZdluqlJ691CSgBzr_iOxnZyekHpxQQujU
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
       node: 20
