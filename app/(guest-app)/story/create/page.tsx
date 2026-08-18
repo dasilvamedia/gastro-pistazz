@@ -396,6 +396,7 @@ function StoryCreateInner() {
   const [pointsEarned, setPointsEarned]= useState(0)
   const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'success'>('capture')
   const [copiedTag, setCopiedTag] = useState<string | null>(null)
+  const [fallbackHint, setFallbackHint] = useState(false)
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
   const [camError, setCamError] = useState(false)
@@ -587,7 +588,9 @@ function StoryCreateInner() {
         if (out?.shared) return
       } catch { /* Fallback unten */ }
     }
-    window.location.href = 'instagram://camera'
+    // Uebergangsweise (bis App-Update): kurze Hilfe zeigen, dann Instagram oeffnen
+    setFallbackHint(true)
+    setTimeout(() => { window.location.href = 'instagram://camera' }, 2600)
   }
 
   // ── Punkte einreichen ────────────────────────────────────────────────────
@@ -652,11 +655,13 @@ function StoryCreateInner() {
         </div>
 
         <div
-          className="bg-[#1C1F1A] px-5 pt-4 space-y-2"
+          className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
         >
-          {/* Tags einzeln kopieren — in Instagram als Erwaehnung einfuegen und Account antippen */}
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">1. Tags kopieren</p>
+          {/* Tags: fuer die Punkte muessen beide als Erwaehnung in die Story */}
+          <p className="text-white/80 text-[13px] leading-snug text-center">
+            Vergiss nicht: Füge <strong className="text-white">beide Tags</strong> in deine Story ein. Dafür gibt es deine Punkte!
+          </p>
           <div className="flex gap-2">
             {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastropistazz'].filter((t): t is string => !!t).map(tag => (
               <button
@@ -672,23 +677,27 @@ function StoryCreateInner() {
             ))}
           </div>
 
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide pt-1">2. Story posten</p>
-          <p className="text-white/75 text-[13px] leading-snug">
-            Bild oben <strong className="text-white">gedrückt halten</strong> und in Fotos sichern.
-            Dann in Instagram als Story öffnen, Tags einfügen, Accounts antippen und posten.
-          </p>
+          {/* Uebergangshilfe, nur solange die App das Bild noch nicht automatisch uebergeben kann */}
+          {fallbackHint && (
+            <div className="rounded-xl bg-amber-500/15 border border-amber-400/30 px-3 py-2.5">
+              <p className="text-amber-200 text-[12px] leading-snug">
+                Noch ein Zwischenschritt: <strong className="text-amber-100">Bild oben gedrückt halten</strong> und zu Fotos sichern.
+                In Instagram dann Story, Bild wählen, Tags einfügen. Mit dem nächsten App-Update entfällt das!
+              </p>
+            </div>
+          )}
 
           <button
             onClick={handleOpenInstagram}
-            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 active:opacity-80 transition-opacity"
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 active:opacity-80 transition-opacity"
             style={{ background: 'linear-gradient(90deg,#f09433 0%,#dc2743 55%,#bc1888 100%)' }}
           >
-            <svg width="22" height="22" viewBox="0 0 18 18" fill="none" className="shrink-0">
+            <svg width="24" height="24" viewBox="0 0 18 18" fill="none" className="shrink-0">
               <circle cx="9" cy="9" r="3.5" stroke="white" strokeWidth="1.5" fill="none"/>
               <circle cx="13.2" cy="4.8" r="1" fill="white"/>
               <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
             </svg>
-            <span className="text-white font-bold text-base flex-1 text-left">Instagram öffnen</span>
+            <span className="text-white font-bold text-base flex-1 text-left">Auf Instagram teilen</span>
             <span className="text-white/70 text-lg">›</span>
           </button>
 
