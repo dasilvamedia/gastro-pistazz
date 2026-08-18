@@ -412,6 +412,7 @@ function StoryCreateInner() {
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
   const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'success'>('capture')
+  const [tagsCopied, setTagsCopied] = useState(false)
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
   const [camError, setCamError] = useState(false)
@@ -586,8 +587,23 @@ function StoryCreateInner() {
     setSubmitting(false)
   }
 
-  // ── Fallback: Instagram manuell öffnen ──────────────────────────────────
-  const handleOpenInstagram = () => {
+  // ── Instagram öffnen: nativ mit Bild-Uebergabe (App-Build 2+), sonst Deep-Link ──
+  const handleOpenInstagram = async () => {
+    const native = (window as unknown as {
+      Capacitor?: { Plugins?: { InstagramStory?: { share: (o: { base64: string; appId?: string }) => Promise<{ shared: boolean }> } } }
+    }).Capacitor?.Plugins?.InstagramStory
+    if (native && exportedBlob) {
+      try {
+        const base64 = await new Promise<string>((res, rej) => {
+          const r = new FileReader()
+          r.onload = () => res((r.result as string).split(',')[1])
+          r.onerror = rej
+          r.readAsDataURL(exportedBlob)
+        })
+        const out = await native.share({ base64, appId: process.env.NEXT_PUBLIC_META_APP_ID })
+        if (out?.shared) return
+      } catch { /* Fallback unten */ }
+    }
     window.location.href = 'instagram://camera'
   }
 
@@ -673,6 +689,23 @@ function StoryCreateInner() {
             </p>
           </div>
 
+          {/* Beide Tags mit einem Tap kopieren */}
+          <button
+            onClick={async () => {
+              const tags = [
+                restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null,
+                '@gastropistazz',
+              ].filter(Boolean).join(' ')
+              try { await navigator.clipboard.writeText(tags); setTagsCopied(true); setTimeout(() => setTagsCopied(false), 2500) } catch {}
+            }}
+            className="w-full flex items-center justify-between gap-3 bg-white/8 border border-white/15 rounded-2xl px-4 py-3 active:bg-white/15 transition-colors"
+          >
+            <span className="text-white font-bold text-sm truncate">
+              {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastropistazz'].filter(Boolean).join(' ')}
+            </span>
+            <span className="text-[#8BB06A] text-xs font-semibold shrink-0">{tagsCopied ? 'Kopiert!' : 'Tags kopieren'}</span>
+          </button>
+
           <button
             onClick={handleOpenInstagram}
             className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 active:opacity-80 transition-opacity"
@@ -733,8 +766,13 @@ function StoryCreateInner() {
       <input ref={galleryInput} type="file" accept="image/*" className="hidden" onChange={handleGalleryPick} />
       <canvas ref={captureCanvas} className="hidden" />
 
-      {/* ── CAMERA / PHOTO — fills ENTIRE screen ── */}
-      <div ref={cameraContainerRef} className="absolute inset-0">
+      {/* ── CAMERA / PHOTO — echtes Story-Format 9:16, zentriert (WYSIWYG zum Export) ── */}
+      <div className="absolute inset-0 flex items-center justify-center">
+      <div
+        ref={cameraContainerRef}
+        className="relative overflow-hidden rounded-2xl"
+        style={{ aspectRatio: '9 / 16', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: '100%' }}
+      >
 
         {/* Live camera feed */}
         {step === 'capture' && !camError && (
@@ -764,6 +802,42 @@ function StoryCreateInner() {
             style={{ filter: filterCss === 'none' ? undefined : filterCss }} />
         )}
 
+      {/* ── EDIT OVERLAYS — z-index between camera and bottom bar ── */}
+      {step === 'edit' && (
+        <>
+          {/* Sticker — draggable, pinch-resizable, double-tap for color */}
+          <StickerOverlay
+            color={stickerColor} onColorChange={setStickerColor}
+            x={stickerPos.x} y={stickerPos.y} scale={stickerPos.scale}
+            onUpdate={(x, y, scale) => setStickerPos({ x, y, scale })}
+            containerRef={cameraContainerRef}
+          />
+
+          {/* Text overlay (Aa button included) */}
+          <TextOverlay blocks={textBlocks} onChange={setTextBlocks} />
+
+          {/* @tag pill — above the edit controls (filter strip + share row ≈ 175px) */}
+          <div className="absolute inset-x-0 z-20 flex flex-col items-center gap-1.5 pointer-events-none"
+            style={{ bottom: '12%' }}>
+            {!restaurant?.instagram_handle && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold"
+                style={{ background: 'rgba(245,158,11,0.92)', color: '#fff' }}>
+                ⚠️ Instagram-Handle fehlt — im Dashboard hinterlegen
+              </div>
+            )}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-[#1C1F1A]"
+              style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)' }}>
+              <span style={{ color: '#E1306C' }}>▲</span>
+              {[
+                restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@/, '')}` : null,
+                '@gastropistazz',
+              ].filter(Boolean).join('  ')}
+            </div>
+          </div>
+        </>
+      )}
+
+      </div>
       </div>{/* end camera */}
 
       {/* ── TOP BAR — always on top ── */}
@@ -813,41 +887,6 @@ function StoryCreateInner() {
             </ol>
           </div>
         </div>
-      )}
-
-      {/* ── EDIT OVERLAYS — z-index between camera and bottom bar ── */}
-      {step === 'edit' && (
-        <>
-          {/* Sticker — draggable, pinch-resizable, double-tap for color */}
-          <StickerOverlay
-            color={stickerColor} onColorChange={setStickerColor}
-            x={stickerPos.x} y={stickerPos.y} scale={stickerPos.scale}
-            onUpdate={(x, y, scale) => setStickerPos({ x, y, scale })}
-            containerRef={cameraContainerRef}
-          />
-
-          {/* Text overlay (Aa button included) */}
-          <TextOverlay blocks={textBlocks} onChange={setTextBlocks} />
-
-          {/* @tag pill — above the edit controls (filter strip + share row ≈ 175px) */}
-          <div className="absolute inset-x-0 z-20 flex flex-col items-center gap-1.5 pointer-events-none"
-            style={{ bottom: '185px' }}>
-            {!restaurant?.instagram_handle && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold"
-                style={{ background: 'rgba(245,158,11,0.92)', color: '#fff' }}>
-                ⚠️ Instagram-Handle fehlt — im Dashboard hinterlegen
-              </div>
-            )}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-[#1C1F1A]"
-              style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)' }}>
-              <span style={{ color: '#E1306C' }}>▲</span>
-              {[
-                restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@/, '')}` : null,
-                '@gastropistazz',
-              ].filter(Boolean).join('  ')}
-            </div>
-          </div>
-        </>
       )}
 
       {/* ── BOTTOM CONTROLS — floats over camera ── */}

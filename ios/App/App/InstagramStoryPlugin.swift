@@ -1,0 +1,44 @@
+import Foundation
+import Capacitor
+import UIKit
+
+/// Uebergibt das Story-Bild direkt an Instagram (Meta "Sharing to Stories").
+/// Das Bild landet automatisch als Story-Hintergrund. Der Nutzer muss nur noch
+/// Tags/Sticker setzen und auf Teilen tippen.
+@objc(InstagramStoryPlugin)
+public class InstagramStoryPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "InstagramStoryPlugin"
+    public let jsName = "InstagramStory"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "share", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func share(_ call: CAPPluginCall) {
+        guard let base64 = call.getString("base64"),
+              let imageData = Data(base64Encoded: base64) else {
+            call.reject("base64 fehlt oder ungueltig")
+            return
+        }
+        let appId = call.getString("appId") ?? ""
+
+        DispatchQueue.main.async {
+            guard let url = URL(string: "instagram-stories://share?source_application=\(appId)"),
+                  UIApplication.shared.canOpenURL(url) else {
+                call.resolve(["shared": false, "reason": "instagram_not_installed"])
+                return
+            }
+
+            let items: [[String: Any]] = [[
+                "com.instagram.sharedSticker.backgroundImage": imageData,
+            ]]
+            let options: [UIPasteboard.OptionsKey: Any] = [
+                .expirationDate: Date().addingTimeInterval(60 * 5),
+            ]
+            UIPasteboard.general.setItems(items, options: options)
+
+            UIApplication.shared.open(url, options: [:]) { ok in
+                call.resolve(["shared": ok])
+            }
+        }
+    }
+}
