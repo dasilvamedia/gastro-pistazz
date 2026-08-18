@@ -412,6 +412,8 @@ function StoryCreateInner() {
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
   const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'success'>('capture')
+  const [howtoDismissed, setHowtoDismissed] = useState(() =>
+    typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
   const [camError, setCamError] = useState(false)
   const [exportedBlob,    setExportedBlob]    = useState<Blob | null>(null)
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null)
@@ -576,7 +578,6 @@ function StoryCreateInner() {
         } catch { /* Clipboard nicht erlaubt */ }
       }
       setClipboardCopied(ok)
-      if (ok) window.location.href = 'instagram://camera'
       setStep('share-options')
 
     } catch {
@@ -642,7 +643,7 @@ function StoryCreateInner() {
         {/* Story-Vorschau */}
         <div className="flex-1 relative overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={exportedBlobUrl} alt="Story-Vorschau" className="absolute inset-0 w-full h-full object-contain" />
+          <img src={exportedBlobUrl} alt="Story-Vorschau" className="absolute inset-0 w-full h-full object-contain" style={{ WebkitTouchCallout: 'default', WebkitUserSelect: 'auto', touchAction: 'auto' } as React.CSSProperties} />
           <button
             onClick={() => setStep('edit')}
             className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white z-10"
@@ -652,89 +653,46 @@ function StoryCreateInner() {
         </div>
 
         <div
-          className="bg-[#1C1F1A] px-5 pt-5 space-y-3"
+          className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
         >
-          {clipboardCopied ? (
-            /* ── Clipboard-Pfad: Instagram wurde direkt geöffnet ── */
-            <>
-              <div className="flex flex-col items-center gap-1 text-center pb-1">
-                <span className="text-3xl">📸</span>
-                <h2 className="text-white font-bold text-base">Instagram wurde geöffnet!</h2>
-                <p className="text-white/50 text-xs leading-relaxed">
-                  Dein Bild liegt in der Zwischenablage.{'\n'}
-                  Instagram fragt dich gleich, ob du es einfügen möchtest.
-                </p>
-              </div>
+          {/* Schritt 1: Bild in Fotos sichern (einziger zuverlaessiger Weg auf iOS) */}
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-[#8BB06A] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</div>
+            <p className="text-white/85 text-sm leading-snug">
+              <strong className="text-white">Bild oben gedrückt halten</strong> und{' '}
+              <strong className="text-white">&bdquo;Zu Fotos hinzufügen&ldquo;</strong> wählen
+            </p>
+          </div>
 
-              {/* Nochmals öffnen falls nötig */}
-              <button
-                onClick={handleOpenInstagram}
-                className="w-full flex items-center gap-3 bg-white/8 border border-white/12 rounded-2xl px-4 py-3 active:bg-white/15 transition-colors"
-              >
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)' }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
-                    <circle cx="9" cy="9" r="3.5" stroke="white" strokeWidth="1.5" fill="none"/>
-                    <circle cx="13.2" cy="4.8" r="1" fill="white"/>
-                    <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
-                  </svg>
-                </div>
-                <div className="text-left flex-1">
-                  <p className="text-white font-semibold text-sm">Instagram nochmals öffnen</p>
-                  <p className="text-white/45 text-xs">Falls es nicht automatisch geklappt hat</p>
-                </div>
-                <span className="text-white/30 text-lg">›</span>
-              </button>
-            </>
-          ) : (
-            /* ── Fallback: kein Clipboard, manuell ── */
-            <>
-              <h2 className="text-white font-bold text-base text-center">Story manuell teilen</h2>
+          {/* Schritt 2: Instagram oeffnen */}
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-[#8BB06A] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</div>
+            <p className="text-white/85 text-sm leading-snug">
+              Instagram öffnen, <strong className="text-white">Story</strong>, Bild aus der Galerie wählen und teilen. Die Tags sind schon im Bild!
+            </p>
+          </div>
 
-              <button
-                onClick={downloadBlob}
-                className="w-full flex items-center gap-3 bg-white/8 border border-white/12 rounded-2xl px-4 py-3 active:bg-white/15 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-500/25 border border-blue-400/30 flex items-center justify-center text-lg shrink-0">📥</div>
-                <div className="text-left flex-1">
-                  <p className="text-white font-semibold text-sm">Bild herunterladen</p>
-                  <p className="text-white/45 text-xs">Dann Instagram → Story → Galerie</p>
-                </div>
-                <span className="text-white/30 text-lg">›</span>
-              </button>
+          <button
+            onClick={handleOpenInstagram}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 active:opacity-80 transition-opacity"
+            style={{ background: 'linear-gradient(90deg,#f09433 0%,#dc2743 55%,#bc1888 100%)' }}
+          >
+            <svg width="22" height="22" viewBox="0 0 18 18" fill="none" className="shrink-0">
+              <circle cx="9" cy="9" r="3.5" stroke="white" strokeWidth="1.5" fill="none"/>
+              <circle cx="13.2" cy="4.8" r="1" fill="white"/>
+              <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
+            </svg>
+            <span className="text-white font-bold text-base flex-1 text-left">Instagram öffnen</span>
+            <span className="text-white/70 text-lg">›</span>
+          </button>
 
-              <button
-                onClick={handleOpenInstagram}
-                className="w-full flex items-center gap-3 bg-white/8 border border-white/12 rounded-2xl px-4 py-3 active:bg-white/15 transition-colors"
-              >
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)' }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
-                    <circle cx="9" cy="9" r="3.5" stroke="white" strokeWidth="1.5" fill="none"/>
-                    <circle cx="13.2" cy="4.8" r="1" fill="white"/>
-                    <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
-                  </svg>
-                </div>
-                <div className="text-left flex-1">
-                  <p className="text-white font-semibold text-sm">Instagram öffnen</p>
-                  <p className="text-white/45 text-xs">Story erstellen → Galerie → Bild wählen</p>
-                </div>
-                <span className="text-white/30 text-lg">›</span>
-              </button>
-            </>
-          )}
-
-          {/* Nach dem Share: zur URL-Eingabe weiterleiten */}
+          {/* Schritt 3: Punkte anfordern */}
           <button
             onClick={() => router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)}
             className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
           >
-            <CheckCircle className="w-5 h-5" />Ich habe geteilt — Punkte anfordern →
+            <CheckCircle className="w-5 h-5" />Geteilt? Punkte anfordern
           </button>
         </div>
       </div>
@@ -769,7 +727,7 @@ function StoryCreateInner() {
   // Render: Capture + Edit — Instagram-style full-screen camera
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
+    <div className="fixed inset-0 bg-black overflow-hidden" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
 
       {/* Hidden helpers */}
       <input ref={galleryInput} type="file" accept="image/*" className="hidden" onChange={handleGalleryPick} />
@@ -834,6 +792,28 @@ function StoryCreateInner() {
           <div className="w-11 h-11" />
         )}
       </div>
+
+      {/* ── SO GIBT'S PUNKTE: Anleitung vor dem Erstellen ── */}
+      {step === 'capture' && !howtoDismissed && (
+        <div className="absolute inset-x-4 z-40" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 68px)' }}>
+          <div className="rounded-2xl bg-black/70 backdrop-blur-md border border-white/15 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-white font-bold text-sm">So bekommst du deine Punkte</p>
+              <button
+                onClick={() => { setHowtoDismissed(true); sessionStorage.setItem('storyHowto', '1') }}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
+              <li><strong className="text-white">1.</strong> Foto machen und gestalten. Die Tags kommen automatisch ins Bild</li>
+              <li><strong className="text-white">2.</strong> Bild in Fotos sichern und als Instagram-Story teilen</li>
+              <li><strong className="text-white">3.</strong> Zurück in die App: Punkte anfordern. Fertig!</li>
+            </ol>
+          </div>
+        </div>
+      )}
 
       {/* ── EDIT OVERLAYS — z-index between camera and bottom bar ── */}
       {step === 'edit' && (
@@ -903,7 +883,7 @@ function StoryCreateInner() {
         ) : (
           /* ── EDIT: filter strip + share controls (gradient so photo shows through) ── */
           <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-            <div className="pt-3 pb-1">
+            <div className="pt-3 pb-1" style={{ touchAction: 'pan-x' }}>
               <FilterStrip selected={filter} onChange={setFilter} previewSrc={capturedSrc} />
             </div>
             <div className="flex items-center gap-3 px-5 pb-3 pt-2">

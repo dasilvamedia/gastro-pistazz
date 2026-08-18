@@ -77,7 +77,7 @@ function StorySubmitInner() {
           .select('instagram_handle')
           .eq('id', user.id)
           .single()
-        setUserInstagramHandle(profile?.instagram_handle ?? null)
+        setUserInstagramHandle(profile?.instagram_handle?.replace(/^@+/, '') ?? null)
       }
 
       if (restaurantSlug) {
@@ -173,7 +173,7 @@ function StorySubmitInner() {
   const types = getTypes(selectedRestaurant)
   const selectedTypeInfo = types.find(t => t.value === selectedType)
   const isInstagramType = selectedType && INSTAGRAM_TYPES.includes(selectedType)
-  const restaurantIgHandle = selectedRestaurant?.instagram_handle
+  const restaurantIgHandle = selectedRestaurant?.instagram_handle?.replace(/^@+/, '')
 
   function copyTag(text: string, which: 'restaurant' | 'platform') {
     navigator.clipboard.writeText(text).catch(() => {
@@ -355,7 +355,7 @@ function StorySubmitInner() {
                     {selectedType === 'instagram_story' && (
                       <li className="flex items-start gap-2 text-xs text-[#6D7A6D] bg-red-50 rounded-xl p-2 border border-red-100">
                         <span className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
-                        <span><strong className="text-red-700">Sofort nach dem Teilen</strong> einen Screenshot machen — beide Tags müssen sichtbar sein. Dann hier hochladen.</span>
+                        <span><strong className="text-red-700">Sofort nach dem Teilen</strong> einen Screenshot machen, auf dem beide Tags sichtbar sind. Dann hier hochladen.</span>
                       </li>
                     )}
                   </ol>
@@ -471,7 +471,7 @@ function StorySubmitInner() {
                   {!link.trim() && <p className="text-[#E86B5A] text-xs mt-1">Link wird zur Verifizierung benötigt</p>}
                   {userInstagramHandle && (
                     <p className="text-[#8BB06A] text-xs mt-1">
-                      Dein Handle: @{userInstagramHandle} — stelle sicher, dass der Link deinen Account enthält.
+                      Dein Handle: @{userInstagramHandle}. Stelle sicher, dass der Link deinen Account enthält.
                     </p>
                   )}
                 </div>
@@ -482,7 +482,7 @@ function StorySubmitInner() {
                 <div>
                   <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
                     Screenshot{' '}
-                    <span className="text-[#8BB06A]/70 font-normal">(optional — erhöht Chance auf sofortige Genehmigung)</span>
+                    <span className="text-[#8BB06A]/70 font-normal">(optional, erhöht die Chance auf sofortige Genehmigung)</span>
                   </label>
                   <p className="text-[#6D7A6D] text-xs mb-2">
                     📱 iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.
