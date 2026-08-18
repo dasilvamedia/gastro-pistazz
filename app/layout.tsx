@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { DM_Sans, DM_Serif_Display } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
@@ -16,9 +16,23 @@ const dmSerifDisplay = DM_Serif_Display({
   display: 'swap',
 })
 
+// Verhindert iOS-Autozoom bei Eingabefeldern und horizontales Wandern der App
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#6D9450',
+}
+
 export const metadata: Metadata = {
-  title: 'gastro.pistazz.io',
-  description: 'Die Loyalty-Plattform für Gastronomie',
+  title: {
+    default: 'Gastro | pistazz.io – Mehr Stammgäste durch Social-Media-Loyalty',
+    template: '%s | pistazz.io',
+  },
+  description:
+    'Digitale Stempelkarten, Social-Media-Loyalty und Gäste-CRM in einer Plattform. Deine Gäste posten, sammeln Punkte und kommen wieder — für Restaurants, Bars, Cafés und mehr.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

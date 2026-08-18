@@ -27,6 +27,46 @@
   --color-foreground: #1C1F1A;
 }
 
+/* ── Brand Layer ──────────────────────────────────────────────────
+   Single source of truth for the pistazz family. Kept wortgleich in
+   Main-Pistazz.io/src/app/globals.css — change both together, never
+   only one. */
+:root {
+  --pz-green: #8BB06A;
+  --pz-green-dark: #6D9450;
+  --pz-green-deep: #577A3D;
+  --pz-green-light: #D4E8C2;
+  --pz-green-pale: #EEF5E6;
+  --pz-charcoal: #1C1F1A;
+
+  --pz-accent-creator: #E86B5A;
+  --pz-accent-gastro: #E5B84C;
+  --pz-accent-teamwork: #4A90D9;
+}
+
+/* ── Industry Layer ───────────────────────────────────────────────
+   The landing page paints itself from these, never from a fixed hex.
+   Switching industry rewrites them and the whole page follows.
+   Defaults = Gastro, so the page renders correctly even before any
+   switcher has mounted. */
+:root,
+[data-industry] {
+  --ind-primary: var(--pz-green);
+  --ind-primary-dark: var(--pz-green-dark);
+  --ind-primary-deep: var(--pz-green-deep);
+  --ind-primary-light: var(--pz-green-light);
+  --ind-primary-pale: var(--pz-green-pale);
+  --ind-accent: var(--pz-accent-gastro);
+  --ind-surface: #F8FAF5;
+  --ind-surface-soft: #F0F5EB;
+  --ind-surface-edge: #E2EDD6;
+}
+
+/* Colour changes glide instead of snapping when the industry switches */
+[data-industry] {
+  transition: background-color .5s ease, color .5s ease, border-color .5s ease;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -168,4 +208,14 @@ html.nprogress-busy body { cursor: wait; }
 }
 main > * {
   animation: fadeIn 0.18s ease-out both;
+}
+
+/* ── App-Feeling: kein horizontales Wandern, kein iOS-Autozoom ── */
+html, body {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-x: none;
+}
+input, select, textarea {
+  font-size: max(16px, 1rem); /* <16px loest iOS-Zoom beim Fokussieren aus */
 }

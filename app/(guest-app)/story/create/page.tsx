@@ -543,27 +543,31 @@ function StoryCreateInner() {
       setExportedBlob(blob)
       setExportedBlobUrl(URL.createObjectURL(blob))
 
-      // ── Primär: Web Share API → iOS/Android Share Sheet → User wählt Instagram ──
-      const file = new File([blob], 'pistazz-story.jpg', { type: 'image/jpeg' })
-      const canShare = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
-      if (canShare) {
-        try {
-          await navigator.share({ files: [file], title: 'pistazz Story' })
-          // Nach erfolgreichem Share → zur URL-Eingabe weiterleiten
-          setSubmitting(false)
-          router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
-          return
-        } catch (err) {
-          if (err instanceof Error && err.name === 'AbortError') {
-            // User hat Share-Sheet abgebrochen
+      // ── iOS: KEIN Datei-Share-Sheet (verwirrend) — Bild in die Zwischenablage
+      //    und Instagram direkt im Story-Modus oeffnen. Android: System-Teilen,
+      //    dort erscheint Instagram sauber als direktes Ziel. ──
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+      if (!isIOS) {
+        const file = new File([blob], 'pistazz-story.jpg', { type: 'image/jpeg' })
+        const canShare = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
+        if (canShare) {
+          try {
+            await navigator.share({ files: [file], title: 'pistazz Story' })
             setSubmitting(false)
+            router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
             return
+          } catch (err) {
+            if (err instanceof Error && err.name === 'AbortError') {
+              setSubmitting(false)
+              return
+            }
           }
-          // Anderer Fehler → Fallback
         }
       }
 
-      // ── Fallback: Zwischenablage + Instagram öffnen ──
+      // ── iOS-Hauptweg + genereller Fallback: Zwischenablage + Instagram öffnen ──
       let ok = false
       if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
         try {
@@ -827,13 +831,7 @@ function StoryCreateInner() {
             <FlipHorizontal className="w-5 h-5" />
           </button>
         ) : (
-          <button
-            onClick={handleExport}
-            disabled={submitting}
-            className="px-5 py-2 rounded-full gradient-primary text-white text-sm font-bold shadow-lg disabled:opacity-60"
-          >
-            {submitting ? '…' : 'Teilen →'}
-          </button>
+          <div className="w-11 h-11" />
         )}
       </div>
 
