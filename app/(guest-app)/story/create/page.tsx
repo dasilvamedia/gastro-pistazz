@@ -584,7 +584,7 @@ function StoryCreateInner() {
           r.onerror = rej
           r.readAsDataURL(exportedBlob)
         })
-        const out = await native.share({ base64, appId: process.env.NEXT_PUBLIC_META_APP_ID })
+        const out = await native.share({ base64, appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097' })
         if (out?.shared) return
       } catch { /* Fallback unten */ }
     }
