@@ -47,17 +47,23 @@ async function exportCanvas(
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
 
-      // 1. Photo + filter — crop image to fill 9:16 (cover)
+      // 1. Foto OHNE Beschneiden einpassen (contain); dahinter weicher Blur-Hintergrund
       const iW = img.naturalWidth  || 1080
       const iH = img.naturalHeight || 1920
-      const iRatio = iW / iH
-      const tRatio = W  / H  // 9/16
-      let sx = 0, sy = 0, sw = iW, sh = iH
-      if (iRatio > tRatio) { sw = Math.round(iH * tRatio); sx = Math.round((iW - sw) / 2) }
-      else if (iRatio < tRatio) { sh = Math.round(iW / tRatio); sy = Math.round((iH - sh) / 2) }
 
+      // Hintergrund: Bild als Cover + kraeftiger Blur (wie Instagram)
+      const cScale = Math.max(W / iW, H / iH)
+      ctx.filter = 'blur(48px)'
+      ctx.drawImage(img, (W - iW * cScale) / 2, (H - iH * cScale) / 2, iW * cScale, iH * cScale)
+      ctx.filter = ''
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'
+      ctx.fillRect(0, 0, W, H)
+
+      // Vordergrund: das komplette Original, scharf und unbeschnitten
+      const fScale = Math.min(W / iW, H / iH)
+      const dW = iW * fScale, dH = iH * fScale
       ctx.filter = filterCss === 'none' ? '' : filterCss
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H)
+      ctx.drawImage(img, (W - dW) / 2, (H - dH) / 2, dW, dH)
       ctx.filter = ''
 
       // Helper: remap a normalised (0-1) screen position to the 9:16 canvas position.
@@ -111,29 +117,6 @@ async function exportCanvas(
         ctx.fillText(block.text, bx, by)
         ctx.shadowBlur = 0
       })
-
-      // 5. @tag pill at bottom
-      const handles = [
-        restaurantHandle ? `@${restaurantHandle.replace(/^@/, '')}` : null,
-        '@gastropistazz',
-      ].filter(Boolean).join('  ')
-
-      const fs2 = 28 * (W / 390)
-      ctx.font         = `bold ${fs2}px -apple-system, sans-serif`
-      ctx.textAlign    = 'center'
-      ctx.textBaseline = 'middle'
-      const met   = ctx.measureText(handles)
-      const pillW = met.width + 48 * (W / 390)
-      const pillH = fs2 + 28 * (W / 390)
-      const pillX = (W - pillW) / 2
-      const pillY = H - pillH - 80 * (H / 844)
-
-      ctx.fillStyle = 'rgba(255,255,255,0.88)'
-      ctx.beginPath()
-      ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2)
-      ctx.fill()
-      ctx.fillStyle = '#1C1F1A'
-      ctx.fillText(handles, W / 2, pillY + pillH / 2)
 
       canvas.toBlob(b => b ? resolve(b) : reject(new Error('Export failed')), 'image/jpeg', 0.95)
     }
@@ -412,7 +395,7 @@ function StoryCreateInner() {
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
   const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'success'>('capture')
-  const [tagsCopied, setTagsCopied] = useState(false)
+  const [copiedTag, setCopiedTag] = useState<string | null>(null)
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
   const [camError, setCamError] = useState(false)
@@ -669,42 +652,31 @@ function StoryCreateInner() {
         </div>
 
         <div
-          className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
+          className="bg-[#1C1F1A] px-5 pt-4 space-y-2"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
         >
-          {/* Schritt 1: Bild in Fotos sichern (einziger zuverlaessiger Weg auf iOS) */}
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-[#8BB06A] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</div>
-            <p className="text-white/85 text-sm leading-snug">
-              <strong className="text-white">Bild oben gedrückt halten</strong> und{' '}
-              <strong className="text-white">&bdquo;Zu Fotos hinzufügen&ldquo;</strong> wählen
-            </p>
+          {/* Tags einzeln kopieren — in Instagram als Erwaehnung einfuegen und Account antippen */}
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">1. Tags kopieren</p>
+          <div className="flex gap-2">
+            {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastropistazz'].filter((t): t is string => !!t).map(tag => (
+              <button
+                key={tag}
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(tag); setCopiedTag(tag); setTimeout(() => setCopiedTag(c => c === tag ? null : c), 2200) } catch {}
+                }}
+                className="flex-1 min-w-0 flex items-center justify-between gap-2 bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 active:bg-white/15 transition-colors"
+              >
+                <span className="text-white font-bold text-[13px] truncate">{tag}</span>
+                <span className="text-[#8BB06A] text-[11px] font-semibold shrink-0">{copiedTag === tag ? '✓' : 'Kopieren'}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Schritt 2: Instagram oeffnen */}
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-[#8BB06A] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</div>
-            <p className="text-white/85 text-sm leading-snug">
-              Instagram öffnen, <strong className="text-white">Story</strong>, Bild aus der Galerie wählen und teilen. Die Tags sind schon im Bild!
-            </p>
-          </div>
-
-          {/* Beide Tags mit einem Tap kopieren */}
-          <button
-            onClick={async () => {
-              const tags = [
-                restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null,
-                '@gastropistazz',
-              ].filter(Boolean).join(' ')
-              try { await navigator.clipboard.writeText(tags); setTagsCopied(true); setTimeout(() => setTagsCopied(false), 2500) } catch {}
-            }}
-            className="w-full flex items-center justify-between gap-3 bg-white/8 border border-white/15 rounded-2xl px-4 py-3 active:bg-white/15 transition-colors"
-          >
-            <span className="text-white font-bold text-sm truncate">
-              {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastropistazz'].filter(Boolean).join(' ')}
-            </span>
-            <span className="text-[#8BB06A] text-xs font-semibold shrink-0">{tagsCopied ? 'Kopiert!' : 'Tags kopieren'}</span>
-          </button>
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide pt-1">2. Story posten</p>
+          <p className="text-white/75 text-[13px] leading-snug">
+            Bild oben <strong className="text-white">gedrückt halten</strong> und in Fotos sichern.
+            Dann in Instagram als Story öffnen, Tags einfügen, Accounts antippen und posten.
+          </p>
 
           <button
             onClick={handleOpenInstagram}
@@ -720,7 +692,6 @@ function StoryCreateInner() {
             <span className="text-white/70 text-lg">›</span>
           </button>
 
-          {/* Schritt 3: Punkte anfordern */}
           <button
             onClick={() => router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)}
             className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
@@ -788,10 +759,18 @@ function StoryCreateInner() {
 
         {/* Camera error */}
         {step === 'capture' && camError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/60 px-8 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/70 px-8 text-center">
             <CameraOff className="w-12 h-12" />
-            <p className="text-sm">Kamerazugriff verweigert.<br />Bitte erlauben und erneut versuchen.</p>
-            <button onClick={() => startCamera(facingMode)} className="text-[#8BB06A] underline text-sm">Erneut versuchen</button>
+            <div>
+              <p className="text-white font-bold text-base mb-1">Kamera erlauben</p>
+              <p className="text-sm text-white/55">Für deine Story brauchen wir kurz Zugriff auf die Kamera.</p>
+            </div>
+            <button onClick={() => startCamera(facingMode)} className="gradient-primary text-white font-bold px-6 py-3 rounded-2xl text-sm">
+              Kamera aktivieren
+            </button>
+            <button onClick={() => galleryInput.current?.click()} className="text-[#8BB06A] underline text-sm">
+              Oder Bild aus der Galerie wählen
+            </button>
           </div>
         )}
 
@@ -816,24 +795,6 @@ function StoryCreateInner() {
           {/* Text overlay (Aa button included) */}
           <TextOverlay blocks={textBlocks} onChange={setTextBlocks} />
 
-          {/* @tag pill — above the edit controls (filter strip + share row ≈ 175px) */}
-          <div className="absolute inset-x-0 z-20 flex flex-col items-center gap-1.5 pointer-events-none"
-            style={{ bottom: '12%' }}>
-            {!restaurant?.instagram_handle && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold"
-                style={{ background: 'rgba(245,158,11,0.92)', color: '#fff' }}>
-                ⚠️ Instagram-Handle fehlt — im Dashboard hinterlegen
-              </div>
-            )}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-[#1C1F1A]"
-              style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)' }}>
-              <span style={{ color: '#E1306C' }}>▲</span>
-              {[
-                restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@/, '')}` : null,
-                '@gastropistazz',
-              ].filter(Boolean).join('  ')}
-            </div>
-          </div>
         </>
       )}
 
