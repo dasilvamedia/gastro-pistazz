@@ -12,7 +12,7 @@ export function CTASection() {
     <section className="py-14 md:py-20 px-4 md:px-6 bg-[#1C1F1A]">
       <div className="max-w-3xl mx-auto">
         <motion.div
-          className="relative gradient-primary rounded-2xl p-8 md:p-12 text-center shadow-2xl shadow-[#8BB06A]/20 overflow-hidden"
+          className="relative gradient-primary rounded-2xl p-8 md:p-12 text-center shadow-2xl shadow-[var(--ind-primary)]/20 overflow-hidden"
           initial={{ opacity: 0, scale: 0.97 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
@@ -38,7 +38,7 @@ export function CTASection() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 bg-white text-[#6D9450] font-bold px-8 py-3.5 rounded-full hover:shadow-xl hover:scale-105 active:scale-[0.98] transition-all duration-200 text-sm md:text-base whitespace-nowrap"
+                className="inline-flex items-center gap-2 bg-white text-[var(--ind-primary-dark)] font-bold px-8 py-3.5 rounded-full hover:shadow-xl hover:scale-105 active:scale-[0.98] transition-all duration-200 text-sm md:text-base whitespace-nowrap"
               >
                 {c.btn}
               </Link>

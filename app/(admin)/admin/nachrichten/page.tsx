@@ -64,7 +64,7 @@ export default function NachrichtenPage() {
     setSending(true)
 
     if (msgType === 'einzeln') {
-      if (!selectedUserId) { toast.error('Bitte Empfaenger auswaehlen'); setSending(false); return }
+      if (!selectedUserId) { toast.error('Bitte Empfänger auswählen'); setSending(false); return }
       const { error } = await supabase.from('notifications').insert({ user_id: selectedUserId, restaurant_id: restaurantId, channel, title: subject, body })
       if (error) { toast.error('Fehler'); setSending(false); return }
     } else {

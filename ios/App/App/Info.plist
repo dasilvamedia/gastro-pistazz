@@ -53,12 +53,12 @@
 		<string>instagram-stories</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Die Kamera wird benoetigt, um Fotos fuer deine Story aufzunehmen.</string>
+	<string>Die Kamera wird benötigt, um Fotos für deine Story aufzunehmen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Der Fotozugriff wird benoetigt, um Bilder fuer deine Story auszuwaehlen.</string>
+	<string>Der Fotozugriff wird benötigt, um Bilder für deine Story auszuwählen.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Zum Sichern deiner erstellten Story in der Fotos-App.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Dein ungefaehrer Standort hilft, Restaurants in deiner Naehe zu zeigen.</string>
+	<string>Dein ungefährer Standort hilft, Restaurants in deiner Nähe zu zeigen.</string>
 </dict>
 </plist>

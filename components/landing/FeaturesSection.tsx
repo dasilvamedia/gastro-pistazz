@@ -67,7 +67,7 @@ function FlipCard({ icon, title, description, index }: {
             className="absolute inset-0 bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col justify-center items-center text-center"
             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#8BB06A]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-xl" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--ind-primary)]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-xl" />
             <div className="text-3xl mb-3">{icon}</div>
             <h3 className="text-white font-semibold text-sm leading-snug">{title}</h3>
           </div>
@@ -79,7 +79,7 @@ function FlipCard({ icon, title, description, index }: {
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
-              background: 'linear-gradient(135deg, #8BB06A 0%, #6D9450 100%)',
+              background: 'linear-gradient(135deg, var(--ind-primary) 0%, var(--ind-primary-dark) 100%)',
             }}
           >
             <div className="text-xl mb-1.5">{icon}</div>
@@ -107,7 +107,7 @@ export function FeaturesSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.45 }}
         >
-          <span className="text-[#8BB06A] font-bold text-xs uppercase tracking-widest">{f.label}</span>
+          <span className="text-[var(--ind-primary)] font-bold text-xs uppercase tracking-widest">{f.label}</span>
           <h2 className="text-2xl md:text-4xl text-white mt-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
             {h2Lines.map((l, i) => <span key={i} className="block">{l}</span>)}
           </h2>

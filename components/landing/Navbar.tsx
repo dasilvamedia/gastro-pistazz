@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useLang } from '@/lib/lang-context'
 import type { Lang } from '@/lib/translations'
 
@@ -30,12 +31,11 @@ export function Navbar() {
     >
       <nav className="max-w-6xl mx-auto px-4 md:px-6 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-baseline gap-0 shrink-0">
-          <span className="text-xl font-bold text-[#8BB06A]" style={{ fontFamily: 'var(--font-display)' }}>
-            gastro.pistazz
-          </span>
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          {/* Same mascot, same position as on pistazz.io — this is the family anchor */}
+          <Image src="/icon.svg" alt="" width={30} height={30} className="rounded-lg" priority />
           <span className="text-xl font-bold text-[#1C1F1A]" style={{ fontFamily: 'var(--font-display)' }}>
-            .io
+            pistazz<span className="text-[var(--ind-primary)]">.io</span>
           </span>
         </Link>
 
@@ -49,7 +49,7 @@ export function Navbar() {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-[#1C1F1A]/70 hover:text-[#8BB06A] transition-colors whitespace-nowrap"
+              className="text-sm font-medium text-[#1C1F1A]/70 hover:text-[var(--ind-primary)] transition-colors whitespace-nowrap"
             >
               {link.label}
             </a>
@@ -68,7 +68,7 @@ export function Navbar() {
                 aria-label={label}
                 className={`text-base leading-none px-1 py-0.5 rounded-full transition-all duration-150 ${
                   lang === l
-                    ? 'scale-110 ring-2 ring-[#8BB06A]/40 bg-[#EEF5E6]'
+                    ? 'scale-110 ring-2 ring-[var(--ind-primary)]/40 bg-[var(--ind-primary-pale)]'
                     : 'opacity-60 hover:opacity-100 hover:scale-105'
                 }`}
               >
@@ -80,7 +80,7 @@ export function Navbar() {
           {/* "Für Restaurants" link (desktop only) */}
           <Link
             href="/anfrage"
-            className="hidden lg:inline-flex items-center border border-[#8BB06A] text-[#6D9450] text-xs font-semibold px-4 py-2 rounded-full hover:bg-[#EEF5E6] transition-colors whitespace-nowrap"
+            className="hidden lg:inline-flex items-center border border-[var(--ind-primary)] text-[var(--ind-primary-dark)] text-xs font-semibold px-4 py-2 rounded-full hover:bg-[var(--ind-primary-pale)] transition-colors whitespace-nowrap"
           >
             Für Restaurants
           </Link>
@@ -118,7 +118,7 @@ export function Navbar() {
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="block text-sm font-medium text-[#1C1F1A]/80 hover:text-[#8BB06A] transition-colors py-2"
+              className="block text-sm font-medium text-[#1C1F1A]/80 hover:text-[var(--ind-primary)] transition-colors py-2"
             >
               {link.label}
             </a>
@@ -126,7 +126,7 @@ export function Navbar() {
           <Link
             href="/anfrage"
             onClick={() => setMenuOpen(false)}
-            className="block border border-[#8BB06A] text-[#6D9450] text-sm font-semibold px-5 py-3 rounded-full hover:bg-[#EEF5E6] transition-colors text-center"
+            className="block border border-[var(--ind-primary)] text-[var(--ind-primary-dark)] text-sm font-semibold px-5 py-3 rounded-full hover:bg-[var(--ind-primary-pale)] transition-colors text-center"
           >
             Für Restaurants bewerben
           </Link>

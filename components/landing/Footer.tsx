@@ -11,7 +11,7 @@ export function Footer() {
     <footer className="bg-[#111310] text-white/40 py-8 px-4 md:px-6 border-t border-white/5">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-baseline gap-0">
-          <span className="text-base font-bold text-[#8BB06A]" style={{ fontFamily: 'var(--font-display)' }}>
+          <span className="text-base font-bold text-[var(--ind-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
             pistazz
           </span>
           <span className="text-base font-bold text-white/20" style={{ fontFamily: 'var(--font-display)' }}>

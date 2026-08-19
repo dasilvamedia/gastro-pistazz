@@ -21,8 +21,8 @@ export function GuaranteeSection() {
           <div className="shrink-0">
             <div className="relative w-36 h-36 flex items-center justify-center">
               <svg viewBox="0 0 144 144" className="absolute inset-0 w-full h-full">
-                <circle cx="72" cy="72" r="68" fill="none" stroke="#8BB06A" strokeWidth="2" strokeDasharray="6 4" />
-                <circle cx="72" cy="72" r="56" fill="#8BB06A" />
+                <circle cx="72" cy="72" r="68" fill="none" stroke="var(--ind-primary)" strokeWidth="2" strokeDasharray="6 4" />
+                <circle cx="72" cy="72" r="56" fill="var(--ind-primary)" />
               </svg>
               <div className="relative z-10 text-center">
                 <p className="text-white text-4xl font-bold leading-none" style={{ fontFamily: 'DM Serif Display, serif' }}>90</p>
@@ -33,7 +33,7 @@ export function GuaranteeSection() {
 
           {/* Text */}
           <div className="text-center md:text-left">
-            <span className="text-[#8BB06A] font-bold text-xs uppercase tracking-widest">{g.label}</span>
+            <span className="text-[var(--ind-primary)] font-bold text-xs uppercase tracking-widest">{g.label}</span>
             <h2 className="text-2xl md:text-4xl text-[#1C1F1A] mt-2 leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
               {g.h2}
             </h2>
@@ -42,8 +42,8 @@ export function GuaranteeSection() {
             </p>
             <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start">
               {g.items.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 bg-[#F0F5EB] rounded-full px-4 py-1.5">
-                  <span className="text-[#8BB06A] text-sm">✓</span>
+                <div key={i} className="flex items-center gap-2 bg-[var(--ind-surface-soft)] rounded-full px-4 py-1.5">
+                  <span className="text-[var(--ind-primary)] text-sm">✓</span>
                   <span className="text-sm text-[#1C1F1A]/70 font-medium">{item}</span>
                 </div>
               ))}

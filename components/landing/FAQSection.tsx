@@ -6,15 +6,15 @@ import { useLang } from '@/lib/lang-context'
 
 function FAQItem({ q, a, isOpen, onToggle }: { q: string; a: string; isOpen: boolean; onToggle: () => void }) {
   return (
-    <div className="border-b border-[#E2EDD6] last:border-0">
+    <div className="border-b border-[var(--ind-surface-edge)] last:border-0">
       <button
         onClick={onToggle}
         className="w-full text-left py-5 flex items-start justify-between gap-4 group"
       >
-        <span className="text-[#1C1F1A] font-semibold text-sm md:text-base leading-snug group-hover:text-[#6D9450] transition-colors">
+        <span className="text-[#1C1F1A] font-semibold text-sm md:text-base leading-snug group-hover:text-[var(--ind-primary-dark)] transition-colors">
           {q}
         </span>
-        <span className={`shrink-0 w-6 h-6 rounded-full border border-[#8BB06A]/40 flex items-center justify-center text-[#8BB06A] text-sm font-bold transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
+        <span className={`shrink-0 w-6 h-6 rounded-full border border-[var(--ind-primary)]/40 flex items-center justify-center text-[var(--ind-primary)] text-sm font-bold transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
           +
         </span>
       </button>
@@ -50,7 +50,7 @@ export function FAQSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.45 }}
         >
-          <span className="inline-block text-[#6D9450] font-semibold text-xs uppercase tracking-[0.18em] mb-4">{f.label}</span>
+          <span className="inline-block text-[var(--ind-primary-dark)] font-semibold text-xs uppercase tracking-[0.18em] mb-4">{f.label}</span>
           <h2 className="text-4xl md:text-6xl text-[#1C1F1A] mt-3 leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
             {f.h2}
           </h2>

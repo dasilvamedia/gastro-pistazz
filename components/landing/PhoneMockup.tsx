@@ -54,7 +54,7 @@ export function PhoneMockup() {
       {/* Phone card */}
       <motion.div
         className="relative z-10 bg-[#1C1F1A] rounded-3xl shadow-2xl overflow-hidden"
-        style={{ boxShadow: '0 0 60px rgba(139,176,106,0.3), 0 20px 60px rgba(0,0,0,0.4)' }}
+        style={{ boxShadow: '0 0 60px color-mix(in srgb, var(--ind-primary) 30%, transparent), 0 20px 60px rgba(0,0,0,0.4)' }}
       >
         {/* Notch */}
         <div className="flex justify-center pt-4 pb-1">
@@ -64,7 +64,7 @@ export function PhoneMockup() {
         <div className="px-5 pb-5 pt-2 space-y-3">
           {/* Logo */}
           <div className="flex items-baseline gap-0 justify-center py-1">
-            <span className="text-base font-bold text-[#8BB06A]" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <span className="text-base font-bold text-[var(--ind-primary)]" style={{ fontFamily: 'DM Serif Display, serif' }}>
               pistazz
             </span>
             <span className="text-base font-bold text-white/30" style={{ fontFamily: 'DM Serif Display, serif' }}>
@@ -80,13 +80,13 @@ export function PhoneMockup() {
             transition={{ duration: 0.4, delay: 0.5 }}
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#8BB06A]/20 flex items-center justify-center text-lg shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[var(--ind-primary)]/20 flex items-center justify-center text-lg shrink-0">
                 🍸
               </div>
               <div className="min-w-0">
                 <div className="text-white text-xs font-semibold">Beach Bar Aalen</div>
-                <div className="text-[#8BB06A] text-xs flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#8BB06A] inline-block" />
+                <div className="text-[var(--ind-primary)] text-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--ind-primary)] inline-block" />
                   {p.verified} ✓
                 </div>
               </div>
@@ -95,7 +95,7 @@ export function PhoneMockup() {
             <div className="flex justify-between items-center">
               <span className="text-white/50 text-xs">{p.pointsEarned}</span>
               <motion.span
-                className="text-[#E5B84C] font-bold text-sm"
+                className="text-[var(--ind-accent)] font-bold text-sm"
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
               >
@@ -106,7 +106,7 @@ export function PhoneMockup() {
 
           {/* Available reward */}
           <motion.div
-            className="bg-gradient-to-r from-[#8BB06A]/20 to-[#6D9450]/10 border border-[#8BB06A]/25 rounded-xl p-3 flex items-center gap-2"
+            className="bg-gradient-to-r from-[var(--ind-primary)]/20 to-[var(--ind-primary-dark)]/10 border border-[var(--ind-primary)]/25 rounded-xl p-3 flex items-center gap-2"
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.8 }}
@@ -127,14 +127,14 @@ export function PhoneMockup() {
           >
             <div className="flex items-center justify-between mb-2">
               <div className="text-white/50 text-xs">{p.stampCard}</div>
-              <div className="text-[#8BB06A] text-xs font-semibold">8/10</div>
+              <div className="text-[var(--ind-primary)] text-xs font-semibold">8/10</div>
             </div>
             <div className="grid grid-cols-5 gap-1">
               {Array.from({ length: 10 }).map((_, i) => (
                 <motion.div
                   key={i}
                   className={`w-full aspect-square rounded-lg flex items-center justify-center text-xs ${
-                    i < 8 ? 'bg-[#8BB06A] text-white' : 'bg-white/8 text-white/20'
+                    i < 8 ? 'bg-[var(--ind-primary)] text-white' : 'bg-white/8 text-white/20'
                   }`}
                   initial={i === 7 ? { scale: 0 } : {}}
                   animate={i === 7 ? { scale: 1 } : {}}

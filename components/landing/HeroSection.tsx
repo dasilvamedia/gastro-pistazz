@@ -5,6 +5,15 @@ import { useRef, useEffect } from 'react'
 import { motion, useMotionValue, useSpring, useTransform, useScroll, MotionValue } from 'framer-motion'
 import { PhoneMockup } from './PhoneMockup'
 import { useLang } from '@/lib/lang-context'
+import { useIndustry } from './IndustryContext'
+
+// Reuses the existing badge wording and only swaps the audience, so adding an
+// industry never requires a new sentence to be written for it.
+const BADGE_PREFIX: Record<string, string> = {
+  de: 'Die Loyalty-Plattform für',
+  pt: 'A plataforma de fidelidade para',
+  en: 'The loyalty platform for',
+}
 
 // ── Orb component — each has its own hooks, no violation ─────────────────────
 function ParallaxOrb({
@@ -27,13 +36,14 @@ function ParallaxOrb({
 }
 
 const ORBS = [
-  { size: 340, left: '5%',  top: '10%', color: 'rgba(139,176,106,0.20)', dur: 8,  fx: 8,  fy: 6  },
-  { size: 220, left: '72%', top: '55%', color: 'rgba(139,176,106,0.14)', dur: 11, fx: 18, fy: 14 },
-  { size: 170, left: '50%', top: '2%',  color: 'rgba(229,184,76,0.11)',  dur: 9,  fx: 30, fy: 22 },
+  { size: 340, left: '5%',  top: '10%', color: 'color-mix(in srgb, var(--ind-primary) 20%, transparent)', dur: 8,  fx: 8,  fy: 6  },
+  { size: 220, left: '72%', top: '55%', color: 'color-mix(in srgb, var(--ind-primary) 14%, transparent)', dur: 11, fx: 18, fy: 14 },
+  { size: 170, left: '50%', top: '2%',  color: 'color-mix(in srgb, var(--ind-accent) 11%, transparent)',  dur: 9,  fx: 30, fy: 22 },
 ]
 
 export function HeroSection() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
+  const { industry, copy } = useIndustry()
   const h = t.hero
   const sectionRef = useRef<HTMLElement>(null)
 
@@ -72,7 +82,7 @@ export function HeroSection() {
     <section
       ref={sectionRef}
       className="relative min-h-screen flex items-center pt-20 pb-10 px-4 md:px-6 overflow-hidden"
-      style={{ background: 'linear-gradient(140deg, #EEF5E6 0%, #D4E8C2 55%, #c8e0a8 100%)' }}
+      style={{ background: 'linear-gradient(140deg, var(--ind-primary-pale) 0%, var(--ind-primary-light) 55%, var(--ind-primary-light) 100%)' }}
     >
       {/* Scroll-parallax background layer */}
       <motion.div className="absolute inset-0 pointer-events-none" style={{ y: bgY }}>
@@ -98,13 +108,14 @@ export function HeroSection() {
 
           {/* Badge */}
           <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-            <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-[#D4E8C2] text-[#577A3D] text-xs font-semibold px-4 py-2 rounded-full shadow-sm">
-              {h.badge}
+            <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-[var(--ind-primary-light)] text-[var(--ind-primary-deep)] text-xs font-semibold px-4 py-2 rounded-full shadow-sm">
+              🏆 {BADGE_PREFIX[lang] ?? BADGE_PREFIX.de} {copy.label}
             </span>
           </motion.div>
 
           {/* Two-color headline */}
           <motion.h1
+            key={industry.slug}
             className="leading-[1.1] font-bold"
             style={{ fontFamily: 'var(--font-display)' }}
             initial={{ opacity: 0, y: 20 }}
@@ -112,21 +123,22 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.08 }}
           >
             <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.4rem] text-[#1C1F1A]">
-              {h.h1}
+              {copy.heroLine1}
             </span>
-            <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.4rem] text-[#8BB06A]">
-              {h.h1accent}
+            <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.4rem] text-[var(--ind-primary)]">
+              {copy.heroLine2}
             </span>
           </motion.h1>
 
           {/* Subtext */}
           <motion.p
+            key={industry.slug}
             className="text-base md:text-lg text-[#1C1F1A]/60 max-w-md leading-relaxed"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.16 }}
           >
-            {h.p}
+            {copy.heroSub}
           </motion.p>
 
           {/* CTAs */}
@@ -138,13 +150,13 @@ export function HeroSection() {
           >
             <Link
               href="/register"
-              className="gradient-primary text-white font-bold px-7 py-3.5 rounded-full hover:opacity-90 hover:scale-[1.03] active:scale-[0.98] transition-all shadow-lg shadow-[#8BB06A]/30 text-sm text-center whitespace-nowrap"
+              className="gradient-primary text-white font-bold px-7 py-3.5 rounded-full hover:opacity-90 hover:scale-[1.03] active:scale-[0.98] transition-all shadow-lg shadow-[var(--ind-primary)]/30 text-sm text-center whitespace-nowrap"
             >
               {h.ctaPrimary}
             </Link>
             <a
               href="#how-it-works"
-              className="border-2 border-[#8BB06A] text-[#8BB06A] font-semibold px-7 py-3.5 rounded-full hover:bg-white/60 hover:scale-[1.02] transition-all text-sm text-center whitespace-nowrap"
+              className="border-2 border-[var(--ind-primary)] text-[var(--ind-primary)] font-semibold px-7 py-3.5 rounded-full hover:bg-white/60 hover:scale-[1.02] transition-all text-sm text-center whitespace-nowrap"
             >
               {h.ctaSecondary}
             </a>
@@ -159,12 +171,12 @@ export function HeroSection() {
           >
             <div className="flex -space-x-2">
               {['🧑‍🍳', '👩‍🍳', '🧑‍🍽️', '🍸'].map((e, i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-[#D4E8C2] flex items-center justify-center text-sm shadow-sm">
+                <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-[var(--ind-primary-light)] flex items-center justify-center text-sm shadow-sm">
                   {e}
                 </div>
               ))}
             </div>
-            <p className="text-xs text-[#1C1F1A]/55" dangerouslySetInnerHTML={{ __html: h.social }} />
+            <p className="text-xs text-[#1C1F1A]/55">{copy.heroNote}</p>
           </motion.div>
         </motion.div>
 
@@ -188,7 +200,7 @@ export function HeroSection() {
         animate={{ y: [0, 7, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <div className="w-px h-8 bg-[#8BB06A]/40 rounded-full mx-auto" />
+        <div className="w-px h-8 bg-[var(--ind-primary)]/40 rounded-full mx-auto" />
       </motion.div>
     </section>
   )

@@ -20,7 +20,7 @@ export function PricingSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <span className="inline-block text-[#6D9450] font-semibold text-xs uppercase tracking-[0.18em] mb-4">
+          <span className="inline-block text-[var(--ind-primary-dark)] font-semibold text-xs uppercase tracking-[0.18em] mb-4">
             {p.label}
           </span>
           <h2
@@ -32,8 +32,8 @@ export function PricingSection() {
           <p className="text-[#1C1F1A]/55 text-base md:text-lg max-w-lg mx-auto leading-relaxed">
             {p.sub}
           </p>
-          <div className="mt-6 inline-flex items-center gap-2 bg-white border border-[#8BB06A]/30 rounded-full px-5 py-2 shadow-sm">
-            <span className="text-2xl font-bold text-[#6D9450]" style={{ fontFamily: 'DM Serif Display, serif' }}>90</span>
+          <div className="mt-6 inline-flex items-center gap-2 bg-white border border-[var(--ind-primary)]/30 rounded-full px-5 py-2 shadow-sm">
+            <span className="text-2xl font-bold text-[var(--ind-primary-dark)]" style={{ fontFamily: 'DM Serif Display, serif' }}>90</span>
             <span className="text-sm text-[#1C1F1A]/60 font-medium">{p.guarantee}</span>
           </div>
         </motion.div>
@@ -52,7 +52,7 @@ export function PricingSection() {
               {/* Badge — sits above the card, outside overflow-hidden */}
               {plan.badge && (
                 <div className="absolute top-0 inset-x-0 flex justify-center z-20">
-                  <span className="bg-[#8BB06A] text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-sm">
+                  <span className="bg-[var(--ind-primary)] text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-sm">
                     {plan.badge}
                   </span>
                 </div>
@@ -61,13 +61,13 @@ export function PricingSection() {
               {/* Card body */}
               <div className={`relative flex flex-col h-full rounded-2xl overflow-hidden ${
                 plan.featured
-                  ? 'bg-[#1C1F1A] text-white shadow-2xl shadow-[#1C1F1A]/20 ring-2 ring-[#8BB06A]'
+                  ? 'bg-[#1C1F1A] text-white shadow-2xl shadow-[#1C1F1A]/20 ring-2 ring-[var(--ind-primary)]'
                   : 'bg-white text-[#1C1F1A] border border-[#E5E0D5]'
               }`}>
                 <div className="p-6 md:p-7 flex flex-col flex-1">
                   {/* Plan name + price */}
                   <div className="mb-6 mt-1">
-                    <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[#8BB06A]">
+                    <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--ind-primary)]">
                       {plan.name}
                     </p>
                     <div className="flex items-end gap-1.5 mb-3">
@@ -95,8 +95,8 @@ export function PricingSection() {
                       <li key={fi} className="flex items-start gap-3">
                         <span className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
                           plan.featured
-                            ? 'bg-[#8BB06A]/20 text-[#8BB06A]'
-                            : 'bg-[#EEF5E6] text-[#6D9450]'
+                            ? 'bg-[var(--ind-primary)]/20 text-[var(--ind-primary)]'
+                            : 'bg-[var(--ind-primary-pale)] text-[var(--ind-primary-dark)]'
                         }`}>
                           ✓
                         </span>
@@ -112,8 +112,8 @@ export function PricingSection() {
                     href="/register"
                     className={`block w-full text-center py-3.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap ${
                       plan.featured
-                        ? 'bg-[#8BB06A] text-white hover:bg-[#6D9450] shadow-lg shadow-[#8BB06A]/25'
-                        : 'bg-[#F0F5EB] text-[#6D9450] hover:bg-[#E2EDD6]'
+                        ? 'bg-[var(--ind-primary)] text-white hover:bg-[var(--ind-primary-dark)] shadow-lg shadow-[var(--ind-primary)]/25'
+                        : 'bg-[var(--ind-surface-soft)] text-[var(--ind-primary-dark)] hover:bg-[var(--ind-surface-edge)]'
                     }`}
                   >
                     {p.ctaBtn}

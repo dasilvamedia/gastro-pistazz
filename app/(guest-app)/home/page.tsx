@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Profile, Restaurant, Deal } from '@/types'
 import { TRIGGER_CONFIG, RESTAURANT_TYPE_LABELS } from '@/types'
 import { MOCK_USER, MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
+import { DemoBanner } from '@/components/DemoBanner'
 
 function SkeletonCard({ className }: { className?: string }) {
   return <div className={`skeleton rounded-2xl ${className}`} />
@@ -157,6 +158,7 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [deals, setDeals] = useState<Deal[]>([])
+  const [isDemo, setIsDemo] = useState(false)
   const [loadingRestaurants, setLoadingRestaurants] = useState(true)
   const [loadingDeals, setLoadingDeals] = useState(true)
 
@@ -172,7 +174,20 @@ export default function HomePage() {
       }
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.push('/login'); return }
+
+        if (!user) {
+          // Demo-Modus: alles ansehen, mitmachen erst nach Anmeldung
+          setIsDemo(true)
+          const [{ data: rData }, { data: dData }] = await Promise.all([
+            supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(10),
+            supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5),
+          ])
+          setRestaurants(await sortNearby(rData ?? []))
+          setDeals(dData ?? [])
+          setLoadingRestaurants(false)
+          setLoadingDeals(false)
+          return
+        }
 
         const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         if (p) {
@@ -234,10 +249,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
+      {isDemo && <DemoBanner />}
       {/* Header — läuft hinter die Statusleiste (Safe-Area), wie native iOS-Apps */}
       <div
         className="gradient-primary rounded-b-[2rem] pb-7 px-5"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}
+        style={{ paddingTop: isDemo ? '1.25rem' : 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}
       >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
@@ -253,14 +269,19 @@ export default function HomePage() {
         </div>
 
         <h1 className="text-[1.75rem] font-bold text-white leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
-          Hey, {firstName}!
+          {isDemo ? 'Willkommen!' : `Hey, ${firstName}!`}
         </h1>
-        <p className="text-white/70 text-sm mt-0.5 mb-4">Schön, dass du da bist.</p>
+        <p className="text-white/70 text-sm mt-0.5 mb-4">{isDemo ? 'Entdecke, wie du bei deinen Lieblingsrestaurants Punkte sammelst.' : 'Schön, dass du da bist.'}</p>
 
-        <div className="inline-flex items-center gap-1.5 bg-white/15 rounded-full pl-2.5 pr-3.5 py-1.5 mb-5">
+        <button
+          onClick={() => isDemo && router.push('/register')}
+          className="inline-flex items-center gap-1.5 bg-white/15 rounded-full pl-2.5 pr-3.5 py-1.5 mb-5"
+        >
           <Star size={14} fill="#E5B84C" stroke="#E5B84C" />
-          <span className="text-white text-sm font-semibold">{(profile?.available_points ?? 0).toLocaleString('de-DE')} Punkte</span>
-        </div>
+          <span className="text-white text-sm font-semibold">
+            {isDemo ? 'Anmelden & Punkte sammeln' : `${(profile?.available_points ?? 0).toLocaleString('de-DE')} Punkte`}
+          </span>
+        </button>
 
         <button
           onClick={() => router.push('/entdecken')}

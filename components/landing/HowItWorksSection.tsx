@@ -2,9 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustry } from './IndustryContext'
 
 export function HowItWorksSection() {
   const { t } = useLang()
+  const { copy } = useIndustry()
   const s = t.howItWorks
 
   return (
@@ -18,7 +20,7 @@ export function HowItWorksSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.45 }}
         >
-          <span className="text-[#8BB06A] font-bold text-xs uppercase tracking-widest">{s.label}</span>
+          <span className="text-[var(--ind-primary)] font-bold text-xs uppercase tracking-widest">{s.label}</span>
           <h2 className="text-2xl md:text-4xl text-[#1C1F1A] mt-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
             {s.h2}
           </h2>
@@ -29,26 +31,28 @@ export function HowItWorksSection() {
           {s.steps.map((step, i) => (
             <motion.div
               key={i}
-              className="group relative bg-[#F8FAF5] border border-[#D4E8C2] rounded-2xl p-6 overflow-hidden cursor-default"
+              className="group relative bg-[var(--ind-surface)] border border-[var(--ind-primary-light)] rounded-2xl p-6 overflow-hidden cursor-default"
               initial={{ opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              whileHover={{ y: -4, boxShadow: '0 16px 40px rgba(139,176,106,0.14)' }}
+              whileHover={{ y: -4, boxShadow: '0 16px 40px color-mix(in srgb, var(--ind-primary) 14%, transparent)' }}
             >
               <span
                 className="absolute -top-2 -right-2 text-7xl font-bold select-none pointer-events-none leading-none"
-                style={{ fontFamily: 'DM Serif Display, serif', color: 'rgba(139,176,106,0.08)' }}
+                style={{ fontFamily: 'DM Serif Display, serif', color: 'color-mix(in srgb, var(--ind-primary) 8%, transparent)' }}
               >
                 0{i + 1}
               </span>
 
               <div className="text-3xl mb-3">{step.icon}</div>
               <h3 className="font-bold text-[#1C1F1A] text-base mb-1.5">{step.title}</h3>
-              <p className="text-[#1C1F1A]/55 text-sm leading-relaxed">{step.description}</p>
+              <p className="text-[#1C1F1A]/55 text-sm leading-relaxed">
+                {i === s.steps.length - 1 ? copy.stepReward : step.description}
+              </p>
 
               <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                style={{ background: 'linear-gradient(135deg, rgba(139,176,106,0.06) 0%, transparent 70%)' }} />
+                style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--ind-primary) 6%, transparent) 0%, transparent 70%)' }} />
             </motion.div>
           ))}
         </div>

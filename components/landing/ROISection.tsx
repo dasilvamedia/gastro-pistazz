@@ -20,7 +20,7 @@ function Slider({ label, value, min, max, step, unit, onChange }: {
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-[#8BB06A] cursor-pointer"
+        className="w-full accent-[var(--ind-primary)] cursor-pointer"
         style={{ height: '4px' }}
       />
       <div className="flex justify-between text-xs text-white/30 mt-1">
@@ -61,11 +61,11 @@ export function ROISection() {
       {/* Parallax orbs */}
       <motion.div
         className="absolute -top-20 -left-20 w-80 h-80 rounded-full pointer-events-none blur-3xl"
-        style={{ background: 'rgba(139,176,106,0.12)', y: orbY1 }}
+        style={{ background: 'color-mix(in srgb, var(--ind-primary) 12%, transparent)', y: orbY1 }}
       />
       <motion.div
         className="absolute -bottom-24 -right-16 w-64 h-64 rounded-full pointer-events-none blur-3xl"
-        style={{ background: 'rgba(139,176,106,0.08)', y: orbY2 }}
+        style={{ background: 'color-mix(in srgb, var(--ind-primary) 8%, transparent)', y: orbY2 }}
       />
 
       <div className="relative max-w-5xl mx-auto">
@@ -76,7 +76,7 @@ export function ROISection() {
           viewport={{ once: true }}
           transition={{ duration: 0.45 }}
         >
-          <span className="inline-block text-[#8BB06A] font-semibold text-xs uppercase tracking-[0.18em] mb-4">{r.label}</span>
+          <span className="inline-block text-[var(--ind-primary)] font-semibold text-xs uppercase tracking-[0.18em] mb-4">{r.label}</span>
           <h2 className="text-4xl md:text-6xl text-white mt-3 leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
             {r.h2}
           </h2>
@@ -103,10 +103,10 @@ export function ROISection() {
           <div className="space-y-4">
             {[
               { label: r.results.monthlyGuests, value: monthlyGuests.toLocaleString('de-DE'), unit: r.results.guestsUnit, color: 'text-white' },
-              { label: r.results.posters, value: posters.toLocaleString('de-DE'), unit: r.results.postersUnit, color: 'text-[#8BB06A]' },
-              { label: r.results.reach, value: monthlyReach.toLocaleString('de-DE'), unit: r.results.reachUnit, color: 'text-[#8BB06A]' },
+              { label: r.results.posters, value: posters.toLocaleString('de-DE'), unit: r.results.postersUnit, color: 'text-[var(--ind-primary)]' },
+              { label: r.results.reach, value: monthlyReach.toLocaleString('de-DE'), unit: r.results.reachUnit, color: 'text-[var(--ind-primary)]' },
               { label: r.results.newGuests, value: newGuests.toLocaleString('de-DE'), unit: r.results.newGuestsUnit, color: 'text-white' },
-              { label: r.results.revenue, value: extraRevenue.toLocaleString('de-DE') + '€', unit: '', color: 'text-[#8BB06A]' },
+              { label: r.results.revenue, value: extraRevenue.toLocaleString('de-DE') + '€', unit: '', color: 'text-[var(--ind-primary)]' },
             ].map((item, i) => (
               <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
                 <span className="text-sm text-white/60">{item.label}</span>
@@ -116,7 +116,7 @@ export function ROISection() {
               </div>
             ))}
 
-            <div className="bg-[#8BB06A] rounded-2xl p-6 text-center">
+            <div className="bg-[var(--ind-primary)] rounded-2xl p-6 text-center">
               <p className="text-white/70 text-xs uppercase tracking-widest font-bold mb-1">{r.results.roiLabel}</p>
               <p className="text-5xl font-bold text-white" style={{ fontFamily: 'DM Serif Display, serif' }}>
                 {roi > 0 ? `+${roi}%` : `${roi}%`}
