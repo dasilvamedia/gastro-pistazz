@@ -45,9 +45,8 @@ export async function GET(request: NextRequest) {
     const profileMap = new Map((profiles ?? []).map(p => [p.id, p]))
 
     // ── 5. Zusammenführen — NUR Gäste (keine Restaurant-Owner/Admins) ──
-    const guestIds = new Set(
-      (profiles ?? []).filter(p => p.role === 'guest').map(p => p.id)
-    )
+    // Alle angemeldeten Nutzer zeigen (Gaeste, Restaurant-Betreiber, Admins)
+    const guestIds = new Set((profiles ?? []).map(p => p.id))
 
     let combined = authUsers.filter(u => guestIds.has(u.id)).map(u => {
       const p = profileMap.get(u.id)

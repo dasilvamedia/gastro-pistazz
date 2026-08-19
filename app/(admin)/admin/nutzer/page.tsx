@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, Search, Filter, LayoutGrid, List, Users, TrendingUp } from 'lucide-react'
+import { RefreshCw, Search, Filter, LayoutGrid, List, Users, TrendingUp, KeyRound, Copy, X } from 'lucide-react'
 import { KanbanBoard } from './_components/KanbanBoard'
 import { AiComposer, type KanbanCol } from './_components/AiComposer'
 
@@ -60,6 +60,8 @@ export default function NutzerPage() {
     if (typeof window === 'undefined') return {}
     try { return JSON.parse(localStorage.getItem('kanban_overrides') ?? '{}') } catch { return {} }
   })
+  const [pwResult, setPwResult] = useState<{ email: string; password: string } | null>(null)
+  const [pwLoading, setPwLoading] = useState<string | null>(null)
   const [composeCol, setComposeCol]     = useState<KanbanCol | null>(null)
   const [composeCount, setComposeCount] = useState(0)
 
@@ -80,6 +82,20 @@ export default function NutzerPage() {
   useEffect(() => { fetchUsers() }, [fetchUsers])
   useEffect(() => { setPage(0) }, [search, filterRest, filterProv])
 
+  const handleSetPassword = async (u: UserRow) => {
+    if (!window.confirm(`Neues Zugangs-Passwort fuer ${u.email} setzen? Das alte Passwort wird ersetzt.`)) return
+    setPwLoading(u.id)
+    try {
+      const res = await fetch('/api/admin/set-user-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: u.id }),
+      })
+      const d = await res.json()
+      if (res.ok && d.password) setPwResult({ email: u.email, password: d.password })
+    } finally { setPwLoading(null) }
+  }
+
   const handleMove = (userId: string, col: KanbanCol) => {
     const next = { ...overrides, [userId]: col }
     setOverrides(next)
@@ -92,6 +108,25 @@ export default function NutzerPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {pwResult && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-6" onClick={() => setPwResult(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-[#1C1F1A]">Neues Zugangs-Passwort</h3>
+              <button onClick={() => setPwResult(null)} className="text-gray-400"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-gray-500 mb-1">{pwResult.email}</p>
+            <div className="flex items-center gap-2 bg-[#EEF5E6] border border-[#8BB06A] rounded-xl px-4 py-3 mb-3">
+              <code className="font-mono font-bold text-[#1C1F1A] text-lg flex-1">{pwResult.password}</code>
+              <button
+                onClick={() => navigator.clipboard.writeText(pwResult.password)}
+                className="shrink-0 text-[#577A3D]"
+              ><Copy className="w-4 h-4" /></button>
+            </div>
+            <p className="text-xs text-gray-400">Wird nur einmal angezeigt. Der Nutzer kann sich damit anmelden und es in den Einstellungen aendern.</p>
+          </div>
+        </div>
+      )}
       {composeCol && (
         <AiComposer
           column={composeCol}
@@ -105,7 +140,7 @@ export default function NutzerPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#1C1F1A]">Nutzer-Übersicht</h1>
-          <p className="text-sm text-gray-400">Nur Gäste · Super Admin</p>
+          <p className="text-sm text-gray-400">Alle Nutzer · Super Admin</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-gray-100 rounded-xl p-1">
@@ -241,6 +276,15 @@ export default function NutzerPage() {
                         <p className="text-xs text-gray-400 truncate">{u.email}</p>
                         <p className="text-[10px] text-gray-300 lg:hidden mt-0.5">{timeAgo(u.created_at)} · {u.total_visits} Besuche</p>
                       </div>
+                      <button
+                        onClick={() => handleSetPassword(u)}
+                        title="Zugangs-Passwort setzen und anzeigen"
+                        className="ml-auto shrink-0 w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#577A3D] hover:border-[#8BB06A] transition-colors"
+                      >
+                        {pwLoading === u.id
+                          ? <span className="w-3.5 h-3.5 border-2 border-gray-300 border-t-[#8BB06A] rounded-full animate-spin" />
+                          : <KeyRound className="w-4 h-4" />}
+                      </button>
                     </div>
 
                     {/* ── Restaurants ── */}
