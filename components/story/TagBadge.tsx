@@ -7,7 +7,7 @@ interface TagBadgeProps {
 export function TagBadge({ restaurantHandle }: TagBadgeProps) {
   const handles = [
     restaurantHandle ? `@${restaurantHandle.replace(/^@/, '')}` : null,
-    '@gastropistazz.io',
+    '@gastro.pistazz.io.io',
   ].filter(Boolean).join('  ')
 
   return (

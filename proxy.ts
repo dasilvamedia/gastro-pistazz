@@ -63,8 +63,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/home', request.url))
   }
 
-  // Protected guest routes
-  const guestRoutes = ['/home', '/entdecken', '/deals', '/profil', '/story', '/restaurant', '/onboarding']
+  // /home, /entdecken, /deals und /restaurant sind oeffentlich erkundbar (Demo-Modus).
+  // Mitmachen (Profil, Story, Onboarding) erfordert weiterhin ein Konto.
+  const guestRoutes = ['/profil', '/story', '/onboarding']
   if (guestRoutes.some(r => path.startsWith(r)) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

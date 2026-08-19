@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // Instagram-Webhook (Meta-App "gastro pistazz.io", App-ID 1100803475748097).
-// Empfaengt story_mentions in Echtzeit: Sobald jemand @gastropistazz in einer
+// Empfaengt story_mentions in Echtzeit: Sobald jemand @gastro.pistazz.io in einer
 // Story erwaehnt, meldet Meta Username + Story-Bild. Damit vergeben wir Punkte
 // automatisch, ohne Link-Eingabe und ohne Screenshot.
 const VERIFY_TOKEN = 'pistazz-webhook-2026-zx91'

@@ -386,10 +386,10 @@ function StorySubmitInner() {
                     )}
 
                     <button
-                      onClick={() => copyTag('@gastropistazz', 'platform')}
+                      onClick={() => copyTag('@gastro.pistazz.io', 'platform')}
                       className="w-full flex items-center justify-between gap-3 bg-[#EEF5E6] border border-[#8BB06A] rounded-xl px-4 py-3 transition-all active:scale-95"
                     >
-                      <span className="text-[#1C1F1A] font-bold text-sm">@gastropistazz</span>
+                      <span className="text-[#1C1F1A] font-bold text-sm">@gastro.pistazz.io</span>
                       <span className="flex items-center gap-1.5 text-[#577A3D] text-xs font-medium flex-shrink-0">
                         {copiedHandle === 'platform' ? (
                           <><CheckCheck size={15} className="text-[#8BB06A]" /> Kopiert!</>

@@ -290,7 +290,7 @@ function ShareSheet({
 }) {
   const handles = [
     restaurantHandle ? `@${restaurantHandle.replace(/^@/, '')}` : null,
-    '@gastropistazz',
+    '@gastro.pistazz.io',
   ].filter(Boolean) as string[]
 
   const copyHandle = (h: string) => {
@@ -663,7 +663,7 @@ function StoryCreateInner() {
             Vergiss nicht: Füge <strong className="text-white">beide Tags</strong> in deine Story ein. Dafür gibt es deine Punkte!
           </p>
           <div className="flex gap-2">
-            {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastropistazz'].filter((t): t is string => !!t).map(tag => (
+            {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastro.pistazz.io'].filter((t): t is string => !!t).map(tag => (
               <button
                 key={tag}
                 onClick={async () => {

@@ -106,13 +106,13 @@ Analysiere den Instagram-Screenshot GENAU. Antworte NUR als JSON ohne weiteren T
 
 Regeln:
 - has_restaurant_tag: true wenn ${handleInfo} oder der Restaurantname als @Mention, Location-Tag oder deutlich sichtbar im Bild ist
-- has_pistazz_tag: true wenn "@gastropistazz" oder "gastropistazz" oder "pistazz" als @Mention, Sticker oder Text sichtbar ist
+- has_pistazz_tag: true wenn "@gastro.pistazz.io" oder "gastro.pistazz.io" oder "pistazz" als @Mention, Sticker oder Text sichtbar ist
 - is_recent: true wenn der Story-Timestamp < 24h zeigt (z.B. "Gerade", "2 Min", "1 Std") — NICHT bei Datum wie "15. Mai" oder "vor 3 Tagen"
 - Kein Timestamp sichtbar → is_recent: false, verdict: "suspicious" (manuelle Prüfung)
 - Timestamp sichtbar aber alt (> 24h) → verdict: "rejected"
 - verdict "rejected": kein Restaurantbezug ODER kein echter Instagram-Screenshot ODER Story älter als 24h
-- verdict "suspicious": Restaurantbezug unklar ODER @gastropistazz fehlt ODER kein Timestamp sichtbar ODER Username nicht lesbar
-- verdict "approved": BEIDE Tags sichtbar (Restauranttag UND @gastropistazz) UND Timestamp zeigt < 24h
+- verdict "suspicious": Restaurantbezug unklar ODER @gastro.pistazz.io fehlt ODER kein Timestamp sichtbar ODER Username nicht lesbar
+- verdict "approved": BEIDE Tags sichtbar (Restauranttag UND @gastro.pistazz.io) UND Timestamp zeigt < 24h
 Sei streng — lieber suspicious als approved wenn du unsicher bist.`
 
       contentBlocks.push({ type: 'image', source: { type: 'url', url: screenshotUrl } })
