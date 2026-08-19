@@ -222,6 +222,14 @@ function LoginInner() {
           Registrieren
         </Link>
       </p>
+
+      {/* Erst ansehen, dann anmelden: direkte Demo-Ansicht ohne Konto */}
+      <Link
+        href="/home"
+        className="block w-full text-center border border-[#D4E8C2] bg-[#EEF5E6]/50 text-[#577A3D] font-semibold py-3 rounded-xl hover:bg-[#EEF5E6] transition-colors text-sm"
+      >
+        👀 Erst umschauen? App ohne Anmeldung ansehen
+      </Link>
     </div>
   )
 }

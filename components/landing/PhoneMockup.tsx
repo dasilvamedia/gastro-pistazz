@@ -2,19 +2,33 @@
 
 import { motion } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustry } from './IndustryContext'
 
-const floatingEmojis = [
-  { emoji: '🍹', style: { left: '-22%', top: '8%'  }, delay: 0   },
-  { emoji: '🍔', style: { left: '108%', top: '18%' }, delay: 0.4 },
-  { emoji: '🎰', style: { left: '-26%', top: '52%' }, delay: 0.7 },
-  { emoji: '💰', style: { left: '112%', top: '58%' }, delay: 0.2 },
-  { emoji: '🥂', style: { left: '22%',  top: '-9%' }, delay: 0.5 },
-  { emoji: '🍿', style: { left: '68%',  top: '-6%' }, delay: 0.9 },
+// Jede Branche bekommt ihr eigenes Telefon-Erlebnis: Name, Emojis, Deal, Stempelziel
+const INDUSTRY_MOCK: Record<string, { business: string; emojis: [string, string, string, string, string, string]; dealSub: string; badgeReward: string; stampGoal: string; stampEmoji: string }> = {
+  gastro:     { business: 'Beach Bar Aalen',    emojis: ['🍹', '🍔', '🎰', '💰', '🥂', '🍿'], dealSub: 'Gratis Snack deiner Wahl',      badgeReward: '🎁 Gratis-Cocktail',      stampGoal: '2 bis zum Gratis-Cocktail',   stampEmoji: '🍹' },
+  barbershop: { business: 'Kings Barber Aalen', emojis: ['💈', '✂️', '🪒', '💰', '🧴', '🔥'], dealSub: 'Gratis Bartpflege deiner Wahl', badgeReward: '🎁 Gratis-Haarschnitt',   stampGoal: '2 bis zum Gratis-Haarschnitt', stampEmoji: '💈' },
+  spa:        { business: 'Aura Spa Aalen',     emojis: ['💆', '🧖', '🕯️', '💰', '🌿', '✨'], dealSub: 'Gratis Aufguss deiner Wahl',    badgeReward: '🎁 Gratis-Massage',       stampGoal: '2 bis zur Gratis-Massage',    stampEmoji: '💆' },
+  fitness:    { business: 'Flex Gym Aalen',     emojis: ['💪', '🏋️', '🥤', '💰', '👟', '🔥'], dealSub: 'Gratis Shake deiner Wahl',      badgeReward: '🎁 Gratis-Personal-Training', stampGoal: '2 bis zum Gratis-Training', stampEmoji: '💪' },
+  beauty:     { business: 'Glow Studio Aalen',  emojis: ['💅', '💄', '✨', '💰', '🌸', '💖'], dealSub: 'Gratis Nail-Art deiner Wahl',   badgeReward: '🎁 Gratis-Maniküre',      stampGoal: '2 bis zur Gratis-Maniküre',   stampEmoji: '💅' },
+  tattoo:     { business: 'Black Ink Aalen',    emojis: ['🖤', '🪡', '⚡', '💰', '🐉', '🔥'], dealSub: 'Gratis Nachstechen inklusive',  badgeReward: '🎁 Gratis-Flash-Tattoo',  stampGoal: '2 bis zum Gratis-Flash',      stampEmoji: '🖤' },
+}
+
+const EMOJI_POSITIONS = [
+  { style: { left: '-22%', top: '8%'  }, delay: 0   },
+  { style: { left: '108%', top: '18%' }, delay: 0.4 },
+  { style: { left: '-26%', top: '52%' }, delay: 0.7 },
+  { style: { left: '112%', top: '58%' }, delay: 0.2 },
+  { style: { left: '22%',  top: '-9%' }, delay: 0.5 },
+  { style: { left: '68%',  top: '-6%' }, delay: 0.9 },
 ]
 
 export function PhoneMockup() {
   const { t } = useLang()
-  const p = t.phone
+  const { industry } = useIndustry()
+  const m = INDUSTRY_MOCK[industry.slug] ?? INDUSTRY_MOCK.gastro
+  const p = { ...t.phone, dealSub: m.dealSub, badge2: m.badgeReward, stampHint: m.stampGoal }
+  const floatingEmojis = m.emojis.map((emoji, i) => ({ emoji, ...EMOJI_POSITIONS[i] }))
 
   const badges = [
     { text: p.badge1, pos: { left: '-28%', top: '22%' } },
@@ -84,7 +98,7 @@ export function PhoneMockup() {
                 🍸
               </div>
               <div className="min-w-0">
-                <div className="text-white text-xs font-semibold">Beach Bar Aalen</div>
+                <div className="text-white text-xs font-semibold">{m.business}</div>
                 <div className="text-[var(--ind-primary)] text-xs flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--ind-primary)] inline-block" />
                   {p.verified} ✓
@@ -144,7 +158,7 @@ export function PhoneMockup() {
                 </motion.div>
               ))}
             </div>
-            <div className="text-white/30 text-xs mt-1.5 text-center">{p.stampHint} 🍹</div>
+            <div className="text-white/30 text-xs mt-1.5 text-center">{p.stampHint} {m.stampEmoji}</div>
           </motion.div>
         </div>
       </motion.div>

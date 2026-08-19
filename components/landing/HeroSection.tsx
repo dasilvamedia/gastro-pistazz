@@ -115,7 +115,6 @@ export function HeroSection() {
 
           {/* Two-color headline */}
           <motion.h1
-            key={industry.slug}
             className="leading-[1.1] font-bold"
             style={{ fontFamily: 'var(--font-display)' }}
             initial={{ opacity: 0, y: 20 }}
@@ -132,7 +131,6 @@ export function HeroSection() {
 
           {/* Subtext */}
           <motion.p
-            key={industry.slug}
             className="text-base md:text-lg text-[#1C1F1A]/60 max-w-md leading-relaxed"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}

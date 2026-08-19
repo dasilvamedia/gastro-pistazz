@@ -33,7 +33,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           {/* Same mascot, same position as on pistazz.io — this is the family anchor */}
-          <Image src="/icon.svg" alt="" width={30} height={30} className="rounded-lg" priority />
+          <Image src="/icons/icon-192.png" alt="" width={30} height={30} className="rounded-lg" priority />
           <span className="text-xl font-bold text-[#1C1F1A]" style={{ fontFamily: 'var(--font-display)' }}>
             pistazz<span className="text-[var(--ind-primary)]">.io</span>
           </span>

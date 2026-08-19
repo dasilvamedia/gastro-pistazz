@@ -67,7 +67,6 @@ export function IndustrySwitcher() {
         {/* Rewards make the switch concrete: the page does not just change
             colour, it changes what you would actually hand your customer. */}
         <motion.div
-          key={industry.slug}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
