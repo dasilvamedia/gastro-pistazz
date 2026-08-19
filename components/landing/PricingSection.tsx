@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustryT } from './IndustryContext'
 import Link from 'next/link'
 
 export function PricingSection() {
-  const { t } = useLang()
+  const { t } = useIndustryT()
   const p = t.pricing
 
   return (

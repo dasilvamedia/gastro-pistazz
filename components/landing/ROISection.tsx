@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustryT } from './IndustryContext'
 
 function Slider({ label, value, min, max, step, unit, onChange }: {
   label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (v: number) => void
@@ -32,7 +33,7 @@ function Slider({ label, value, min, max, step, unit, onChange }: {
 }
 
 export function ROISection() {
-  const { t } = useLang()
+  const { t } = useIndustryT()
   const r = t.roi
 
   const [guests, setGuests] = useState(60)

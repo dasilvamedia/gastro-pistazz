@@ -72,3 +72,36 @@ export function IndustryProvider({
     </IndustryContext.Provider>
   )
 }
+
+/**
+ * Drop-in-Ersatz fuer useLang in Landing-Sektionen: liefert das komplette
+ * Uebersetzungsobjekt, in dem alle Gastro-Begriffe durch das Vokabular
+ * der aktiven Branche ersetzt sind (Kunden, Mitglieder, Studios ...).
+ */
+export function useIndustryT() {
+  const { industry } = useIndustry()
+  const lang_ctx = useLang()
+  const { t: rawT, lang } = lang_ctx as unknown as { t: unknown; lang: string }
+
+  const t = useMemo(() => {
+    const vocab = industry.vocab
+    if (!vocab || lang !== 'de') return rawT
+    const entries = Object.entries(vocab)
+    const swap = (text: string): string => {
+      let out = text
+      for (const [from, to] of entries) out = out.split(from).join(to)
+      return out
+    }
+    const walk = (node: unknown): unknown => {
+      if (typeof node === 'string') return swap(node)
+      if (Array.isArray(node)) return node.map(walk)
+      if (node && typeof node === 'object') {
+        return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]))
+      }
+      return node
+    }
+    return walk(rawT)
+  }, [rawT, industry, lang])
+
+  return { ...lang_ctx, t } as typeof lang_ctx
+}

@@ -2,6 +2,7 @@
 
 import { motion, useInView } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustryT } from './IndustryContext'
 import { useRef, useEffect, useState } from 'react'
 
 function FlipCard({ icon, title, description, index }: {
@@ -93,7 +94,7 @@ function FlipCard({ icon, title, description, index }: {
 }
 
 export function FeaturesSection() {
-  const { t } = useLang()
+  const { t } = useIndustryT()
   const f = t.features
   const h2Lines = f.h2.split('\n')
 

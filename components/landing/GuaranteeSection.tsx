@@ -2,9 +2,10 @@
 
 import { motion } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustryT } from './IndustryContext'
 
 export function GuaranteeSection() {
-  const { t } = useLang()
+  const { t } = useIndustryT()
   const g = t.guarantee
 
   return (

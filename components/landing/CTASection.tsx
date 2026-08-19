@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustryT } from './IndustryContext'
 
 export function CTASection() {
-  const { t } = useLang()
+  const { t } = useIndustryT()
   const c = t.cta
 
   return (

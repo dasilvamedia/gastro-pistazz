@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLang } from '@/lib/lang-context'
+import { useIndustryT } from './IndustryContext'
 
 function FAQItem({ q, a, isOpen, onToggle }: { q: string; a: string; isOpen: boolean; onToggle: () => void }) {
   return (
@@ -36,7 +37,7 @@ function FAQItem({ q, a, isOpen, onToggle }: { q: string; a: string; isOpen: boo
 }
 
 export function FAQSection() {
-  const { t } = useLang()
+  const { t } = useIndustryT()
   const f = t.faq
   const [openIdx, setOpenIdx] = useState<number | null>(0)
 
