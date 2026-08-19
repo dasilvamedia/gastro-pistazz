@@ -19,6 +19,9 @@ export async function POST(request: Request) {
     let caption: string | undefined
     let file: File | null = null
     let screenshotFile: File | null = null
+    let receiptFile: File | null = null
+    let submittedLat: number | undefined
+    let submittedLng: number | undefined
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
@@ -28,6 +31,13 @@ export async function POST(request: Request) {
       caption = (formData.get('caption') as string) || undefined
       file = (formData.get('file') as File) || null
       screenshotFile = (formData.get('screenshot') as File) || null
+      receiptFile = (formData.get('receipt') as File) || null
+      const latRaw = formData.get('lat')
+      const lngRaw = formData.get('lng')
+      if (latRaw && lngRaw) {
+        submittedLat = Number(latRaw)
+        submittedLng = Number(lngRaw)
+      }
     } else {
       const body = await request.json()
       restaurant_id = body.restaurant_id
@@ -55,7 +65,7 @@ export async function POST(request: Request) {
 
     const { data: restaurant, error: restaurantError } = await admin
       .from('restaurants')
-      .select('id')
+      .select('id, latitude, longitude')
       .eq('id', restaurant_id)
       .eq('is_active', true)
       .single()
@@ -106,6 +116,36 @@ export async function POST(request: Request) {
       }
     }
 
+    // Kassenbon hochladen (Story-Betrugsschutz: beweist Anwesenheit vor Ort)
+    let receipt_url: string | undefined
+    if (receiptFile && receiptFile.size > 0 && receiptFile.size <= MAX_SIZE && ALLOWED_TYPES.includes(receiptFile.type)) {
+      const ext = receiptFile.name.split('.').pop() ?? 'jpg'
+      const path = `receipts/${user.id}/${restaurant_id}/${Date.now()}.${ext}`
+      const arrayBuffer = await receiptFile.arrayBuffer()
+      const { data: uploadData, error: uploadError } = await admin.storage
+        .from('story-media')
+        .upload(path, arrayBuffer, { contentType: receiptFile.type, upsert: false })
+      if (!uploadError && uploadData) {
+        const { data: urlData } = admin.storage.from('story-media').getPublicUrl(uploadData.path)
+        receipt_url = urlData.publicUrl
+      } else if (uploadError) {
+        console.error('Receipt upload error:', uploadError)
+      }
+    }
+
+    // Entfernung zum Restaurant serverseitig berechnen (Haversine) — nicht der
+    // KI ueberlassen, damit die Pruefung nicht manipulierbar ist.
+    let location_distance_m: number | undefined
+    if (submittedLat != null && submittedLng != null && restaurant.latitude != null && restaurant.longitude != null) {
+      const R = 6371000
+      const toRad = (d: number) => (d * Math.PI) / 180
+      const dLat = toRad(restaurant.latitude - submittedLat)
+      const dLng = toRad(restaurant.longitude - submittedLng)
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(submittedLat)) * Math.cos(toRad(restaurant.latitude)) * Math.sin(dLng / 2) ** 2
+      location_distance_m = Math.round(2 * R * Math.asin(Math.sqrt(a)))
+    }
+
     const { data: submission, error: insertError } = await admin
       .from('story_submissions')
       .insert({
@@ -118,6 +158,10 @@ export async function POST(request: Request) {
         screenshot_url: screenshot_url ?? null,
         caption: caption ?? null,
         ai_verdict: 'pending',
+        receipt_url: receipt_url ?? null,
+        submitted_lat: submittedLat ?? null,
+        submitted_lng: submittedLng ?? null,
+        location_distance_m: location_distance_m ?? null,
       })
       .select('id')
       .single()

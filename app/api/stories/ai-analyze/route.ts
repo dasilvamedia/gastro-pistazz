@@ -25,6 +25,8 @@ async function analyzeWithClaude(opts: {
   permalink: string | null
   mediaUrl: string | null
   screenshotUrl: string | null
+  receiptUrl?: string | null
+  distanceM?: number | null
   caption: string | null
   restaurantName: string
   restaurantHandle: string | null
@@ -32,7 +34,7 @@ async function analyzeWithClaude(opts: {
   igChecks: IgChecks | null
   submittedAt?: string | null
 }): Promise<AnalyzeResult> {
-  const { type, permalink, mediaUrl, screenshotUrl, caption, restaurantName, restaurantHandle, userHandle, igChecks, submittedAt } = opts
+  const { type, permalink, mediaUrl, screenshotUrl, receiptUrl, distanceM, caption, restaurantName, restaurantHandle, userHandle, igChecks, submittedAt } = opts
 
   if (!ANTHROPIC_API_KEY) {
     return { verdict: 'pending', confidence: 0, notes: 'Kein API-Schlüssel konfiguriert – manuelle Prüfung erforderlich.' }
@@ -117,6 +119,14 @@ Sei streng — lieber suspicious als approved wenn du unsicher bist.`
 
       contentBlocks.push({ type: 'image', source: { type: 'url', url: screenshotUrl } })
       contentBlocks.push({ type: 'text', text: 'Analysiere diesen Instagram-Screenshot gemäß den Anweisungen.' })
+
+      if (receiptUrl) {
+        contentBlocks.push({ type: 'image', source: { type: 'url', url: receiptUrl } })
+        contentBlocks.push({
+          type: 'text',
+          text: `Dies ist zusätzlich der eingereichte Kassenbon. Prüfe: Ist es ein echter, unbearbeiteter Kassenbon/Beleg? Ist ein Datum/Zeitstempel darauf sichtbar und plausibel aktuell (heute)? Ergänze deine JSON-Antwort um "receipt_looks_valid": true|false und "receipt_notes": "<kurz>".`,
+        })
+      }
 
       const result = await callClaudeStructured(systemPrompt, contentBlocks)
 
@@ -258,6 +268,8 @@ export async function POST(request: Request) {
       permalink: sub.instagram_permalink,
       mediaUrl: sub.media_url,
       screenshotUrl: sub.screenshot_url ?? null,
+      receiptUrl: sub.receipt_url ?? null,
+      distanceM: sub.location_distance_m ?? null,
       caption: sub.caption,
       restaurantName,
       restaurantHandle,
@@ -271,17 +283,38 @@ export async function POST(request: Request) {
       ? { ...((sub.ig_checks as object) ?? {}), ...result.ig_updates }
       : undefined
 
+    // ── Hartes Anti-Betrugs-Gate fuer Stories, unabhaengig von der KI-Meinung ──
+    // Der Instagram-Zeitstempel beweist nur "gerade gepostet", nicht "Foto
+    // gerade aufgenommen" oder "Person ist vor Ort". Kassenbon + Standort sind
+    // daher Pflichtbedingungen fuer eine automatische Genehmigung.
+    let finalVerdict = result.verdict
+    let finalNotes = result.notes
+    if (sub.type === 'instagram_story' && finalVerdict === 'approved') {
+      const distance = sub.location_distance_m as number | null
+      const hasReceipt = !!sub.receipt_url
+      const tooFar = distance == null || distance > 500
+      if (!hasReceipt) {
+        finalVerdict = 'suspicious'
+        finalNotes = 'Kein Kassenbon vorhanden — manuelle Prüfung erforderlich.'
+      } else if (tooFar) {
+        finalVerdict = 'suspicious'
+        finalNotes = distance == null
+          ? 'Kein Standort übermittelt — manuelle Prüfung erforderlich.'
+          : `Standort war ${distance}m vom Restaurant entfernt — manuelle Prüfung erforderlich.`
+      }
+    }
+
     const updatePayload: Record<string, unknown> = {
-      ai_verdict: result.verdict,
+      ai_verdict: finalVerdict,
       ai_confidence: result.confidence,
-      ai_notes: result.notes,
+      ai_notes: finalNotes,
       ai_analyzed_at: new Date().toISOString(),
     }
     if (igChecksUpdate) updatePayload.ig_checks = igChecksUpdate
 
     await admin.from('story_submissions').update(updatePayload).eq('id', submission_id)
 
-    return NextResponse.json({ success: true, ...result })
+    return NextResponse.json({ success: true, ...result, verdict: finalVerdict, notes: finalNotes })
   } catch (err) {
     console.error('POST /api/stories/ai-analyze error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

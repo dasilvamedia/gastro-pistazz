@@ -55,6 +55,7 @@ function StorySubmitInner() {
   const [copiedHandle, setCopiedHandle] = useState<'restaurant' | 'platform' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const screenshotRef = useRef<HTMLInputElement>(null)
+  const storyReceiptRef = useRef<HTMLInputElement>(null)
 
   const getTypes = (r: Restaurant | null): { value: SubmissionType; emoji: string; label: string; points: number; primary?: boolean }[] => [
     { value: 'instagram_story', emoji: '📸', label: 'Instagram Story', points: r?.points_per_story ?? 500, primary: true },
@@ -109,8 +110,10 @@ function StorySubmitInner() {
   const step2Valid = () => {
     if (!selectedType) return false
     if (selectedType === 'instagram_story') {
-      // Story: Link Pflicht, Screenshot optional (verbessert Verifikation)
-      return link.trim().length > 0
+      // Story: Link, Screenshot UND Kassenbon sind Pflicht (Betrugsschutz:
+      // Story-Zeitpunkt allein beweist nicht, dass das Foto frisch ist oder
+      // die Person gerade vor Ort ist)
+      return link.trim().length > 0 && screenshot !== null && storyReceipt !== null
     }
     if (selectedType === 'instagram_reel' || selectedType === 'instagram_post') {
       return link.trim().length > 0
@@ -134,6 +137,8 @@ function StorySubmitInner() {
     if (!selectedRestaurant || !selectedType) return
     if (!step2Valid()) {
       if (selectedType === 'receipt') toast.error('Bitte lade einen Beleg hoch')
+      else if (selectedType === 'instagram_story' && !screenshot) toast.error('Bitte lade einen Screenshot hoch')
+      else if (selectedType === 'instagram_story' && !storyReceipt) toast.error('Bitte lade zum Schluss noch deinen Kassenbon hoch')
       else toast.error('Bitte füge einen Link ein')
       return
     }
@@ -146,6 +151,11 @@ function StorySubmitInner() {
       if (caption) formData.append('caption', caption)
       if (file) formData.append('file', file)
       if (screenshot) formData.append('screenshot', screenshot)
+      if (storyReceipt) formData.append('receipt', storyReceipt)
+      if (coords) {
+        formData.append('lat', String(coords.lat))
+        formData.append('lng', String(coords.lng))
+      }
 
       const res = await fetch('/api/stories/submit', { method: 'POST', body: formData })
       if (!res.ok) {
@@ -173,6 +183,17 @@ function StorySubmitInner() {
   const types = getTypes(selectedRestaurant)
   const selectedTypeInfo = types.find(t => t.value === selectedType)
   const isInstagramType = selectedType && INSTAGRAM_TYPES.includes(selectedType)
+
+  // Standort anfordern, sobald der Nutzer bei Schritt 2 ankommt (Beweis: gerade vor Ort)
+  useEffect(() => {
+    if (step !== 2 || locationStatus !== 'idle' || typeof navigator === 'undefined' || !navigator.geolocation) return
+    setLocationStatus('requesting')
+    navigator.geolocation.getCurrentPosition(
+      pos => { setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationStatus('granted') },
+      () => setLocationStatus('denied'),
+      { timeout: 8000, maximumAge: 60000 }
+    )
+  }, [step, locationStatus])
   const restaurantIgHandle = selectedRestaurant?.instagram_handle?.replace(/^@+/, '')
 
   function copyTag(text: string, which: 'restaurant' | 'platform') {
@@ -477,12 +498,14 @@ function StorySubmitInner() {
                 </div>
               )}
 
-              {/* Screenshot-Upload (nur für Stories: Pflicht; für Reels/Posts: optional) */}
+              {/* Screenshot-Upload — fuer Stories Pflicht, fuer Reels/Posts optional */}
               {isInstagramType && (
                 <div>
                   <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
                     Screenshot{' '}
-                    <span className="text-[#8BB06A]/70 font-normal">(optional, erhöht die Chance auf sofortige Genehmigung)</span>
+                    {selectedType === 'instagram_story'
+                      ? <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span>
+                      : <span className="text-[#8BB06A]/70 font-normal">(optional, erhöht die Chance auf sofortige Genehmigung)</span>}
                   </label>
                   <p className="text-[#6D7A6D] text-xs mb-2">
                     📱 iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.
@@ -516,9 +539,62 @@ function StorySubmitInner() {
                       </>
                     )}
                   </button>
-                  {!screenshot && (
+                  {!screenshot && selectedType !== 'instagram_story' && (
                     <p className="text-[#8BB06A] text-xs mt-1">Mit Screenshot wird deine Story schneller und automatisch genehmigt.</p>
                   )}
+                </div>
+              )}
+
+              {/* Kassenbon fuer Stories — zusaetzlicher Betrugsschutz: beweist,
+                  dass du gerade wirklich vor Ort bist (nicht nur, dass du irgendwann gepostet hast) */}
+              {selectedType === 'instagram_story' && (
+                <div>
+                  <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
+                    Kassenbon <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span>
+                  </label>
+                  <p className="text-[#6D7A6D] text-xs mb-2">
+                    So stellen wir sicher, dass du gerade wirklich bei <strong>{selectedRestaurant?.name}</strong> bist.
+                  </p>
+                  <input
+                    type="file"
+                    ref={storyReceiptRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => setStoryReceipt(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    onClick={() => storyReceiptRef.current?.click()}
+                    className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center gap-2 transition-all ${storyReceipt ? 'border-[#8BB06A] bg-[#EEF5E6]' : 'border-[#D4E8C2] bg-white'}`}
+                  >
+                    {storyReceipt ? (
+                      <>
+                        <CheckCircle size={28} className="text-[#8BB06A]" />
+                        <p className="text-[#6D9450] font-semibold text-sm">{storyReceipt.name}</p>
+                        <p className="text-[#8BB06A] text-xs">Tippen zum Ändern</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={28} className="text-[#8BB06A]" />
+                        <p className="text-[#6D9450] font-semibold text-sm">Kassenbon hochladen</p>
+                        <p className="text-[#8BB06A] text-xs">Foto von Beleg oder Rechnung</p>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Standort-Status */}
+                  <div className="flex items-center gap-2 mt-2 text-xs">
+                    {locationStatus === 'granted' && (
+                      <span className="text-[#8BB06A] flex items-center gap-1"><CheckCircle size={13} />Standort bestätigt</span>
+                    )}
+                    {locationStatus === 'requesting' && (
+                      <span className="text-[#6D7A6D]">Standort wird ermittelt…</span>
+                    )}
+                    {locationStatus === 'denied' && (
+                      <span className="text-amber-600 flex items-center gap-1">
+                        <AlertTriangle size={13} />Standort nicht verfügbar — bitte in den Geräte-Einstellungen erlauben
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
