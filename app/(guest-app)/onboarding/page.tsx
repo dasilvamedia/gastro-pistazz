@@ -243,19 +243,19 @@ function OnboardingInner() {
           new Promise<void>(resolve => setTimeout(resolve, 3000)),
         ])
 
-        // Herkunft für Super-Admin-Tracking festhalten (kein Einfluss auf restaurant-admin Kundenliste)
+        // Herkunft für Super-Admin-Tracking festhalten (kein Einfluss auf restaurant-admin Kundenliste).
+        // Bewusst NICHT awaited: das darf den Onboarding-Abschluss nie blockieren,
+        // selbst wenn der Request haengt oder fehlschlaegt.
         if (restaurantSlug && restaurant?.id) {
-          try {
-            await supabase.from('visits').upsert(
-              {
-                user_id:       session.user.id,
-                restaurant_id: restaurant.id,
-                source:        'onboarding',
-                visited_at:    new Date().toISOString(),
-              },
-              { onConflict: 'user_id,restaurant_id', ignoreDuplicates: true },
-            )
-          } catch { /* nie blockierend */ }
+          supabase.from('visits').upsert(
+            {
+              user_id:       session.user.id,
+              restaurant_id: restaurant.id,
+              source:        'onboarding',
+              visited_at:    new Date().toISOString(),
+            },
+            { onConflict: 'user_id,restaurant_id', ignoreDuplicates: true },
+          ).then(undefined, () => {})
         }
       }
     } catch {

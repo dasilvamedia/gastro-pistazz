@@ -21,66 +21,84 @@ function AuthCallbackInner() {
         const handleUser = async (user: { id: string; email?: string; app_metadata?: Record<string, string>; user_metadata?: Record<string, string> }) => {
           subscription.unsubscribe()
 
-          // Sync name + avatar from Google/OAuth metadata into profile
-          const meta = user.user_metadata ?? {}
-          const fullName = meta.full_name ?? meta.name ?? null
-          const avatarUrl = meta.avatar_url ?? meta.picture ?? null
-
-          // Use RPC to get role — bypasses RLS recursion issues
-          const { data: roleData } = await supabase.rpc('get_my_role')
-          const role = roleData as string | null
-
-          // Also get profile for onboarding check + name sync
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role, onboarding_completed, full_name')
-            .eq('id', user.id)
-            .single()
-
-          // Update name/avatar if missing
-          if (profile && (!profile.full_name || profile.full_name === '') && fullName) {
-            await supabase
-              .from('profiles')
-              .update({ full_name: fullName, avatar_url: avatarUrl })
-              .eq('id', user.id)
-          }
-
-          // Determine effective role (RPC is more reliable than direct select)
-          const effectiveRole = role ?? profile?.role ?? null
-          const isNoRow = profileError?.code === 'PGRST116'
-
-          // Build onboarding destination preserving restaurant context
           const onboardingDest = restaurantSlug
             ? `/onboarding?restaurant=${restaurantSlug}`
             : '/onboarding'
+          const fallbackDest = restaurantSlug ? `/r/${restaurantSlug}` : '/home'
 
-          if (!effectiveRole && isNoRow) {
-            // Genuinely new user
-            await supabase.from('profiles').upsert({
-              id: user.id,
-              full_name: fullName,
-              avatar_url: avatarUrl,
-              role: 'guest',
-              onboarding_completed: false,
-            })
+          // Sicherheitsnetz: haengt eine der DB-Abfragen unten (RPC/Select),
+          // wird trotzdem spaetestens nach 5s weitergeleitet statt ewig auf
+          // "Anmeldung wird verarbeitet..." stehen zu bleiben.
+          let settled = false
+          const finish = (dest: string) => {
+            if (settled) return
+            settled = true
+            router.replace(dest)
+          }
+          const safety = setTimeout(() => finish(fallbackDest), 5000)
 
-            // Benachrichtigung an info@pistazz.io (nicht-blockierend)
-            notifyNewUser({
-              email:  user.email ?? '',
-              name:   fullName,
-              method: user.app_metadata?.provider ?? 'oauth',
-            })
+          try {
+            // Sync name + avatar from Google/OAuth metadata into profile
+            const meta = user.user_metadata ?? {}
+            const fullName = meta.full_name ?? meta.name ?? null
+            const avatarUrl = meta.avatar_url ?? meta.picture ?? null
 
-            router.replace(onboardingDest)
-          } else if (effectiveRole === 'super_admin' || effectiveRole === 'admin') {
-            router.replace('/admin/dashboard')
-          } else if (effectiveRole === 'restaurant_owner') {
-            router.replace('/dashboard')
-          } else if (profile && !profile.onboarding_completed) {
-            router.replace(onboardingDest)
-          } else {
-            // Returning user — send back to restaurant page if they came from one
-            router.replace(restaurantSlug ? `/r/${restaurantSlug}` : '/home')
+            // Use RPC to get role — bypasses RLS recursion issues
+            const { data: roleData } = await supabase.rpc('get_my_role')
+            const role = roleData as string | null
+
+            // Also get profile for onboarding check + name sync
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('role, onboarding_completed, full_name')
+              .eq('id', user.id)
+              .single()
+
+            // Update name/avatar if missing — nicht awaited, darf nie blockieren
+            if (profile && (!profile.full_name || profile.full_name === '') && fullName) {
+              supabase
+                .from('profiles')
+                .update({ full_name: fullName, avatar_url: avatarUrl })
+                .eq('id', user.id)
+                .then(undefined, () => {})
+            }
+
+            // Determine effective role (RPC is more reliable than direct select)
+            const effectiveRole = role ?? profile?.role ?? null
+            const isNoRow = profileError?.code === 'PGRST116'
+
+            if (!effectiveRole && isNoRow) {
+              // Genuinely new user
+              await supabase.from('profiles').upsert({
+                id: user.id,
+                full_name: fullName,
+                avatar_url: avatarUrl,
+                role: 'guest',
+                onboarding_completed: false,
+              })
+
+              // Benachrichtigung an info@pistazz.io (nicht-blockierend)
+              notifyNewUser({
+                email:  user.email ?? '',
+                name:   fullName,
+                method: user.app_metadata?.provider ?? 'oauth',
+              })
+
+              finish(onboardingDest)
+            } else if (effectiveRole === 'super_admin' || effectiveRole === 'admin') {
+              finish('/admin/dashboard')
+            } else if (effectiveRole === 'restaurant_owner') {
+              finish('/dashboard')
+            } else if (profile && !profile.onboarding_completed) {
+              finish(onboardingDest)
+            } else {
+              // Returning user — send back to restaurant page if they came from one
+              finish(fallbackDest)
+            }
+          } catch {
+            finish(fallbackDest)
+          } finally {
+            clearTimeout(safety)
           }
         }
 

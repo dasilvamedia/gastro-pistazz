@@ -18,9 +18,15 @@ export default function GuestAppLayout({ children }: { children: React.ReactNode
   }, [])
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    // Fixed-Shell statt Body-Scroll: body/html scrollen hier nie, nur <main>
+    // scrollt intern. Sonst "wandert" die fixed-positionierte BottomNav in
+    // WKWebView (iOS) sichtbar mit, sobald man scrollt.
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       <PreviewBanner />
-      <main className={`flex-1 pb-20 ${hasPreview ? 'pt-10' : ''}`}>
+      <main
+        className={`flex-1 overflow-y-auto pb-20 ${hasPreview ? 'pt-10' : ''}`}
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' } as React.CSSProperties}
+      >
         {children}
       </main>
       <BottomNav />

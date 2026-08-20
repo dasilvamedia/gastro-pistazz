@@ -395,14 +395,12 @@ function StoryCreateInner() {
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
   const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'success'>('capture')
-  const [copiedTag, setCopiedTag] = useState<string | null>(null)
-  const [fallbackHint, setFallbackHint] = useState(false)
+  const [copiedTags, setCopiedTags] = useState<Record<string, boolean>>({})
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
   const [camError, setCamError] = useState(false)
   const [exportedBlob,    setExportedBlob]    = useState<Blob | null>(null)
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null)
-  const [clipboardCopied, setClipboardCopied] = useState(false)
 
   const filterCss = FILTERS.find(f => f.id === filter)?.css ?? 'none'
 
@@ -426,14 +424,13 @@ function StoryCreateInner() {
   const startCamera = useCallback(async (facing: 'user' | 'environment') => {
     setCamError(false)
     try {
+      // Keine Aufloesungs-/aspectRatio-Constraints: schon "ideal"-Werte fuer
+      // width/height zwingen iOS oft dazu, einen engeren/gezoomten Kameramodus
+      // zu waehlen statt des normalen 1x-Weitwinkel-Sichtfelds. Nur facingMode
+      // anfordern liefert das native FOV; der 9:16-Zuschnitt passiert rein per
+      // CSS (object-cover) bzw. beim Export.
       const s = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: facing,
-          aspectRatio: 9 / 16,
-          width:  { ideal: 1080, max: 4096 },
-          height: { ideal: 1920, max: 4096 },
-        },
-        audio: true,
+        video: { facingMode: facing },
       })
       setStream(s)
       if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}) }
@@ -530,9 +527,11 @@ function StoryCreateInner() {
       setExportedBlob(blob)
       setExportedBlobUrl(URL.createObjectURL(blob))
 
-      // ── iOS: KEIN Datei-Share-Sheet (verwirrend) — Bild in die Zwischenablage
-      //    und Instagram direkt im Story-Modus oeffnen. Android: System-Teilen,
-      //    dort erscheint Instagram sauber als direktes Ziel. ──
+      // ── Android: natives Share-Sheet funktioniert dort zuverlaessig, Instagram
+      //    erscheint als direktes Ziel. iOS: Instagram registriert sich NICHT im
+      //    System-Share-Sheet fuer Bilder aus Web-Apps (getestet, kein IG-Icon
+      //    dort) — bis der native Plugin-Weg in einem App-Update ausgeliefert ist,
+      //    bleibt "in Fotos sichern + manuell auswaehlen" der einzige zuverlaessige Weg. ──
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
         || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
@@ -554,15 +553,6 @@ function StoryCreateInner() {
         }
       }
 
-      // ── iOS-Hauptweg + genereller Fallback: Zwischenablage + Instagram öffnen ──
-      let ok = false
-      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/jpeg': blob })])
-          ok = true
-        } catch { /* Clipboard nicht erlaubt */ }
-      }
-      setClipboardCopied(ok)
       setStep('share-options')
 
     } catch {
@@ -571,7 +561,10 @@ function StoryCreateInner() {
     setSubmitting(false)
   }
 
-  // ── Instagram öffnen: nativ mit Bild-Uebergabe (App-Build 2+), sonst Deep-Link ──
+  // ── Instagram öffnen: nativ mit Bild-Uebergabe (sobald App-Build mit
+  //    InstagramStoryPlugin live ist), sonst manueller Weg ueber die Galerie.
+  //    (Web Share-Sheet UND Zwischenablage+Deep-Link wurden getestet — Instagram
+  //    registriert sich auf iOS bei keinem der beiden Wege als Ziel.) ──
   const handleOpenInstagram = async () => {
     const native = (window as unknown as {
       Capacitor?: { Plugins?: { InstagramStory?: { share: (o: { base64: string; appId?: string }) => Promise<{ shared: boolean }> } } }
@@ -588,9 +581,10 @@ function StoryCreateInner() {
         if (out?.shared) return
       } catch { /* Fallback unten */ }
     }
-    // Uebergangsweise (bis App-Update): kurze Hilfe zeigen, dann Instagram oeffnen
-    setFallbackHint(true)
-    setTimeout(() => { window.location.href = 'instagram://camera' }, 2600)
+
+    // Manueller Weg: Bild oben wurde per Gedrueckthalten in Fotos gesichert —
+    // Instagram-Kamera oeffnen, dort unten links das Galerie-Symbol antippen
+    window.location.href = 'instagram://camera'
   }
 
   // ── Punkte einreichen ────────────────────────────────────────────────────
@@ -610,7 +604,6 @@ function StoryCreateInner() {
     setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.42, scale: 1.0 })
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
     setExportedBlob(null)
-    setClipboardCopied(false)
     setStep('capture')
     startCamera(facingMode)
   }
@@ -663,29 +656,38 @@ function StoryCreateInner() {
             Vergiss nicht: Füge <strong className="text-white">beide Tags</strong> in deine Story ein. Dafür gibt es deine Punkte!
           </p>
           <div className="flex gap-2">
-            {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastro.pistazz.io'].filter((t): t is string => !!t).map(tag => (
-              <button
-                key={tag}
-                onClick={async () => {
-                  try { await navigator.clipboard.writeText(tag); setCopiedTag(tag); setTimeout(() => setCopiedTag(c => c === tag ? null : c), 2200) } catch {}
-                }}
-                className="flex-1 min-w-0 flex items-center justify-between gap-2 bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 active:bg-white/15 transition-colors"
-              >
-                <span className="text-white font-bold text-[13px] truncate">{tag}</span>
-                <span className="text-[#8BB06A] text-[11px] font-semibold shrink-0">{copiedTag === tag ? '✓' : 'Kopieren'}</span>
-              </button>
-            ))}
+            {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastro.pistazz.io'].filter((t): t is string => !!t).map(tag => {
+              const done = !!copiedTags[tag]
+              return (
+                <button
+                  key={tag}
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(tag); setCopiedTags(prev => ({ ...prev, [tag]: true })) } catch {}
+                  }}
+                  className={`flex-1 min-w-0 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 border transition-colors ${
+                    done ? 'bg-[#8BB06A]/15 border-[#8BB06A]/50 active:bg-[#8BB06A]/25' : 'bg-white/8 border-white/15 active:bg-white/15'
+                  }`}
+                >
+                  <span className="text-white font-bold text-[13px] truncate">{tag}</span>
+                  <span className={`text-[11px] font-semibold shrink-0 flex items-center gap-1 ${done ? 'text-[#8BB06A]' : 'text-white/60'}`}>
+                    {done ? <><CheckCircle className="w-3.5 h-3.5" />Kopiert</> : 'Kopieren'}
+                  </span>
+                </button>
+              )
+            })}
           </div>
+          <p className="text-white/45 text-[11px] leading-snug text-center px-2">
+            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> — nicht nur eintippen, sonst zählt der Tag nicht.
+          </p>
 
-          {/* Uebergangshilfe, nur solange die App das Bild noch nicht automatisch uebergeben kann */}
-          {fallbackHint && (
-            <div className="rounded-xl bg-amber-500/15 border border-amber-400/30 px-3 py-2.5">
-              <p className="text-amber-200 text-[12px] leading-snug">
-                Noch ein Zwischenschritt: <strong className="text-amber-100">Bild oben gedrückt halten</strong> und zu Fotos sichern.
-                In Instagram dann Story, Bild wählen, Tags einfügen. Mit dem nächsten App-Update entfällt das!
-              </p>
-            </div>
-          )}
+          {/* Manueller Weg, solange kein App-Update mit direkter Bild-Uebergabe live ist */}
+          <div className="rounded-xl bg-amber-500/15 border border-amber-400/30 px-3 py-2.5">
+            <p className="text-amber-200 text-[12px] leading-snug">
+              <strong className="text-amber-100">1.</strong> Bild oben gedrückt halten und sichern &nbsp;
+              <strong className="text-amber-100">2.</strong> Instagram öffnen (Button unten) &nbsp;
+              <strong className="text-amber-100">3.</strong> Dort unten links das Galerie-Symbol antippen und das Bild wählen
+            </p>
+          </div>
 
           <button
             onClick={handleOpenInstagram}
@@ -697,7 +699,7 @@ function StoryCreateInner() {
               <circle cx="13.2" cy="4.8" r="1" fill="white"/>
               <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
             </svg>
-            <span className="text-white font-bold text-base flex-1 text-left">Auf Instagram teilen</span>
+            <span className="text-white font-bold text-base flex-1 text-left">Instagram öffnen</span>
             <span className="text-white/70 text-lg">›</span>
           </button>
 
@@ -706,6 +708,14 @@ function StoryCreateInner() {
             className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
           >
             <CheckCircle className="w-5 h-5" />Geteilt? Punkte anfordern
+          </button>
+
+          <button
+            onClick={retake}
+            className="w-full py-2 text-white/45 text-xs font-medium flex items-center justify-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Story gefällt dir nicht? <span className="text-white/75 underline">Neu aufnehmen</span>
           </button>
         </div>
       </div>
@@ -851,9 +861,9 @@ function StoryCreateInner() {
               </button>
             </div>
             <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
-              <li><strong className="text-white">1.</strong> Foto machen und gestalten. Die Tags kommen automatisch ins Bild</li>
-              <li><strong className="text-white">2.</strong> Bild in Fotos sichern und als Instagram-Story teilen</li>
-              <li><strong className="text-white">3.</strong> Zurück in die App: Punkte anfordern. Fertig!</li>
+              <li><strong className="text-white">1.</strong> Foto aufnehmen und Sticker platzieren</li>
+              <li><strong className="text-white">2.</strong> Bild sichern und in Instagram als Story teilen</li>
+              <li><strong className="text-white">3.</strong> Zurück in der App: Punkte anfordern. Fertig!</li>
             </ol>
           </div>
         </div>

@@ -30,6 +30,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
+  // Der Proxy puffert Request-Bodies und kappt sonst bei 10 MB (Video-Upload fuer die App-Pruefung)
+  experimental: { proxyClientMaxBodySize: '300mb' },
   async headers() {
     return [
       {

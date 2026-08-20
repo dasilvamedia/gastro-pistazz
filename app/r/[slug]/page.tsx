@@ -172,7 +172,12 @@ export default function RestaurantLandingPage() {
   const primaryColor = restaurant.primary_color ?? '#8BB06A'
 
   return (
-    <div className="min-h-screen bg-[#0f1410]">
+    // fixed inset-0 statt min-h-screen: body scrollt hier nie mit, sonst
+    // "wandert" die fixed-positionierte Floating-Bar unten beim Scrollen (iOS/WKWebView)
+    <div
+      className="fixed inset-0 overflow-y-auto bg-[#0f1410]"
+      style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' } as React.CSSProperties}
+    >
       {/* ── Cover ────────────────────────────────────── */}
       <div className="relative h-64">
         {/* Cover image — own overflow-hidden wrapper so logo is never clipped */}
