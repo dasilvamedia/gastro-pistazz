@@ -101,8 +101,11 @@ function LoginInner() {
     // WebViews), Rueckkehr per Custom-URL-Scheme direkt in die App - der
     // NativeAuthHandler faengt den Code ab und tauscht ihn im App-WebView
     // (wo der PKCE-Verifier liegt) gegen die Session. Web: normaler Redirect.
+    // Nativ NICHT direkt aufs Custom-Scheme redirecten - iOS blockt
+    // Scheme-Spruenge in automatischen 302-Ketten. Die native-bridge-Seite
+    // (normales https) verteilt den Ruecksprung zuverlaessig.
     const callbackUrl = isNative
-      ? `io.pistazz.gastro://auth-callback${restaurantSlug ? `?restaurant=${restaurantSlug}` : ''}`
+      ? `${window.location.origin}/auth/native-bridge${restaurantSlug ? `?restaurant=${restaurantSlug}` : ''}`
       : restaurantSlug
         ? `${window.location.origin}/auth/callback?restaurant=${restaurantSlug}`
         : `${window.location.origin}/auth/callback`

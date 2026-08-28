@@ -113,8 +113,11 @@ function RegisterInner() {
     const isNative = !!(window as unknown as { Capacitor?: unknown }).Capacitor
     // Nativ: Login im System-Browser, Rueckkehr per Custom-URL-Scheme in die
     // App (siehe NativeAuthHandler). Web: normaler Redirect-Flow.
+    // Nativ NICHT direkt aufs Custom-Scheme redirecten - iOS blockt
+    // Scheme-Spruenge in automatischen 302-Ketten. Die native-bridge-Seite
+    // (normales https) verteilt den Ruecksprung zuverlaessig.
     const callbackUrl = isNative
-      ? `io.pistazz.gastro://auth-callback${restaurantSlug ? `?restaurant=${restaurantSlug}` : ''}`
+      ? `${window.location.origin}/auth/native-bridge${restaurantSlug ? `?restaurant=${restaurantSlug}` : ''}`
       : restaurantSlug
         ? `${window.location.origin}/auth/callback?restaurant=${restaurantSlug}`
         : `${window.location.origin}/auth/callback`
