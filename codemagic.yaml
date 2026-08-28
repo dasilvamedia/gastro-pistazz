@@ -35,6 +35,15 @@ workflows:
       - name: Build iOS
         script: |
           xcode-project use-profiles --verbose
+          # DEBUG: xcodebuild direkt statt ueber den CLI-Wrapper, der die
+          # eigentliche xcodebuild-Fehlermeldung sonst verschluckt.
+          set -o pipefail
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+            -archivePath /tmp/App.xcarchive archive \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DEVELOPMENT_TEAM=33SPWG2R8C \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Manual 2>&1 | tee /tmp/xcodebuild_archive.log
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
