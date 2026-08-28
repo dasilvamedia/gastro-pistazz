@@ -7,7 +7,7 @@ workflows:
     environment:
       ios_signing:
         provisioning_profiles:
-          - pistazz_appstore_v3
+          - pistazz_appstore_v4
         certificates:
           - pistazz-dist
       vars:
