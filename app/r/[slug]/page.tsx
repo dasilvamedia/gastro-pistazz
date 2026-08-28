@@ -313,6 +313,13 @@ export default function RestaurantLandingPage() {
                     Belohnung: <span className="text-white/80 font-medium">{restaurant.stamp_card_reward}</span>
                   </p>
                 )}
+                <Link
+                  href={`/stempel?restaurant=${slug}`}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  style={{ background: primaryColor }}
+                >
+                  📶 Stempel per Antippen sammeln
+                </Link>
               </div>
             )}
 

@@ -863,7 +863,8 @@ function StoryCreateInner() {
             <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
               <li><strong className="text-white">1.</strong> Foto aufnehmen und Sticker platzieren</li>
               <li><strong className="text-white">2.</strong> Bild sichern und in Instagram als Story teilen</li>
-              <li><strong className="text-white">3.</strong> Zurück in der App: Punkte anfordern. Fertig!</li>
+              <li><strong className="text-white">3.</strong> Zurück in der App: Kassenbon fotografieren (Beweis, dass du vor Ort bist)</li>
+              <li><strong className="text-white">4.</strong> Punkte anfordern. Fertig!</li>
             </ol>
           </div>
         </div>

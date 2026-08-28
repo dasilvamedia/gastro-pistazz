@@ -12,6 +12,103 @@ interface StampStats {
   redeemed: number
 }
 
+interface NfcTag {
+  id: string
+  tag_uid: string
+  label: string | null
+  created_at: string
+}
+
+function NfcTagsSection() {
+  const [tags, setTags] = useState<NfcTag[]>([])
+  const [loading, setLoading] = useState(true)
+  const [newUid, setNewUid] = useState('')
+  const [newLabel, setNewLabel] = useState('')
+  const [adding, setAdding] = useState(false)
+
+  const load = () => {
+    fetch('/api/nfc/tags').then(r => r.json()).then(d => setTags(d.tags ?? [])).finally(() => setLoading(false))
+  }
+  useEffect(load, [])
+
+  const addTag = async () => {
+    if (!newUid.trim()) { toast.error('Tag-UID fehlt'); return }
+    setAdding(true)
+    try {
+      const res = await fetch('/api/nfc/tags', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag_uid: newUid.trim(), label: newLabel.trim() || undefined }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error)
+      toast.success('Tag registriert')
+      setNewUid(''); setNewLabel('')
+      load()
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Fehler') }
+    finally { setAdding(false) }
+  }
+
+  const removeTag = async (id: string) => {
+    await fetch('/api/nfc/tags', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setTags(prev => prev.filter(t => t.id !== id))
+  }
+
+  return (
+    <div className="glass rounded-xl p-5 space-y-4">
+      <div>
+        <h2 className="font-semibold text-[#1C1F1A]">NFC-Tags (Stempel per Antippen)</h2>
+        <p className="text-xs text-gray-500 mt-1">
+          Beschreibe hier die physischen NFC-Karten/-Tags in deinem Restaurant. Die UID liest du mit einer
+          NFC-Tools-App (z.B. auf dem Handy) einmalig vom Tag ab und trägst sie hier ein — danach vergibt
+          jedes Antippen automatisch einen Stempel, ganz ohne Foto oder Link.
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          value={newUid}
+          onChange={e => setNewUid(e.target.value)}
+          placeholder="Tag-UID (z.B. 04A2B3C4D5)"
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#8BB06A]"
+        />
+        <input
+          value={newLabel}
+          onChange={e => setNewLabel(e.target.value)}
+          placeholder="Bezeichnung (optional, z.B. Theke)"
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#8BB06A]"
+        />
+        <button onClick={addTag} disabled={adding}
+          className="px-4 py-2 rounded-lg gradient-primary text-white text-sm font-medium disabled:opacity-50 shrink-0">
+          {adding ? 'Speichern...' : 'Tag hinzufügen'}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="skeleton h-16 rounded-lg" />
+      ) : tags.length === 0 ? (
+        <p className="text-sm text-gray-400">Noch keine NFC-Tags registriert.</p>
+      ) : (
+        <div className="space-y-2">
+          {tags.map(t => (
+            <div key={t.id} className="flex items-center justify-between gap-3 bg-white rounded-lg border border-gray-100 px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#1C1F1A] truncate">{t.label || 'Unbenannter Tag'}</p>
+                <p className="text-xs text-gray-400 font-mono truncate">{t.tag_uid}</p>
+              </div>
+              <button onClick={() => removeTag(t.id)} className="text-xs text-red-500 font-medium shrink-0 hover:underline">
+                Entfernen
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function StempelkarteContent() {
   const supabase = createClient()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
@@ -128,6 +225,8 @@ function StempelkarteContent() {
               </div>
             ))}
           </div>
+
+          <NfcTagsSection />
         </div>
       </div>
     </div>
