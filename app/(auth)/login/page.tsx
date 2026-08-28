@@ -115,7 +115,10 @@ function LoginInner() {
       setOauthLoading(null)
       return
     }
-    if (isNative && data?.url) window.open(data.url, '_blank')
+    // window.open ist im WKWebView wirkungslos (kein Popup-Delegate) -
+    // normale Navigation dagegen wirft Capacitor bei fremden Domains
+    // zuverlaessig in den System-Browser, genau was wir hier wollen.
+    if (isNative && data?.url) window.location.href = data.url
   }
 
   return (
