@@ -34,10 +34,11 @@ workflows:
         script: npx cap sync ios
       - name: Build iOS
         script: |
-          xcode-project use-profiles
+          xcode-project use-profiles --verbose
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --verbose
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
