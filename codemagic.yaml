@@ -6,8 +6,10 @@ workflows:
       app_store_connect: pistazz-asc
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: io.pistazz.gastro
+        provisioning_profiles:
+          - pistazz_appstore_v2
+        certificates:
+          - pistazz-dist
       vars:
         BUNDLE_ID: io.pistazz.gastro
         NEXT_PUBLIC_SUPABASE_URL: https://drvhdrhyjbyjilaxuxjy.supabase.co
