@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -100,21 +100,35 @@ function RegisterInner() {
     router.push('/login' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : ''))
   }
 
+  // Kommt der Nutzer aus dem System-Browser zurueck ohne den Login
+  // abzuschliessen, darf der Button-Spinner nicht ewig weiterdrehen.
+  useEffect(() => {
+    const reset = () => { if (!document.hidden) setOauthLoading(null) }
+    document.addEventListener('visibilitychange', reset)
+    return () => document.removeEventListener('visibilitychange', reset)
+  }, [])
+
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider)
-    // Pass restaurant slug through the OAuth callback so we can restore context
-    const callbackUrl = restaurantSlug
-      ? `${window.location.origin}/auth/callback?restaurant=${restaurantSlug}`
-      : `${window.location.origin}/auth/callback`
+    const isNative = !!(window as unknown as { Capacitor?: unknown }).Capacitor
+    // Nativ: Login im System-Browser, Rueckkehr per Custom-URL-Scheme in die
+    // App (siehe NativeAuthHandler). Web: normaler Redirect-Flow.
+    const callbackUrl = isNative
+      ? `io.pistazz.gastro://auth-callback${restaurantSlug ? `?restaurant=${restaurantSlug}` : ''}`
+      : restaurantSlug
+        ? `${window.location.origin}/auth/callback?restaurant=${restaurantSlug}`
+        : `${window.location.origin}/auth/callback`
 
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: callbackUrl },
+      options: { redirectTo: callbackUrl, skipBrowserRedirect: isNative },
     })
     if (error) {
       toast.error(error.message)
       setOauthLoading(null)
+      return
     }
+    if (isNative && data?.url) window.open(data.url, '_blank')
   }
 
   return (

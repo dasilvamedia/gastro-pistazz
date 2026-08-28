@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { DM_Sans, DM_Serif_Display } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
+import NativeAuthHandler from '@/components/NativeAuthHandler'
 import Script from 'next/script'
 
 const dmSans = DM_Sans({
@@ -68,6 +69,7 @@ export default function RootLayout({
             location.replace('/home');
           }
         `}</Script>
+        <NativeAuthHandler />
         <Providers>{children}</Providers>
       </body>
     </html>
