@@ -6,5 +6,9 @@
 	<array>
 		<string>TAG</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:gastro.pistazz.io</string>
+	</array>
 </dict>
 </plist>
