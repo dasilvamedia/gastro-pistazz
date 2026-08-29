@@ -24,20 +24,31 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  // Feste Pixel-Masse + minHeight:0, damit weder die globale Mobile-Regel
+  // (button min-height:44px -> machte den Schalter kreisrund) noch die
+  // rem-Basis die iOS-Schalter-Proportionen (48x28, Knopf 24) verzerren.
   return (
     <button
       onClick={() => onChange(!checked)}
       role="switch"
       aria-checked={checked}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-        checked ? 'bg-[#8BB06A]' : 'bg-gray-200'
-      }`}
+      className="relative inline-flex flex-shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
+      style={{
+        minHeight: 0,
+        height: 28,
+        width: 48,
+        padding: 2,
+        backgroundColor: checked ? '#8BB06A' : 'var(--toggle-track-off, #D1D5DB)',
+      }}
     >
       <span
-        style={{ backgroundColor: '#ffffff' }}
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
+        className="pointer-events-none inline-block rounded-full shadow transition-transform duration-200 ease-in-out"
+        style={{
+          height: 24,
+          width: 24,
+          backgroundColor: '#ffffff',
+          transform: checked ? 'translateX(20px)' : 'translateX(0)',
+        }}
       />
     </button>
   )

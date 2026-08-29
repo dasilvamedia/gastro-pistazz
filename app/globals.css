@@ -278,3 +278,14 @@ html[data-theme='dark'] {
 /* An/Aus-Schalter: Track-Grau im Dark abdunkeln; der weisse Knopf wird im
    Component per Inline-Style geschuetzt und bleibt in beiden Themes weiss */
 html[data-theme='dark'] .bg-gray-200 { background-color: #3A4437 !important; }
+
+/* Skeleton-Loader im Dark: der helle Verlauf (background-Shorthand) muss
+   komplett ersetzt werden, sonst blitzen die Kacheln beim Laden weiss */
+html[data-theme='dark'] .skeleton {
+  background: linear-gradient(90deg, #1E241C 25%, #262D24 50%, #1E241C 75%) !important;
+  background-size: 200% 100% !important;
+}
+
+/* An/Aus-Schalter: Track-Farbe im ausgeschalteten Zustand */
+:root { --toggle-track-off: #D1D5DB; }
+html[data-theme='dark'] { --toggle-track-off: #3A4437; }
