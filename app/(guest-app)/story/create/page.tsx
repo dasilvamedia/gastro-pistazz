@@ -449,6 +449,9 @@ function StoryCreateInner() {
   const pinchRef      = useRef({ d: 0, z: 1 })
   const focusHideRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const recRafRef     = useRef<number | null>(null)
+  const drawActiveRef = useRef(false)
+  const [recPaused, setRecPaused] = useState(false)
+  const recPausedRef  = useRef(false)
   const [boomPhase, setBoomPhase] = useState<null | 'rec' | 'enc'>(null)
   const [camDiag, setCamDiag] = useState('')
   // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
@@ -488,7 +491,11 @@ function StoryCreateInner() {
       // mit anfragen (Fallback ohne Ton, falls Mikrofon abgelehnt wird).
       // 4:3-Sensor-Vollformat anfordern (landscape-orientierte Ideals, da
       // iOS-Streams intern quer liegen) - Ziel: volles natives Sichtfeld
-      const videoC = { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1440 } }
+      const videoC = { facingMode: facing, width: { ideal: 2560 }, height: { ideal: 1920 } }
+      // Audio OHNE Telefon-Processing: Echo-/Rauschunterdrueckung und
+      // Auto-Gain machen Story-Ton dumpf - fuer Videos will man den vollen
+      // natuerlichen Klang des Geraets.
+      const audioC = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 48000 }
       // WICHTIG: In der nativen App darf Audio erst ab Build 9 angefragt
       // werden - aeltere Builds haben keine NSMicrophoneUsageDescription und
       // iOS beendet die App beim Mikrofon-Zugriff sofort (Hard-Crash).
@@ -503,17 +510,17 @@ function StoryCreateInner() {
       }
       const s = wantAudio
         ? await navigator.mediaDevices
-            .getUserMedia({ video: videoC, audio: true })
+            .getUserMedia({ video: videoC, audio: audioC })
             .catch(() => navigator.mediaDevices.getUserMedia({ video: videoC }))
         : await navigator.mediaDevices.getUserMedia({ video: videoC })
       setStream(s)
       setZoom(1); setCssZoom(1); setBrightness(1); setFocusPt(null)
-      // Anti-Zoom: falls iOS eine Zoom-Capability meldet, hart auf das
-      // Minimum (= weitester Blickwinkel dieses Objektivs) stellen
+      // Start IMMER exakt bei 1x - nie Ultraweitwinkel (<1), nie gezoomt (>1)
       const track = s.getVideoTracks()[0]
       const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined
       if (track && caps?.zoom) {
-        track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as unknown as MediaTrackConstraintSet] }).catch(() => {})
+        const oneX = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1))
+        track.applyConstraints({ advanced: [{ zoom: oneX } as unknown as MediaTrackConstraintSet] }).catch(() => {})
       }
       // Diagnose: Objektiv + Aufloesung + Zoom-Range, die iOS wirklich liefert
       const vt = track?.getSettings?.() as (MediaTrackSettings & { zoom?: number }) | undefined
@@ -596,7 +603,8 @@ function StoryCreateInner() {
     const track = stream?.getVideoTracks()[0]
     const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined
     if (track && caps?.zoom) {
-      const nz = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.min * clamped))
+      // 1x-Basis: UI-Zoom 1..5 entspricht nativem Faktor, nie unter 1x
+      const nz = Math.min(caps.zoom.max, Math.max(Math.max(caps.zoom.min, 1), clamped))
       track.applyConstraints({ advanced: [{ zoom: nz } as unknown as MediaTrackConstraintSet] }).catch(() => setCssZoom(clamped))
       setCssZoom(1)
     } else {
@@ -655,8 +663,13 @@ function StoryCreateInner() {
       const track = stream?.getVideoTracks()[0]
       const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[] }) | undefined
       if (track && caps?.focusMode?.length) {
+        // Erst punktueller Fokus, dann continuous als Fallback - je nachdem,
+        // was das Geraet unterstuetzt
         track.applyConstraints({
-          advanced: [{ focusMode: 'single-shot', pointsOfInterest: [{ x: nx, y: ny }] } as unknown as MediaTrackConstraintSet],
+          advanced: [
+            { focusMode: 'single-shot', pointsOfInterest: [{ x: nx, y: ny }] },
+            { focusMode: 'continuous', pointsOfInterest: [{ x: nx, y: ny }] },
+          ] as unknown as MediaTrackConstraintSet[],
         }).catch(() => {})
       }
       if (focusHideRef.current) clearTimeout(focusHideRef.current)
@@ -667,36 +680,60 @@ function StoryCreateInner() {
   // ── Video-Aufnahme (Halten in STORY, Freihand-Toggle in VIDEO) ───────────
   const stopRecording = useCallback(() => {
     if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null }
+    drawActiveRef.current = false
     if (recRafRef.current) { cancelAnimationFrame(recRafRef.current); recRafRef.current = null }
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
     setRecording(false)
+    setRecPaused(false); recPausedRef.current = false
+  }, [])
+
+  // Video-Modus: Aufnahme pausieren/fortsetzen (bis Stopp oder 15s gesamt)
+  const pauseResumeRecording = useCallback(() => {
+    const rec = recorderRef.current
+    if (!rec || rec.state === 'inactive') return
+    if (rec.state === 'recording') {
+      rec.pause()
+      setRecPaused(true); recPausedRef.current = true
+    } else if (rec.state === 'paused') {
+      rec.resume()
+      setRecPaused(false); recPausedRef.current = false
+    }
   }, [])
 
   const startRecording = useCallback(() => {
     const video = videoRef.current
     if (!stream || recording || !video) return
 
-    // Hochformat-Pipeline: der rohe Kamera-Stream liegt bei iOS quer -
-    // wir zeichnen jeden Frame in ein 720x1280-Canvas (Story-Format 9:16)
-    // inkl. Zoom, Belichtung und Spiegelung, und nehmen DAS auf.
-    const W = 720, H = 1280
+    // Hochformat-Pipeline in voller Story-Aufloesung (1080x1920): jeder
+    // Frame wird mit Zoom, Belichtung und Spiegelung ins 9:16-Canvas
+    // gezeichnet und DAS aufgenommen. requestVideoFrameCallback (falls
+    // vorhanden) taktet exakt mit den Kamera-Frames = fluessiger.
+    const W = 1080, H = 1920
     const c = document.createElement('canvas'); c.width = W; c.height = H
     const cx = c.getContext('2d')!
-    const draw = () => {
-      const vW = video.videoWidth || W, vH = video.videoHeight || H
-      const cover = Math.max(W / vW, H / vH)
-      let sw = W / cover, sh = H / cover
-      let sx = (vW - sw) / 2, sy = (vH - sh) / 2
-      const z = cssZoomRef.current
-      if (z > 1) { const nw = sw / z, nh = sh / z; sx += (sw - nw) / 2; sy += (sh - nh) / 2; sw = nw; sh = nh }
-      cx.save()
-      if (facingRef.current === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
-      cx.filter = brightRef.current !== 1 ? `brightness(${brightRef.current})` : 'none'
-      cx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
-      cx.restore()
-      recRafRef.current = requestAnimationFrame(draw)
+    cx.imageSmoothingEnabled = true
+    cx.imageSmoothingQuality = 'high'
+    const drawFrame = () => {
+      if (!recPausedRef.current) {
+        const vW = video.videoWidth || W, vH = video.videoHeight || H
+        const cover = Math.max(W / vW, H / vH)
+        let sw = W / cover, sh = H / cover
+        let sx = (vW - sw) / 2, sy = (vH - sh) / 2
+        const z = cssZoomRef.current
+        if (z > 1) { const nw = sw / z, nh = sh / z; sx += (sw - nw) / 2; sy += (sh - nh) / 2; sw = nw; sh = nh }
+        cx.save()
+        if (facingRef.current === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
+        cx.filter = brightRef.current !== 1 ? `brightness(${brightRef.current})` : 'none'
+        cx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
+        cx.restore()
+      }
+      if (!drawActiveRef.current) return
+      const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(drawFrame)
+      else recRafRef.current = requestAnimationFrame(drawFrame)
     }
-    draw()
+    drawActiveRef.current = true
+    drawFrame()
 
     const canvasStream = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
     const audioTrack = stream.getAudioTracks()[0]
@@ -707,8 +744,9 @@ function StoryCreateInner() {
     const mime = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4')
       ? 'video/mp4' : 'video/webm'
     let rec: MediaRecorder
-    try { rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 6_000_000 }) }
+    try { rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 256_000 }) }
     catch {
+      drawActiveRef.current = false
       if (recRafRef.current) cancelAnimationFrame(recRafRef.current)
       toast.error('Videoaufnahme wird auf diesem Gerät nicht unterstützt'); return
     }
@@ -728,7 +766,9 @@ function StoryCreateInner() {
     recorderRef.current = rec
     setRecording(true)
     setRecSecs(0)
+    setRecPaused(false); recPausedRef.current = false
     recTimerRef.current = setInterval(() => {
+      if (recPausedRef.current) return // Pause zaehlt nicht
       setRecSecs(s => {
         if (s + 1 >= 15) stopRecording() // Instagram-Story-Limit
         return s + 1
@@ -1254,11 +1294,10 @@ function StoryCreateInner() {
                 {zoom.toFixed(1)}×
               </div>
             )}
-            {/* Aufnahme-Timer */}
-            {recording && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-bold pointer-events-none flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                0:{String(recSecs).padStart(2, '0')}
+            {/* Pause-Hinweis */}
+            {recording && recPaused && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold pointer-events-none">
+                ⏸ Pausiert
               </div>
             )}
             {/* Boomerang-Status: klar sichtbar, was gerade passiert */}
@@ -1386,12 +1425,27 @@ function StoryCreateInner() {
           /* ── CAPTURE: gradient bg so camera shows through, no filter strip ── */
           <div className="bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-6">
             <div className="flex items-center justify-between px-10 pt-2 pb-3">
-              <button
-                onClick={() => galleryInput.current?.click()}
-                className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white/70"
-              >
-                <ImagePlus className="w-6 h-6" />
-              </button>
+              {captureMode === 'video' && recording ? (
+                /* Video: Pause/Weiter - Aufnahme laeuft nach Fortsetzen
+                   weiter, bis Stopp oder die 15s voll sind */
+                <button
+                  onClick={pauseResumeRecording}
+                  className={`w-14 h-14 rounded-2xl border flex items-center justify-center text-white transition-colors ${
+                    recPaused ? 'bg-[#8BB06A] border-[#8BB06A]' : 'bg-white/10 border-white/20'
+                  }`}
+                >
+                  {recPaused
+                    ? <span className="text-xl leading-none">▶</span>
+                    : <span className="text-xl leading-none">⏸</span>}
+                </button>
+              ) : (
+                <button
+                  onClick={() => galleryInput.current?.click()}
+                  className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white/70"
+                >
+                  <ImagePlus className="w-6 h-6" />
+                </button>
+              )}
 
               {/* Ausloeser: Tap = Foto (Story) / Start-Stopp (Video, freihaendig) /
                   Boomerang. Halten in STORY = Video aufnehmen wie bei Instagram.
