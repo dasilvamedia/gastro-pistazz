@@ -508,9 +508,16 @@ function StoryCreateInner() {
         : await navigator.mediaDevices.getUserMedia({ video: videoC })
       setStream(s)
       setZoom(1); setCssZoom(1); setBrightness(1); setFocusPt(null)
-      // Diagnose: welche Aufloesung/Orientierung liefert iOS wirklich?
-      const vt = s.getVideoTracks()[0]?.getSettings?.()
-      if (vt?.width && vt?.height) setCamDiag(`${vt.width}×${vt.height}`)
+      // Anti-Zoom: falls iOS eine Zoom-Capability meldet, hart auf das
+      // Minimum (= weitester Blickwinkel dieses Objektivs) stellen
+      const track = s.getVideoTracks()[0]
+      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined
+      if (track && caps?.zoom) {
+        track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as unknown as MediaTrackConstraintSet] }).catch(() => {})
+      }
+      // Diagnose: Objektiv + Aufloesung + Zoom-Range, die iOS wirklich liefert
+      const vt = track?.getSettings?.() as (MediaTrackSettings & { zoom?: number }) | undefined
+      setCamDiag(`${track?.label ?? '?'} · ${vt?.width}×${vt?.height}${caps?.zoom ? ` · z${caps.zoom.min}-${caps.zoom.max}` : ''}`)
       if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}) }
       // Register push after camera permission granted (both are user gestures)
       setupPush()
@@ -599,21 +606,37 @@ function StoryCreateInner() {
 
   // ── Tap = AE/AF + Belichtungsregler, Doppel-Tap = Kamera wechseln,
   //    Pinch = Zoom ─────────────────────────────────────────────────────────
+  const exposureDragRef = useRef<{ y: number; b: number; moved: boolean } | null>(null)
   const handleViewTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length >= 2) {
       pinchRef.current = {
         d: Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY),
         z: zoom,
       }
+    } else if (focusPt) {
+      // Apple-Style: nach dem Fokus-Tap regelt vertikales Ziehen die Belichtung
+      exposureDragRef.current = { y: e.touches[0].clientY, b: brightness, moved: false }
     }
   }
   const handleViewTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length >= 2 && pinchRef.current.d > 0) {
       const d = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY)
       applyZoom(pinchRef.current.z * (d / pinchRef.current.d))
+      return
+    }
+    const drag = exposureDragRef.current
+    if (drag && focusPt && e.touches.length === 1) {
+      const dy = drag.y - e.touches[0].clientY
+      if (Math.abs(dy) > 6) drag.moved = true
+      setBrightness(Math.min(1.6, Math.max(0.4, drag.b + (dy / 220) * 1.2)))
+      if (focusHideRef.current) clearTimeout(focusHideRef.current)
+      focusHideRef.current = setTimeout(() => setFocusPt(null), 2500)
     }
   }
   const handleViewTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Nach einer Belichtungs-Zieh-Geste keinen neuen Fokus-Tap ausloesen
+    if (exposureDragRef.current?.moved) { exposureDragRef.current = null; return }
+    exposureDragRef.current = null
     const now = Date.now()
     if (now - lastTapRef.current < 300) {
       // Doppel-Tap: Front/Back wechseln
@@ -1162,7 +1185,16 @@ function StoryCreateInner() {
       <div
         ref={cameraContainerRef}
         className="relative overflow-hidden rounded-2xl"
-        style={{ aspectRatio: '9 / 16', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: '100%' }}
+        style={{
+          // WICHTIG: exakt 9:16 erzwingen. Vorher gewann height:100% den
+          // Konflikt mit maxWidth -> Container wurde ~9:19.5 (volle
+          // Bildschirmhoehe) und object-cover musste seitlich MASSIV
+          // beschneiden = zusaetzlicher kuenstlicher Zoom.
+          aspectRatio: '9 / 16',
+          width: 'min(100%, calc(100dvh * 9 / 16))',
+          height: 'auto',
+          maxHeight: '100%',
+        }}
       >
 
         {/* Live camera feed */}
@@ -1186,31 +1218,28 @@ function StoryCreateInner() {
             onTouchMove={handleViewTouchMove}
             onClick={handleViewTap}
           >
-            {/* AE/AF-Rahmen */}
+            {/* AE/AF im Apple-Stil: Rahmen mit Sonne rechts daneben -
+                vertikal ziehen regelt die Belichtung, alles animiert */}
             {focusPt && (
               <div
-                key={focusPt.key}
-                className="absolute w-[72px] h-[72px] -ml-9 -mt-9 rounded-lg border-2 border-yellow-300 pointer-events-none animate-[fadeIn_0.15s_ease-out]"
-                style={{ left: `${focusPt.x * 100}%`, top: `${focusPt.y * 100}%`, boxShadow: '0 0 12px rgba(0,0,0,0.4)' }}
-              />
-            )}
-            {/* Belichtungsregler (erscheint nach Tap) */}
-            {focusPt && (
-              <div
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
-                onClick={e => e.stopPropagation()}
+                className="absolute pointer-events-none"
+                style={{ left: `${focusPt.x * 100}%`, top: `${focusPt.y * 100}%` }}
               >
-                <span className="text-yellow-300 text-lg leading-none">☀︎</span>
-                <input
-                  type="range" min={0.4} max={1.6} step={0.05} value={brightness}
-                  onChange={e => {
-                    setBrightness(parseFloat(e.target.value))
-                    if (focusHideRef.current) clearTimeout(focusHideRef.current)
-                    focusHideRef.current = setTimeout(() => setFocusPt(null), 3000)
-                  }}
-                  className="accent-yellow-300"
-                  style={{ writingMode: 'vertical-lr' as never, direction: 'rtl', height: 140, width: 28 }}
+                <div
+                  key={focusPt.key}
+                  className="w-[76px] h-[76px] -ml-[38px] -mt-[38px] border border-yellow-300"
+                  style={{ animation: 'aeIn 0.28s ease-out', boxShadow: '0 0 10px rgba(0,0,0,0.35)' }}
                 />
+                <div className="absolute" style={{ left: 52, top: -60, height: 120, width: 24 }}>
+                  <div className="absolute left-1/2 -translate-x-1/2 w-px bg-yellow-300/70" style={{ top: 0, bottom: 0 }} />
+                  <span
+                    className="absolute left-1/2 -translate-x-1/2 text-yellow-300 text-xl leading-none drop-shadow"
+                    style={{
+                      top: `calc(50% - 11px + ${(1 - (brightness - 0.4) / 1.2) * 88 - 44}px)`,
+                      transition: 'top 0.05s linear',
+                    }}
+                  >☀︎</span>
+                </div>
               </div>
             )}
             {/* Kamera-Diagnose (temporaer): tatsaechliche Stream-Aufloesung */}

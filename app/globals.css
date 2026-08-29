@@ -289,3 +289,9 @@ html[data-theme='dark'] .skeleton {
 /* An/Aus-Schalter: Track-Farbe im ausgeschalteten Zustand */
 :root { --toggle-track-off: #D1D5DB; }
 html[data-theme='dark'] { --toggle-track-off: #3A4437; }
+
+/* AE/AF-Rahmen (Kamera): kurzer Zoom-in wie bei der System-Kamera */
+@keyframes aeIn {
+  from { transform: scale(1.4); opacity: 0.5; }
+  to   { transform: scale(1);   opacity: 1; }
+}
