@@ -421,13 +421,33 @@ function StoryCreateInner() {
   const [showSheet,    setShowSheet]   = useState(false) // kept for compatibility
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
-  const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'success'>('capture')
+  const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'video-share' | 'success'>('capture')
   const [copiedTags, setCopiedTags] = useState<Record<string, boolean>>({})
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
   const [camError, setCamError] = useState(false)
   const [exportedBlob,    setExportedBlob]    = useState<Blob | null>(null)
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null)
+
+  // ── Kamera-Features: Modi, Zoom, Belichtung, Video, Boomerang ────────────
+  const [captureMode, setCaptureMode] = useState<'boomerang' | 'story' | 'video'>('story')
+  const [zoom, setZoom]               = useState(1)   // UI-Wert 1..5
+  const [cssZoom, setCssZoom]         = useState(1)   // nur wenn kein nativer Zoom
+  const [brightness, setBrightness]   = useState(1)   // Belichtung (Preview + Foto)
+  const [focusPt, setFocusPt]         = useState<{ x: number; y: number; key: number } | null>(null)
+  const [recording, setRecording]     = useState(false)
+  const [recSecs, setRecSecs]         = useState(0)
+  const [boomBusy, setBoomBusy]       = useState(false)
+  const [capturedVideo, setCapturedVideo] = useState<{ url: string; blob: Blob; mime: string } | null>(null)
+  const recorderRef   = useRef<MediaRecorder | null>(null)
+  const recChunksRef  = useRef<Blob[]>([])
+  const recTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const holdTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const holdActiveRef = useRef(false)
+  const lastTapRef    = useRef(0)
+  const singleTapRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pinchRef      = useRef({ d: 0, z: 1 })
+  const focusHideRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filterCss = FILTERS.find(f => f.id === filter)?.css ?? 'none'
 
@@ -451,15 +471,17 @@ function StoryCreateInner() {
   const startCamera = useCallback(async (facing: 'user' | 'environment') => {
     setCamError(false)
     try {
-      // Keine Aufloesungs-/aspectRatio-Constraints: schon "ideal"-Werte fuer
-      // width/height zwingen iOS oft dazu, einen engeren/gezoomten Kameramodus
-      // zu waehlen statt des normalen 1x-Weitwinkel-Sichtfelds. Nur facingMode
-      // anfordern liefert das native FOV; der 9:16-Zuschnitt passiert rein per
-      // CSS (object-cover) bzw. beim Export.
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facing },
-      })
+      // Portrait-Ideals (1080x1920): ohne Constraints liefert iOS oft nur
+      // 640x480 - im 9:16-Cover-Container wirkt das stark gezoomt UND
+      // unscharf. Mit Hochformat-Ideals kommt der native 1x-Weitwinkel in
+      // voller Aufloesung. Audio fuer Video-Aufnahmen gleich mit anfragen
+      // (Fallback ohne Ton, falls Mikrofon abgelehnt wird).
+      const videoC = { facingMode: facing, width: { ideal: 1080 }, height: { ideal: 1920 } }
+      const s = await navigator.mediaDevices
+        .getUserMedia({ video: videoC, audio: true })
+        .catch(() => navigator.mediaDevices.getUserMedia({ video: videoC }))
       setStream(s)
+      setZoom(1); setCssZoom(1); setBrightness(1); setFocusPt(null)
       if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}) }
       // Register push after camera permission granted (both are user gestures)
       setupPush()
@@ -499,10 +521,18 @@ function StoryCreateInner() {
     const safeY = (containerH - safeH) / 2
 
     // 3. Map safe-zone from container space → video pixel space
-    const srcX = (safeX - vidLeft) / coverScale
-    const srcY = (safeY - vidTop)  / coverScale
-    const srcW = safeW / coverScale
-    const srcH = safeH / coverScale
+    let srcX = (safeX - vidLeft) / coverScale
+    let srcY = (safeY - vidTop)  / coverScale
+    let srcW = safeW / coverScale
+    let srcH = safeH / coverScale
+
+    // CSS-Zoom (Geraete ohne nativen Kamera-Zoom): Ausschnitt um die Mitte
+    // verkleinern, damit das Foto exakt dem gezoomten Preview entspricht
+    if (cssZoom > 1) {
+      const nw = srcW / cssZoom, nh = srcH / cssZoom
+      srcX += (srcW - nw) / 2; srcY += (srcH - nh) / 2
+      srcW = nw; srcH = nh
+    }
 
     // 4. Draw to 1080×1920 (Instagram Story resolution)
     canvas.width  = 1080
@@ -512,12 +542,206 @@ function StoryCreateInner() {
     ctx.imageSmoothingQuality = 'high'
 
     if (facingMode === 'user') { ctx.translate(1080, 0); ctx.scale(-1, 1) }
-    ctx.filter = filterCss === 'none' ? '' : filterCss
+    // Belichtungs-Anpassung (Tap auf die Flaeche) wird ins Foto eingebacken
+    const bFilter = brightness !== 1 ? `brightness(${brightness})` : ''
+    const combined = [filterCss === 'none' ? '' : filterCss, bFilter].filter(Boolean).join(' ')
+    ctx.filter = combined || 'none'
     ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, 1080, 1920)
 
     stream?.getTracks().forEach(t => t.stop()); setStream(null)
     setCapturedSrc(canvas.toDataURL('image/jpeg', 0.95))
     setStep('edit')
+  }
+
+  // ── Zoom: nativ (iOS 17+) wenn moeglich, sonst CSS + Export-Crop ─────────
+  const applyZoom = useCallback((z: number) => {
+    const clamped = Math.min(5, Math.max(1, z))
+    setZoom(clamped)
+    const track = stream?.getVideoTracks()[0]
+    const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined
+    if (track && caps?.zoom) {
+      const nz = Math.min(caps.zoom.max, Math.max(caps.zoom.min, caps.zoom.min * clamped))
+      track.applyConstraints({ advanced: [{ zoom: nz } as unknown as MediaTrackConstraintSet] }).catch(() => setCssZoom(clamped))
+      setCssZoom(1)
+    } else {
+      setCssZoom(clamped)
+    }
+  }, [stream])
+
+  // ── Tap = AE/AF + Belichtungsregler, Doppel-Tap = Kamera wechseln,
+  //    Pinch = Zoom ─────────────────────────────────────────────────────────
+  const handleViewTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length >= 2) {
+      pinchRef.current = {
+        d: Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY),
+        z: zoom,
+      }
+    }
+  }
+  const handleViewTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length >= 2 && pinchRef.current.d > 0) {
+      const d = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY)
+      applyZoom(pinchRef.current.z * (d / pinchRef.current.d))
+    }
+  }
+  const handleViewTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const now = Date.now()
+    if (now - lastTapRef.current < 300) {
+      // Doppel-Tap: Front/Back wechseln
+      lastTapRef.current = 0
+      if (singleTapRef.current) { clearTimeout(singleTapRef.current); singleTapRef.current = null }
+      setFacingMode(f => (f === 'environment' ? 'user' : 'environment'))
+      return
+    }
+    lastTapRef.current = now
+    const rect = e.currentTarget.getBoundingClientRect()
+    const nx = (e.clientX - rect.left) / rect.width
+    const ny = (e.clientY - rect.top) / rect.height
+    singleTapRef.current = setTimeout(() => {
+      setFocusPt({ x: nx, y: ny, key: Date.now() })
+      // Nativer AE/AF-Versuch (wo unterstuetzt); Belichtungsregler erscheint immer
+      const track = stream?.getVideoTracks()[0]
+      const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[] }) | undefined
+      if (track && caps?.focusMode?.length) {
+        track.applyConstraints({
+          advanced: [{ focusMode: 'single-shot', pointsOfInterest: [{ x: nx, y: ny }] } as unknown as MediaTrackConstraintSet],
+        }).catch(() => {})
+      }
+      if (focusHideRef.current) clearTimeout(focusHideRef.current)
+      focusHideRef.current = setTimeout(() => setFocusPt(null), 3000)
+    }, 300)
+  }
+
+  // ── Video-Aufnahme (Halten in STORY, Freihand-Toggle in VIDEO) ───────────
+  const stopRecording = useCallback(() => {
+    if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null }
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
+    setRecording(false)
+  }, [])
+
+  const startRecording = useCallback(() => {
+    if (!stream || recording) return
+    const mime = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4')
+      ? 'video/mp4' : 'video/webm'
+    let rec: MediaRecorder
+    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 }) }
+    catch { toast.error('Videoaufnahme wird auf diesem Gerät nicht unterstützt'); return }
+    recChunksRef.current = []
+    rec.ondataavailable = ev => { if (ev.data.size > 0) recChunksRef.current.push(ev.data) }
+    rec.onstop = () => {
+      const blob = new Blob(recChunksRef.current, { type: mime })
+      if (blob.size < 60_000) return // versehentlicher Kurz-Tap
+      setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
+      setStep('video-share')
+    }
+    rec.start(250)
+    recorderRef.current = rec
+    setRecording(true)
+    setRecSecs(0)
+    recTimerRef.current = setInterval(() => {
+      setRecSecs(s => {
+        if (s + 1 >= 15) stopRecording() // Instagram-Story-Limit
+        return s + 1
+      })
+    }, 1000)
+  }, [stream, recording, stopRecording])
+
+  const handleShutterDown = () => {
+    if (captureMode !== 'story') return
+    holdActiveRef.current = false
+    holdTimerRef.current = setTimeout(() => { holdActiveRef.current = true; startRecording() }, 280)
+  }
+  const handleShutterUp = () => {
+    if (captureMode === 'story') {
+      if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null }
+      if (holdActiveRef.current) stopRecording()
+      else capturePhoto()
+    } else if (captureMode === 'video') {
+      // Freihand: Tippen startet/stoppt
+      if (recording) stopRecording()
+      else startRecording()
+    } else {
+      captureBoomerang()
+    }
+  }
+
+  // ── Boomerang: 1s Frames einfangen, vor+zurueck als kurzes Video encoden ─
+  const captureBoomerang = async () => {
+    const video = videoRef.current
+    if (!video || boomBusy || recording) return
+    setBoomBusy(true)
+    try {
+      const W = 720, H = 1280
+      const vW = video.videoWidth || 1080, vH = video.videoHeight || 1920
+      const cover = Math.max(W / vW, H / vH)
+      const sw = W / cover, sh = H / cover
+      let sx = (vW - sw) / 2, sy = (vH - sh) / 2
+      if (cssZoom > 1) {
+        const nw = sw / cssZoom, nh = sh / cssZoom
+        sx += (sw - nw) / 2; sy += (sh - nh) / 2
+      }
+      const zw = cssZoom > 1 ? sw / cssZoom : sw
+      const zh = cssZoom > 1 ? sh / cssZoom : sh
+
+      const frames: HTMLCanvasElement[] = []
+      const FRAME_N = 18
+      for (let i = 0; i < FRAME_N; i++) {
+        const c = document.createElement('canvas'); c.width = W; c.height = H
+        const cx = c.getContext('2d')!
+        if (facingMode === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
+        cx.filter = brightness !== 1 ? `brightness(${brightness})` : 'none'
+        cx.drawImage(video, sx, sy, zw, zh, 0, 0, W, H)
+        frames.push(c)
+        await new Promise(r => setTimeout(r, 55))
+      }
+
+      const out = document.createElement('canvas'); out.width = W; out.height = H
+      const octx = out.getContext('2d')!
+      const st = (out as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
+      const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
+      const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 5_000_000 })
+      const chunks: Blob[] = []
+      rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
+      const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
+      rec.start(250)
+      const seq = [...frames, ...frames.slice(1, -1).reverse()]
+      for (let loop = 0; loop < 3; loop++) {
+        for (const f of seq) { octx.drawImage(f, 0, 0); await new Promise(r => setTimeout(r, 34)) }
+      }
+      rec.stop()
+      const blob = await finished
+      setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
+      setStep('video-share')
+    } catch {
+      toast.error('Boomerang fehlgeschlagen — bitte nochmal versuchen')
+    }
+    setBoomBusy(false)
+  }
+
+  // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
+  const shareVideoToIG = async () => {
+    if (!capturedVideo) return
+    const native = (window as unknown as {
+      Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string }) => Promise<{ shared: boolean }> } } }
+    }).Capacitor?.Plugins?.InstagramStory
+    if (native?.shareVideo) {
+      try {
+        const base64 = await new Promise<string>((res, rej) => {
+          const r = new FileReader()
+          r.onload = () => res((r.result as string).split(',')[1])
+          r.onerror = rej
+          r.readAsDataURL(capturedVideo.blob)
+        })
+        const out = await native.shareVideo({ base64, appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097' })
+        if (out?.shared) return
+      } catch { /* Fallback unten */ }
+    }
+    const ext = capturedVideo.mime.includes('mp4') ? 'mp4' : 'webm'
+    const file = new File([capturedVideo.blob], `pistazz-story.${ext}`, { type: capturedVideo.mime })
+    if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'pistazz Story' }); return } catch { /* abgebrochen */ }
+    }
+    window.location.href = 'instagram://camera'
   }
 
   // ── Helper: submit story to Pistazz API ─────────────────────────────────
@@ -631,6 +855,8 @@ function StoryCreateInner() {
     setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.42, scale: 1.0 })
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
     setExportedBlob(null)
+    if (capturedVideo) { URL.revokeObjectURL(capturedVideo.url); setCapturedVideo(null) }
+    stopRecording()
     setStep('capture')
     startCamera(facingMode)
   }
@@ -759,6 +985,65 @@ function StoryCreateInner() {
   // ─────────────────────────────────────────────────────────────────────────
   // Render: Success
   // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render: Video/Boomerang-Vorschau + Teilen
+  // ─────────────────────────────────────────────────────────────────────────
+  if (step === 'video-share' && capturedVideo) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
+        <div className="flex-1 relative overflow-hidden">
+          <video
+            src={capturedVideo.url}
+            autoPlay loop muted playsInline
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+          <button
+            onClick={retake}
+            className="absolute left-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white z-10"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div
+          className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
+        >
+          <p className="text-white/80 text-[13px] leading-snug text-center">
+            Füge in Instagram <strong className="text-white">beide Tags</strong> hinzu — dafür gibt es deine Punkte:{' '}
+            {restaurant?.instagram_handle ? <strong className="text-white">@{restaurant.instagram_handle.replace(/^@+/, '')}</strong> : null} <strong className="text-white">@gastro.pistazz.io</strong>
+          </p>
+          <button
+            onClick={shareVideoToIG}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 active:opacity-80 transition-opacity"
+            style={{ background: 'linear-gradient(90deg,#f09433 0%,#dc2743 55%,#bc1888 100%)' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 18 18" fill="none" className="shrink-0">
+              <circle cx="9" cy="9" r="3.5" stroke="white" strokeWidth="1.5" fill="none"/>
+              <circle cx="13.2" cy="4.8" r="1" fill="white"/>
+              <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
+            </svg>
+            <span className="text-white font-bold text-base flex-1 text-left">Video in Instagram teilen</span>
+            <span className="text-white/70 text-lg">›</span>
+          </button>
+          <button
+            onClick={() => router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)}
+            className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
+          >
+            <CheckCircle className="w-5 h-5" />Geteilt? Punkte anfordern
+          </button>
+          <button
+            onClick={retake}
+            className="w-full py-2 text-white/45 text-xs font-medium flex items-center justify-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Neu aufnehmen
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (step === 'success') {
     return (
       <div className="fixed inset-0 bg-gradient-to-b from-[#1C1F1A] to-[#2d5a27] flex flex-col items-center justify-center text-center px-8 gap-6">
@@ -804,10 +1089,62 @@ function StoryCreateInner() {
             disablePictureInPicture
             className="absolute inset-0 w-full h-full object-cover"
             style={{
-              transform: facingMode === 'user' ? 'scaleX(-1)' : undefined,
+              transform: `scale(${facingMode === 'user' ? -cssZoom : cssZoom}, ${cssZoom})`,
+              filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
               pointerEvents: 'none',
             }}
           />
+        )}
+
+        {/* Gesten-Flaeche: Tap = AE/AF, Doppel-Tap = Kamera wechseln, Pinch = Zoom */}
+        {step === 'capture' && !camError && (
+          <div
+            className="absolute inset-0 z-10"
+            onTouchStart={handleViewTouchStart}
+            onTouchMove={handleViewTouchMove}
+            onClick={handleViewTap}
+          >
+            {/* AE/AF-Rahmen */}
+            {focusPt && (
+              <div
+                key={focusPt.key}
+                className="absolute w-[72px] h-[72px] -ml-9 -mt-9 rounded-lg border-2 border-yellow-300 pointer-events-none animate-[fadeIn_0.15s_ease-out]"
+                style={{ left: `${focusPt.x * 100}%`, top: `${focusPt.y * 100}%`, boxShadow: '0 0 12px rgba(0,0,0,0.4)' }}
+              />
+            )}
+            {/* Belichtungsregler (erscheint nach Tap) */}
+            {focusPt && (
+              <div
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
+                onClick={e => e.stopPropagation()}
+              >
+                <span className="text-yellow-300 text-lg leading-none">☀︎</span>
+                <input
+                  type="range" min={0.4} max={1.6} step={0.05} value={brightness}
+                  onChange={e => {
+                    setBrightness(parseFloat(e.target.value))
+                    if (focusHideRef.current) clearTimeout(focusHideRef.current)
+                    focusHideRef.current = setTimeout(() => setFocusPt(null), 3000)
+                  }}
+                  className="accent-yellow-300"
+                  style={{ writingMode: 'vertical-lr' as never, direction: 'rtl', height: 140, width: 28 }}
+                />
+              </div>
+            )}
+            {/* Zoom-Anzeige */}
+            {zoom > 1.05 && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/50 text-white text-xs font-semibold pointer-events-none">
+                {zoom.toFixed(1)}×
+              </div>
+            )}
+            {/* Aufnahme-Timer */}
+            {recording && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-bold pointer-events-none flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                0:{String(recSecs).padStart(2, '0')}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Camera error */}
@@ -855,7 +1192,10 @@ function StoryCreateInner() {
       </div>{/* end camera */}
 
       {/* ── TOP BAR — always on top ── */}
-      <div className="absolute top-0 inset-x-0 z-50 flex items-center justify-between px-4 pt-3 pb-2">
+      <div
+        className="absolute top-0 inset-x-0 z-50 flex items-center justify-between px-4 pb-2"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+      >
         <button
           onClick={step === 'edit' ? retake : () => router.back()}
           className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
@@ -920,19 +1260,50 @@ function StoryCreateInner() {
                 <ImagePlus className="w-6 h-6" />
               </button>
 
+              {/* Ausloeser: Tap = Foto (Story) / Start-Stopp (Video, freihaendig) /
+                  Boomerang. Halten in STORY = Video aufnehmen wie bei Instagram. */}
               <button
-                onClick={capturePhoto}
-                disabled={camError}
-                className="w-[78px] h-[78px] rounded-full border-[4px] border-white flex items-center justify-center disabled:opacity-30"
+                onPointerDown={handleShutterDown}
+                onPointerUp={handleShutterUp}
+                onPointerCancel={() => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); if (holdActiveRef.current) stopRecording() }}
+                disabled={camError || boomBusy}
+                className={`w-[78px] h-[78px] rounded-full border-[4px] flex items-center justify-center disabled:opacity-30 transition-colors ${
+                  recording ? 'border-red-500' : 'border-white'
+                }`}
               >
-                <div className="w-[62px] h-[62px] rounded-full bg-white" />
+                {boomBusy ? (
+                  <span className="w-8 h-8 border-[3px] border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <div className={`rounded-full transition-all duration-200 ${
+                    recording ? 'w-8 h-8 rounded-lg bg-red-500' :
+                    captureMode === 'video' ? 'w-[62px] h-[62px] bg-red-500' :
+                    captureMode === 'boomerang' ? 'w-[62px] h-[62px] bg-white flex items-center justify-center' :
+                    'w-[62px] h-[62px] bg-white'
+                  }`}>
+                    {!recording && captureMode === 'boomerang' && <span className="text-black text-xl font-black">∞</span>}
+                  </div>
+                )}
               </button>
 
               <div className="w-14 h-14" />
             </div>
-            <div className="flex justify-center pb-3">
-              <span className="text-white font-bold text-[13px] tracking-[0.15em] uppercase">Story</span>
+            {/* Modus-Auswahl wie bei Instagram */}
+            <div className="flex justify-center items-center gap-6 pb-3">
+              {([['boomerang', 'Boomerang'], ['story', 'Story'], ['video', 'Video']] as const).map(([m, label]) => (
+                <button
+                  key={m}
+                  onClick={() => { if (!recording) setCaptureMode(m) }}
+                  className={`text-[13px] tracking-[0.15em] uppercase transition-all ${
+                    captureMode === m ? 'text-white font-bold scale-105' : 'text-white/45 font-semibold'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+            {captureMode === 'story' && !recording && (
+              <p className="text-center text-white/40 text-[10px] pb-2 -mt-1">Halten für Video · Tippen für Foto</p>
+            )}
           </div>
         ) : (
           /* ── EDIT: filter strip + share controls (gradient so photo shows through) ── */

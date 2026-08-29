@@ -32,8 +32,8 @@ interface FilterStripProps {
 export function FilterStrip({ selected, onChange, previewSrc }: FilterStripProps) {
   return (
     <div
-      className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-2"
-      style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
+      className="flex gap-3 overflow-x-auto no-scrollbar px-5 pb-2"
+      style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', paddingTop: 8, paddingBottom: 10, scrollPaddingInline: 20 }}
     >
       {FILTERS.map(f => {
         const active = f.id === selected
@@ -41,7 +41,7 @@ export function FilterStrip({ selected, onChange, previewSrc }: FilterStripProps
           <button
             key={f.id}
             onClick={() => onChange(f.id)}
-            className="flex flex-col items-center gap-1.5 shrink-0"
+            className="flex flex-col items-center gap-1.5 shrink-0 px-1"
             style={{ scrollSnapAlign: 'center' }}
           >
             <div
