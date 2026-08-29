@@ -12,11 +12,13 @@ import { TextOverlay, type TextBlock } from '@/components/story/TextOverlay'
 // ─────────────────────────────────────────────────────────────────────────────
 // Sticker color variants
 // ─────────────────────────────────────────────────────────────────────────────
-type StickerColor = 'green' | 'white' | 'black'
-const STICKER_STYLES: Record<StickerColor, { bg: string; text: string; border: string }> = {
-  green: { bg: '#8BB06A',   text: '#ffffff',  border: 'rgba(255,255,255,0.3)' },
-  white: { bg: '#ffffff',   text: '#1C1F1A',  border: 'rgba(0,0,0,0.12)' },
-  black: { bg: '#1C1F1A',   text: '#ffffff',  border: 'rgba(255,255,255,0.15)' },
+type StickerColor = 'green' | 'white' | 'black' | 'glass' | 'sunset'
+const STICKER_STYLES: Record<StickerColor, { bg: string; grad?: [string, string]; text: string; border: string }> = {
+  green:  { bg: '#8BB06A',                 text: '#ffffff', border: 'rgba(255,255,255,0.3)' },
+  white:  { bg: '#ffffff',                 text: '#1C1F1A', border: 'rgba(0,0,0,0.12)' },
+  black:  { bg: '#1C1F1A',                 text: '#ffffff', border: 'rgba(255,255,255,0.15)' },
+  glass:  { bg: 'rgba(255,255,255,0.22)',  text: '#ffffff', border: 'rgba(255,255,255,0.45)' },
+  sunset: { bg: '#f09433', grad: ['#f09433', '#bc1888'], text: '#ffffff', border: 'rgba(255,255,255,0.35)' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,28 +84,42 @@ async function exportCanvas(
       // 2. Pistazz sticker at user-defined position + scale (remapped to canvas)
       const stStyle = STICKER_STYLES[stickerColor]
       const { cx: sCx, cy: sCy } = toCanvas(stickerX, stickerY)
-      const baseW = W * 0.52, baseH = H * 0.12
+      const baseW = W * 0.44, baseH = H * 0.082
       const sW = baseW * stickerScale
       const sH = baseH * stickerScale
       const sX = sCx - sW / 2
       const sY = sCy - sH / 2
-      ctx.fillStyle = stStyle.bg
+      // Weicher Schatten fuer den "Sticker liegt auf dem Foto"-Look
+      ctx.shadowColor   = 'rgba(0,0,0,0.35)'
+      ctx.shadowBlur    = 28
+      ctx.shadowOffsetY = 10
+      if (stStyle.grad) {
+        const g = ctx.createLinearGradient(sX, sY, sX + sW, sY + sH)
+        g.addColorStop(0, stStyle.grad[0])
+        g.addColorStop(1, stStyle.grad[1])
+        ctx.fillStyle = g
+      } else {
+        ctx.fillStyle = stStyle.bg
+      }
       ctx.beginPath()
-      ctx.roundRect(sX, sY, sW, sH, sH * 0.22)
+      ctx.roundRect(sX, sY, sW, sH, sH * 0.32)
       ctx.fill()
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetY = 0
       ctx.strokeStyle = stStyle.border
       ctx.lineWidth   = 2
       ctx.stroke()
 
-      ctx.fillStyle    = stStyle.text + '80'
-      ctx.font         = `500 ${W * 0.025 * stickerScale}px -apple-system, sans-serif`
+      ctx.fillStyle    = stStyle.text + 'B3'
+      ctx.font         = `600 ${W * 0.019 * stickerScale}px -apple-system, sans-serif`
       ctx.textAlign    = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('POWERED BY', sCx, sY + sH * 0.28)
+      ctx.fillText('P O W E R E D  B Y', sCx, sY + sH * 0.30)
 
       ctx.fillStyle = stStyle.text
-      ctx.font      = `bold ${W * 0.065 * stickerScale}px -apple-system, sans-serif`
-      ctx.fillText('pistazz.io', sCx, sY + sH * 0.68)
+      ctx.font      = `bold ${W * 0.040 * stickerScale}px 'DM Serif Display', Georgia, serif`
+      ctx.fillText('gastro.pistazz.io', sCx, sY + sH * 0.68)
 
       // 4. Text overlays (remapped from screen coords to canvas coords)
       textBlocks.forEach(block => {
@@ -189,7 +205,7 @@ function StickerOverlay({
   containerRef: React.RefObject<HTMLDivElement | null>
 }) {
   const s = STICKER_STYLES[color]
-  const COLORS: StickerColor[] = ['green', 'white', 'black']
+  const COLORS: StickerColor[] = ['green', 'white', 'black', 'glass', 'sunset']
   const drag = useRef({ sx: 0, sy: 0, px: x, py: y, dist: 0, sc: scale })
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -258,17 +274,21 @@ function StickerOverlay({
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
-      onDoubleClick={() => { const i = COLORS.indexOf(color); onColorChange(COLORS[(i + 1) % 3]) }}
+      onDoubleClick={() => { const i = COLORS.indexOf(color); onColorChange(COLORS[(i + 1) % COLORS.length]) }}
     >
       <div
-        className="rounded-2xl px-6 py-3 flex flex-col items-center gap-0.5 border shadow-lg"
-        style={{ background: s.bg, borderColor: s.border }}
+        className="rounded-2xl px-5 py-2 flex flex-col items-center gap-0 border shadow-xl"
+        style={{
+          background: s.grad ? `linear-gradient(135deg, ${s.grad[0]}, ${s.grad[1]})` : s.bg,
+          borderColor: s.border,
+          ...(color === 'glass' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } : {}),
+        }}
       >
-        <span className="text-[9px] font-semibold tracking-widest uppercase" style={{ color: s.text, opacity: 0.65 }}>POWERED BY</span>
-        <span className="font-serif text-2xl font-bold" style={{ color: s.text }}>pistazz.io</span>
+        <span className="text-[7px] font-semibold tracking-[0.25em] uppercase" style={{ color: s.text, opacity: 0.7 }}>Powered by</span>
+        <span className="font-serif text-lg font-bold leading-tight" style={{ color: s.text }}>gastro.pistazz.io</span>
       </div>
       <p className="text-center text-white/45 text-[9px] mt-1 leading-tight">
-        Ziehen · 2× Tippen = Farbe
+        Ziehen · 2× Tippen = Stil
       </p>
     </div>
   )
@@ -390,6 +410,12 @@ function StoryCreateInner() {
   const [capturedSrc,  setCapturedSrc] = useState<string | null>(null)
   const [textBlocks,   setTextBlocks]  = useState<TextBlock[]>([])
   const [stickerColor, setStickerColor]= useState<StickerColor>('green')
+  // Kann die native App das Bild direkt an Instagram uebergeben? (Build >= 6)
+  const [hasNativeIG, setHasNativeIG] = useState(false)
+  useEffect(() => {
+    const w = window as unknown as { Capacitor?: { Plugins?: { InstagramStory?: unknown } } }
+    setHasNativeIG(!!w.Capacitor?.Plugins?.InstagramStory)
+  }, [])
   const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.42, scale: 1.0 })
   const [showSheet,    setShowSheet]   = useState(false) // kept for compatibility
   const [submitting,   setSubmitting]  = useState(false)
@@ -680,14 +706,21 @@ function StoryCreateInner() {
             In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> — nicht nur eintippen, sonst zählt der Tag nicht.
           </p>
 
-          {/* Manueller Weg, solange kein App-Update mit direkter Bild-Uebergabe live ist */}
-          <div className="rounded-xl bg-amber-500/15 border border-amber-400/30 px-3 py-2.5">
-            <p className="text-amber-200 text-[12px] leading-snug">
-              <strong className="text-amber-100">1.</strong> Bild oben gedrückt halten und sichern &nbsp;
-              <strong className="text-amber-100">2.</strong> Instagram öffnen (Button unten) &nbsp;
-              <strong className="text-amber-100">3.</strong> Dort unten links das Galerie-Symbol antippen und das Bild wählen
+          {hasNativeIG ? (
+            /* Direkte Bild-Uebergabe: kein Speichern, kein Galerie-Umweg */
+            <p className="text-[#8BB06A] text-[12px] leading-snug text-center">
+              ✨ Dein Bild wird <strong>automatisch an Instagram übergeben</strong> — einfach unten tippen.
             </p>
-          </div>
+          ) : (
+            /* Manueller Weg fuer aeltere App-Versionen / Web */
+            <div className="rounded-xl bg-amber-500/15 border border-amber-400/30 px-3 py-2.5">
+              <p className="text-amber-200 text-[12px] leading-snug">
+                <strong className="text-amber-100">1.</strong> Bild oben gedrückt halten und sichern &nbsp;
+                <strong className="text-amber-100">2.</strong> Instagram öffnen (Button unten) &nbsp;
+                <strong className="text-amber-100">3.</strong> Dort unten links das Galerie-Symbol antippen und das Bild wählen
+              </p>
+            </div>
+          )}
 
           <button
             onClick={handleOpenInstagram}
@@ -699,7 +732,7 @@ function StoryCreateInner() {
               <circle cx="13.2" cy="4.8" r="1" fill="white"/>
               <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
             </svg>
-            <span className="text-white font-bold text-base flex-1 text-left">Instagram öffnen</span>
+            <span className="text-white font-bold text-base flex-1 text-left">{hasNativeIG ? 'Story in Instagram öffnen' : 'Instagram öffnen'}</span>
             <span className="text-white/70 text-lg">›</span>
           </button>
 

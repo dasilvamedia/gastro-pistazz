@@ -146,8 +146,10 @@ function RegisterInner() {
           if (fullName) supabase.auth.updateUser({ data: { full_name: fullName } }).then(undefined, () => {})
         }
         // Callback-Seite uebernimmt Profil-Anlage + rollenbasierten Redirect.
-        // authBusyRef bleibt true - wir navigieren ohnehin gleich weg.
-        window.location.href = '/auth/callback' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : '')
+        // Client-seitige Navigation statt Voll-Reload: die Seite wechselt
+        // SOFORT zum Lade-Screen, statt eingefroren auf die Server-Antwort
+        // zu warten. Die Session liegt bereits im selben Supabase-Client.
+        router.replace('/auth/callback' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : ''))
       } catch (e) {
         authBusyRef.current = false
         const msg = e instanceof Error ? e.message : String(e)
