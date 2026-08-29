@@ -73,6 +73,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Basis leicht angehoben (16 -> 17px): skaliert alle rem-basierten
+     Textgroessen ~6% hoch - bessere Lesbarkeit auf dem Handy. */
+  font-size: 17px;
 }
 
 body {

@@ -12,13 +12,15 @@ import { TextOverlay, type TextBlock } from '@/components/story/TextOverlay'
 // ─────────────────────────────────────────────────────────────────────────────
 // Sticker color variants
 // ─────────────────────────────────────────────────────────────────────────────
-type StickerColor = 'green' | 'white' | 'black' | 'glass' | 'sunset'
+type StickerColor = 'green' | 'white' | 'black' | 'glass' | 'sunset' | 'beige' | 'greenbeige'
 const STICKER_STYLES: Record<StickerColor, { bg: string; grad?: [string, string]; text: string; border: string }> = {
-  green:  { bg: '#8BB06A',                 text: '#ffffff', border: 'rgba(255,255,255,0.3)' },
-  white:  { bg: '#ffffff',                 text: '#1C1F1A', border: 'rgba(0,0,0,0.12)' },
-  black:  { bg: '#1C1F1A',                 text: '#ffffff', border: 'rgba(255,255,255,0.15)' },
-  glass:  { bg: 'rgba(255,255,255,0.22)',  text: '#ffffff', border: 'rgba(255,255,255,0.45)' },
-  sunset: { bg: '#f09433', grad: ['#f09433', '#bc1888'], text: '#ffffff', border: 'rgba(255,255,255,0.35)' },
+  green:      { bg: '#8BB06A',                 text: '#ffffff', border: 'rgba(255,255,255,0.3)' },
+  white:      { bg: '#ffffff',                 text: '#1C1F1A', border: 'rgba(0,0,0,0.12)' },
+  black:      { bg: '#1C1F1A',                 text: '#ffffff', border: 'rgba(255,255,255,0.15)' },
+  glass:      { bg: 'rgba(255,255,255,0.22)',  text: '#ffffff', border: 'rgba(255,255,255,0.45)' },
+  sunset:     { bg: '#f09433', grad: ['#f09433', '#bc1888'], text: '#ffffff', border: 'rgba(255,255,255,0.35)' },
+  beige:      { bg: '#F2EDE0',                 text: '#577A3D', border: 'rgba(87,122,61,0.25)' },
+  greenbeige: { bg: '#6D9450',                 text: '#F2EDE0', border: 'rgba(242,237,224,0.4)' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -205,7 +207,7 @@ function StickerOverlay({
   containerRef: React.RefObject<HTMLDivElement | null>
 }) {
   const s = STICKER_STYLES[color]
-  const COLORS: StickerColor[] = ['green', 'white', 'black', 'glass', 'sunset']
+  const COLORS: StickerColor[] = ['green', 'white', 'black', 'glass', 'sunset', 'beige', 'greenbeige']
   const drag = useRef({ sx: 0, sy: 0, px: x, py: y, dist: 0, sc: scale })
 
   const handleTouchStart = (e: React.TouchEvent) => {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Check, Upload, CheckCircle, ExternalLink, AlertTriangle, Copy, CheckCheck } from 'lucide-react'
+import { Search, Check, Upload, CheckCircle, ExternalLink, AlertTriangle, Copy, CheckCheck, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant, SubmissionType } from '@/types'
@@ -216,6 +216,15 @@ function StorySubmitInner() {
 
   return (
     <div className="min-h-screen bg-[#EEF5E6] flex flex-col">
+      {/* Kompletter Ausstieg aus dem Flow - ohne die App schliessen zu muessen */}
+      <button
+        onClick={() => router.push(restaurantSlug ? `/r/${restaurantSlug}` : '/home')}
+        aria-label="Schließen"
+        className="fixed top-3 right-4 z-30 w-9 h-9 rounded-full bg-white/90 border border-[#D4E8C2] shadow-sm flex items-center justify-center text-[#1C1F1A]/60 active:scale-95 transition-transform"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+      >
+        <X size={18} />
+      </button>
       <ProgressBar step={progressStep} total={totalSteps} />
 
       {selectedRestaurant && step > 0 && step < 3 && (
@@ -322,13 +331,19 @@ function StorySubmitInner() {
                 <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
                   <span className="text-2xl">🎉</span>
                   <div>
-                    <p className="text-green-800 font-bold text-sm">Story geteilt!</p>
-                    <p className="text-green-700 text-xs">Gib jetzt die URL deiner Instagram-Story ein um deine Punkte zu erhalten.</p>
+                    <p className="text-green-800 font-bold text-sm">
+                      {selectedType === 'instagram_reel' ? 'Reel geteilt!' : selectedType === 'instagram_post' ? 'Post geteilt!' : 'Story geteilt!'}
+                    </p>
+                    <p className="text-green-700 text-xs">Gib jetzt den Instagram-Link ein, um deine Punkte zu erhalten.</p>
                   </div>
                 </div>
               )}
               <h1 className="text-2xl font-bold text-[#1C1F1A] mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                {selectedType === 'receipt' ? 'Beleg hochladen' : selectedType === 'google_review' ? 'Google Bewertung' : 'Link einreichen'}
+                {selectedType === 'receipt' ? 'Beleg hochladen'
+                  : selectedType === 'google_review' ? 'Google Bewertung'
+                  : selectedType === 'instagram_reel' ? 'Reel einreichen'
+                  : selectedType === 'instagram_post' ? 'Post einreichen'
+                  : 'Story einreichen'}
               </h1>
 
               {/* Warnung: kein Instagram-Handle gesetzt */}
@@ -365,25 +380,48 @@ function StorySubmitInner() {
                   </div>
 
                   <ol className="space-y-2">
-                    <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
-                      <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
-                      <span>
-                        Tags unten kopieren &amp; als @Mention-Sticker in deine{' '}
-                        {selectedType === 'instagram_story' ? 'Story' : selectedType === 'instagram_reel' ? 'Reel' : 'Post'} einfügen
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
-                      <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
-                      <span>
-                        {selectedType === 'instagram_story' ? 'Story erstellen & teilen' : selectedType === 'instagram_reel' ? 'Reel veröffentlichen' : 'Post veröffentlichen'}
-                      </span>
-                    </li>
-                    {selectedType === 'instagram_story' && (
+                    {selectedType === 'instagram_story' && (<>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
+                        <span>Tags unten kopieren &amp; als @Mention-Sticker in deine Story einfügen</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
+                        <span>Story erstellen &amp; teilen</span>
+                      </li>
                       <li className="flex items-start gap-2 text-xs text-[#6D7A6D] bg-red-50 rounded-xl p-2 border border-red-100">
                         <span className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
                         <span><strong className="text-red-700">Zum Schluss</strong> Kassenbon-Foto hochladen — das bestätigt, dass du gerade wirklich vor Ort bist.</span>
                       </li>
-                    )}
+                    </>)}
+                    {selectedType === 'instagram_reel' && (<>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
+                        <span>Nimm dein Reel direkt in Instagram auf und schneide es dort</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
+                        <span>Erwähne <strong>beide Accounts</strong> (Tags unten kopieren) in der Caption oder als Markierung im Video</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
+                        <span>Nach dem Veröffentlichen: Teilen-Pfeil ➤ <strong>„Link kopieren"</strong> und unten einfügen</span>
+                      </li>
+                    </>)}
+                    {selectedType === 'instagram_post' && (<>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
+                        <span>Poste dein Foto ganz normal in deinem Instagram-Feed</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
+                        <span>Erwähne <strong>beide Accounts</strong> (Tags unten kopieren) in der Caption oder markiere sie im Bild</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
+                        <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
+                        <span>Auf deinem Post: ⋯-Menü ➤ <strong>„Link kopieren"</strong> und unten einfügen</span>
+                      </li>
+                    </>)}
                   </ol>
 
                   {/* Copy-Buttons */}
@@ -480,7 +518,9 @@ function StorySubmitInner() {
               {isInstagramType && (
                 <div>
                   <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
-                    {selectedType === 'instagram_story' ? 'Schritt 3: ' : 'Schritt 2: '}Instagram Permalink *
+                    {selectedType === 'instagram_story' ? 'Link zu deiner Story *'
+                      : selectedType === 'instagram_reel' ? 'Link zu deinem Reel *'
+                      : 'Link zu deinem Post *'}
                   </label>
                   <input
                     value={link}
