@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -100,15 +100,21 @@ function RegisterInner() {
     router.push('/login' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : ''))
   }
 
+  // Einmal-Garantie: solange ein nativer Login laeuft (Sheet offen oder
+  // Token-Tausch in flight), darf kein zweiter gestartet werden - auch
+  // nicht durch den visibilitychange-Spinner-Reset unten.
+  const authBusyRef = useRef(false)
+
   // Kommt der Nutzer aus dem System-Browser zurueck ohne den Login
   // abzuschliessen, darf der Button-Spinner nicht ewig weiterdrehen.
   useEffect(() => {
-    const reset = () => { if (!document.hidden) setOauthLoading(null) }
+    const reset = () => { if (!document.hidden && !authBusyRef.current) setOauthLoading(null) }
     document.addEventListener('visibilitychange', reset)
     return () => document.removeEventListener('visibilitychange', reset)
   }, [])
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
+    if (authBusyRef.current) return
     setOauthLoading(provider)
     const w = window as unknown as {
       Capacitor?: {
@@ -126,6 +132,7 @@ function RegisterInner() {
     // der App, ID-Token wird ohne Browser gegen die Supabase-Session
     // getauscht. Kein Redirect, kein Safari/Chrome.
     if (nativeAuth) {
+      authBusyRef.current = true
       try {
         if (provider === 'google') {
           const { idToken } = await nativeAuth.signInWithGoogle()
@@ -138,9 +145,11 @@ function RegisterInner() {
           // Der Name kommt nur beim allerersten Apple-Login mit
           if (fullName) supabase.auth.updateUser({ data: { full_name: fullName } }).then(undefined, () => {})
         }
-        // Callback-Seite uebernimmt Profil-Anlage + rollenbasierten Redirect
+        // Callback-Seite uebernimmt Profil-Anlage + rollenbasierten Redirect.
+        // authBusyRef bleibt true - wir navigieren ohnehin gleich weg.
         window.location.href = '/auth/callback' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : '')
       } catch (e) {
+        authBusyRef.current = false
         const msg = e instanceof Error ? e.message : String(e)
         if (msg !== 'cancelled') toast.error('Anmeldung fehlgeschlagen. Bitte erneut versuchen.')
         setOauthLoading(null)
