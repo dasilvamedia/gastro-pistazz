@@ -448,6 +448,14 @@ function StoryCreateInner() {
   const singleTapRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef      = useRef({ d: 0, z: 1 })
   const focusHideRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const recRafRef     = useRef<number | null>(null)
+  const [boomPhase, setBoomPhase] = useState<null | 'rec' | 'enc'>(null)
+  // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
+  // waehrend der Aufnahme mitbekommt
+  const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
+  const brightRef  = useRef(1);     useEffect(() => { brightRef.current = brightness }, [brightness])
+  const facingRef  = useRef<'user' | 'environment'>('environment')
+  useEffect(() => { facingRef.current = facingMode }, [facingMode])
 
   const filterCss = FILTERS.find(f => f.id === filter)?.css ?? 'none'
 
@@ -471,12 +479,13 @@ function StoryCreateInner() {
   const startCamera = useCallback(async (facing: 'user' | 'environment') => {
     setCamError(false)
     try {
-      // Portrait-Ideals (1080x1920): ohne Constraints liefert iOS oft nur
-      // 640x480 - im 9:16-Cover-Container wirkt das stark gezoomt UND
-      // unscharf. Mit Hochformat-Ideals kommt der native 1x-Weitwinkel in
-      // voller Aufloesung. Audio fuer Video-Aufnahmen gleich mit anfragen
-      // (Fallback ohne Ton, falls Mikrofon abgelehnt wird).
-      const videoC = { facingMode: facing, width: { ideal: 1080 }, height: { ideal: 1920 } }
+      // 3:4-Vollsensor-Ideals (1440x1920): 9:16-Ideals zwingen iOS in einen
+      // 16:9-Beschnitt des 4:3-Sensors - dadurch fehlt oben/unten massiv
+      // Sichtfeld und es wirkt gezoomt. 3:4 liefert das volle vertikale FOV
+      // der echten Kamera; der 9:16-Story-Zuschnitt passiert nur seitlich
+      // (object-cover bzw. Export-Crop). Audio fuer Video-Aufnahmen gleich
+      // mit anfragen (Fallback ohne Ton, falls Mikrofon abgelehnt wird).
+      const videoC = { facingMode: facing, width: { ideal: 1440 }, height: { ideal: 1920 }, aspectRatio: { ideal: 3 / 4 } }
       // WICHTIG: In der nativen App darf Audio erst ab Build 9 angefragt
       // werden - aeltere Builds haben keine NSMicrophoneUsageDescription und
       // iOS beendet die App beim Mikrofon-Zugriff sofort (Hard-Crash).
@@ -629,17 +638,51 @@ function StoryCreateInner() {
   // ── Video-Aufnahme (Halten in STORY, Freihand-Toggle in VIDEO) ───────────
   const stopRecording = useCallback(() => {
     if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null }
+    if (recRafRef.current) { cancelAnimationFrame(recRafRef.current); recRafRef.current = null }
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
     setRecording(false)
   }, [])
 
   const startRecording = useCallback(() => {
-    if (!stream || recording) return
+    const video = videoRef.current
+    if (!stream || recording || !video) return
+
+    // Hochformat-Pipeline: der rohe Kamera-Stream liegt bei iOS quer -
+    // wir zeichnen jeden Frame in ein 720x1280-Canvas (Story-Format 9:16)
+    // inkl. Zoom, Belichtung und Spiegelung, und nehmen DAS auf.
+    const W = 720, H = 1280
+    const c = document.createElement('canvas'); c.width = W; c.height = H
+    const cx = c.getContext('2d')!
+    const draw = () => {
+      const vW = video.videoWidth || W, vH = video.videoHeight || H
+      const cover = Math.max(W / vW, H / vH)
+      let sw = W / cover, sh = H / cover
+      let sx = (vW - sw) / 2, sy = (vH - sh) / 2
+      const z = cssZoomRef.current
+      if (z > 1) { const nw = sw / z, nh = sh / z; sx += (sw - nw) / 2; sy += (sh - nh) / 2; sw = nw; sh = nh }
+      cx.save()
+      if (facingRef.current === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
+      cx.filter = brightRef.current !== 1 ? `brightness(${brightRef.current})` : 'none'
+      cx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
+      cx.restore()
+      recRafRef.current = requestAnimationFrame(draw)
+    }
+    draw()
+
+    const canvasStream = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
+    const audioTrack = stream.getAudioTracks()[0]
+    const recStream = audioTrack
+      ? new MediaStream([canvasStream.getVideoTracks()[0], audioTrack])
+      : canvasStream
+
     const mime = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4')
       ? 'video/mp4' : 'video/webm'
     let rec: MediaRecorder
-    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 }) }
-    catch { toast.error('Videoaufnahme wird auf diesem Gerät nicht unterstützt'); return }
+    try { rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 6_000_000 }) }
+    catch {
+      if (recRafRef.current) cancelAnimationFrame(recRafRef.current)
+      toast.error('Videoaufnahme wird auf diesem Gerät nicht unterstützt'); return
+    }
     recChunksRef.current = []
     rec.ondataavailable = ev => { if (ev.data.size > 0) recChunksRef.current.push(ev.data) }
     rec.onstop = () => {
@@ -684,6 +727,7 @@ function StoryCreateInner() {
     const video = videoRef.current
     if (!video || boomBusy || recording) return
     setBoomBusy(true)
+    setBoomPhase('rec')
     try {
       const W = 720, H = 1280
       const vW = video.videoWidth || 1080, vH = video.videoHeight || 1920
@@ -709,6 +753,7 @@ function StoryCreateInner() {
         await new Promise(r => setTimeout(r, 55))
       }
 
+      setBoomPhase('enc')
       const out = document.createElement('canvas'); out.width = W; out.height = H
       const octx = out.getContext('2d')!
       const st = (out as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
@@ -729,6 +774,7 @@ function StoryCreateInner() {
     } catch {
       toast.error('Boomerang fehlgeschlagen — bitte nochmal versuchen')
     }
+    setBoomPhase(null)
     setBoomBusy(false)
   }
 
@@ -1083,7 +1129,18 @@ function StoryCreateInner() {
   // Render: Capture + Edit — Instagram-style full-screen camera
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden" style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
+    <div
+      className="fixed inset-0 bg-black overflow-hidden select-none"
+      style={{
+        touchAction: 'none',
+        overscrollBehavior: 'none',
+        // Kein iOS-Textmarkieren/Copy-Callout bei langem Druecken (z.B.
+        // Halten fuer Video) - in der Kamera gibt es nichts zu kopieren
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTouchCallout: 'none',
+      } as React.CSSProperties}
+    >
 
       {/* Hidden helpers */}
       <input ref={galleryInput} type="file" accept="image/*" className="hidden" onChange={handleGalleryPick} />
@@ -1156,6 +1213,22 @@ function StoryCreateInner() {
               <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-bold pointer-events-none flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                 0:{String(recSecs).padStart(2, '0')}
+              </div>
+            )}
+            {/* Boomerang-Status: klar sichtbar, was gerade passiert */}
+            {boomPhase === 'rec' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-white text-6xl font-black animate-pulse drop-shadow-lg">∞</span>
+                <span className="mt-2 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-bold tracking-widest uppercase flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  Boomerang läuft
+                </span>
+              </div>
+            )}
+            {boomPhase === 'enc' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-black/40">
+                <span className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="mt-3 text-white text-sm font-semibold">Boomerang wird erstellt…</span>
               </div>
             )}
           </div>
