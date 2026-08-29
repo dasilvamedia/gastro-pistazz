@@ -13,6 +13,8 @@ export function getDisplayTheme(): DisplayTheme {
 
 export function setDisplayTheme(t: DisplayTheme) {
   localStorage.setItem(KEY, t)
+  // ThemeApplier lauscht darauf und setzt data-theme sofort neu
+  window.dispatchEvent(new Event('display-theme-change'))
 }
 
 /** true = dunkle Ansicht anzeigen (aufgeloest inkl. Systemeinstellung) */

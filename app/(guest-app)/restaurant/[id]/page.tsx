@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Phone, Globe, MapPin, Navigation } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
-import { resolveDark } from '@/lib/displayTheme'
 import type { Restaurant, Deal, StampCard } from '@/types'
 import { RESTAURANT_TYPE_LABELS, TRIGGER_CONFIG } from '@/types'
 import { MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
@@ -68,12 +67,6 @@ export default function RestaurantDetailPage() {
   const router = useRouter()
   const supabase = createClient()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
-
-  // Anzeige-Einstellung: bei "Dunkel" (bzw. System=dunkel) die dunkle
-  // Ansicht derselben Seite zeigen (/r/[slug])
-  useEffect(() => {
-    if (restaurant?.slug && resolveDark()) router.replace(`/r/${restaurant.slug}`)
-  }, [restaurant, router])
   const [deals, setDeals] = useState<Deal[]>([])
   const [stampCard, setStampCard] = useState<StampCard | null>(null)
   const [loading, setLoading] = useState(true)

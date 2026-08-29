@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { resolveDark } from '@/lib/displayTheme'
 import {
   MapPin, Phone, Globe, Clock, Star,
   ChevronRight, Navigation, QrCode,
@@ -94,10 +93,11 @@ export default function RestaurantLandingPage() {
   const supabase = createClient()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
 
-  // Anzeige-Einstellung: bei "Hell" (Standard) die helle Ansicht derselben
-  // Seite zeigen (/restaurant/[id])
+  // Die separate dunkle Landing-Ansicht ist abgeschafft: /r/[slug] (QR-Codes)
+  // leitet immer auf die normale Restaurant-Seite mit Menue-Taskleiste um.
+  // Hell/Dunkel regelt dort die globale Anzeige-Einstellung.
   useEffect(() => {
-    if (restaurant?.id && !resolveDark()) router.replace(`/restaurant/${restaurant.id}`)
+    if (restaurant?.id) router.replace(`/restaurant/${restaurant.id}`)
   }, [restaurant, router])
   const [deals, setDeals] = useState<Deal[]>([])
   const [loading, setLoading] = useState(true)

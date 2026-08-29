@@ -211,7 +211,7 @@ export default function EinstellungenPage() {
         <div>
           <SectionTitle>Anzeige</SectionTitle>
           <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6]">
-            <p className="text-[#6D7A6D] text-xs mb-3">Wie soll die Restaurant-Ansicht dargestellt werden?</p>
+            <p className="text-[#6D7A6D] text-xs mb-3">Wie soll die App dargestellt werden?</p>
             <div className="grid grid-cols-3 gap-2">
               {([['light', 'Hell'], ['dark', 'Dunkel'], ['system', 'System']] as const).map(([val, label]) => (
                 <button
