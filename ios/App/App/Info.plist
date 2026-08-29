@@ -81,6 +81,8 @@
 	<string>Zum Sichern deiner erstellten Story in der Fotos-App.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Dein ungefährer Standort hilft, Restaurants in deiner Nähe zu zeigen.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NFCReaderUsageDescription</key>
 	<string>Zum automatischen Stempeln deiner Treuekarte per Antippen eines NFC-Tags im Restaurant.</string>
 </dict>
