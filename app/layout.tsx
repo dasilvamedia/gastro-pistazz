@@ -65,6 +65,13 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${dmSans.variable} ${dmSerifDisplay.variable}`}>
       <body className="font-sans bg-pale text-charcoal antialiased">
+        {/* Blockierend VOR dem ersten Paint: verhindert den weissen Blitz,
+            bevor der Dark Mode greift (ThemeApplier uebernimmt danach live) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('display-theme');var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light'}catch(e){}`,
+          }}
+        />
         <Script id="app-entry-redirect" strategy="beforeInteractive">{`
           if (typeof window !== 'undefined' && window.Capacitor && location.pathname === '/') {
             location.replace('/home');

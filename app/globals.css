@@ -258,3 +258,23 @@ html[data-theme='dark'] [class*='border-[#E5E0D5]'] { border-color: #2E362B !imp
 
 /* Skeleton-Loader */
 html[data-theme='dark'] .skeleton { background-color: #232A21 !important; }
+
+/* Bottom-Navigation: hell/dunkel via Variablen (Inline-Styles im Component) */
+:root {
+  --nav-bg-a: rgba(255,255,255,0.97);
+  --nav-bg-b: rgba(255,255,255,0.88);
+  --nav-border: rgba(0,0,0,0.06);
+  --nav-active: #6D9450;
+  --nav-inactive: rgba(28,31,26,0.35);
+}
+html[data-theme='dark'] {
+  --nav-bg-a: rgba(20,24,18,0.97);
+  --nav-bg-b: rgba(20,24,18,0.88);
+  --nav-border: rgba(255,255,255,0.08);
+  --nav-active: #A7C48D;
+  --nav-inactive: rgba(236,239,232,0.4);
+}
+
+/* An/Aus-Schalter: Track-Grau im Dark abdunkeln; der weisse Knopf wird im
+   Component per Inline-Style geschuetzt und bleibt in beiden Themes weiss */
+html[data-theme='dark'] .bg-gray-200 { background-color: #3A4437 !important; }
