@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Phone, Globe, MapPin, Navigation } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
+import { resolveDark } from '@/lib/displayTheme'
 import type { Restaurant, Deal, StampCard } from '@/types'
 import { RESTAURANT_TYPE_LABELS, TRIGGER_CONFIG } from '@/types'
 import { MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
@@ -49,6 +50,15 @@ function StampProgress({ card, restaurant }: { card: StampCard | null; restauran
           <span className="font-semibold">Belohnung:</span> {restaurant.stamp_card_reward}
         </p>
       )}
+      {/* NFC-Stempeln - gleiche Funktion wie auf der dunklen /r/[slug]-Ansicht */}
+      {restaurant.slug && (
+        <a
+          href={`/stempel?restaurant=${restaurant.slug}`}
+          className="mt-3 w-full flex items-center justify-center gap-2 gradient-primary text-white font-semibold py-3 rounded-xl text-sm"
+        >
+          📶 Stempel per Antippen sammeln
+        </a>
+      )}
     </div>
   )
 }
@@ -58,6 +68,12 @@ export default function RestaurantDetailPage() {
   const router = useRouter()
   const supabase = createClient()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+
+  // Anzeige-Einstellung: bei "Dunkel" (bzw. System=dunkel) die dunkle
+  // Ansicht derselben Seite zeigen (/r/[slug])
+  useEffect(() => {
+    if (restaurant?.slug && resolveDark()) router.replace(`/r/${restaurant.slug}`)
+  }, [restaurant, router])
   const [deals, setDeals] = useState<Deal[]>([])
   const [stampCard, setStampCard] = useState<StampCard | null>(null)
   const [loading, setLoading] = useState(true)

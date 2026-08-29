@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { resolveDark } from '@/lib/displayTheme'
 import {
   MapPin, Phone, Globe, Clock, Star,
   ChevronRight, Navigation, QrCode,
@@ -89,8 +90,15 @@ function getTodayHours(openingHours: Record<string, { open: string; close: strin
 
 export default function RestaurantLandingPage() {
   const { slug } = useParams<{ slug: string }>()
+  const router = useRouter()
   const supabase = createClient()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+
+  // Anzeige-Einstellung: bei "Hell" (Standard) die helle Ansicht derselben
+  // Seite zeigen (/restaurant/[id])
+  useEffect(() => {
+    if (restaurant?.id && !resolveDark()) router.replace(`/restaurant/${restaurant.id}`)
+  }, [restaurant, router])
   const [deals, setDeals] = useState<Deal[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'angebot' | 'info'>('angebot')
@@ -499,7 +507,7 @@ export default function RestaurantLandingPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-semibold truncate">{restaurant.name}</p>
-            <p className="text-white/30 text-xs">Powered by pistazz.io</p>
+            <p className="text-white/30 text-xs">Powered by gastro.pistazz.io</p>
           </div>
           <Link href={`/register?restaurant=${slug}`}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white flex-shrink-0"

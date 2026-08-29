@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
+import { getDisplayTheme, setDisplayTheme, type DisplayTheme } from '@/lib/displayTheme'
 import type { Profile } from '@/types'
 
 const profileSchema = z.object({
@@ -47,6 +48,8 @@ export default function EinstellungenPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [displayTheme, setDisplayThemeState] = useState<DisplayTheme>('light')
+  useEffect(() => { setDisplayThemeState(getDisplayTheme()) }, [])
   const [instagramHandle, setInstagramHandle] = useState('')
   const [instagramConnected, setInstagramConnected] = useState(false)
   const [googleProfileUrl, setGoogleProfileUrl] = useState('')
@@ -202,6 +205,29 @@ export default function EinstellungenPage() {
               {saving ? 'Wird gespeichert...' : 'Speichern'}
             </button>
           </form>
+        </div>
+
+        {/* Anzeige */}
+        <div>
+          <SectionTitle>Anzeige</SectionTitle>
+          <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6]">
+            <p className="text-[#6D7A6D] text-xs mb-3">Wie soll die Restaurant-Ansicht dargestellt werden?</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([['light', 'Hell'], ['dark', 'Dunkel'], ['system', 'System']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => { setDisplayTheme(val); setDisplayThemeState(val); toast.success(`Anzeige: ${label}`) }}
+                  className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                    displayTheme === val
+                      ? 'bg-[#8BB06A] text-white border-[#8BB06A]'
+                      : 'bg-[#F5F9F0] text-[#1C1F1A] border-[#D4E8C2]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Instagram */}
