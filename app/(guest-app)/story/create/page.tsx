@@ -450,6 +450,7 @@ function StoryCreateInner() {
   const focusHideRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const recRafRef     = useRef<number | null>(null)
   const [boomPhase, setBoomPhase] = useState<null | 'rec' | 'enc'>(null)
+  const [camDiag, setCamDiag] = useState('')
   // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
   // waehrend der Aufnahme mitbekommt
   const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
@@ -485,7 +486,9 @@ function StoryCreateInner() {
       // der echten Kamera; der 9:16-Story-Zuschnitt passiert nur seitlich
       // (object-cover bzw. Export-Crop). Audio fuer Video-Aufnahmen gleich
       // mit anfragen (Fallback ohne Ton, falls Mikrofon abgelehnt wird).
-      const videoC = { facingMode: facing, width: { ideal: 1440 }, height: { ideal: 1920 }, aspectRatio: { ideal: 3 / 4 } }
+      // 4:3-Sensor-Vollformat anfordern (landscape-orientierte Ideals, da
+      // iOS-Streams intern quer liegen) - Ziel: volles natives Sichtfeld
+      const videoC = { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1440 } }
       // WICHTIG: In der nativen App darf Audio erst ab Build 9 angefragt
       // werden - aeltere Builds haben keine NSMicrophoneUsageDescription und
       // iOS beendet die App beim Mikrofon-Zugriff sofort (Hard-Crash).
@@ -505,6 +508,9 @@ function StoryCreateInner() {
         : await navigator.mediaDevices.getUserMedia({ video: videoC })
       setStream(s)
       setZoom(1); setCssZoom(1); setBrightness(1); setFocusPt(null)
+      // Diagnose: welche Aufloesung/Orientierung liefert iOS wirklich?
+      const vt = s.getVideoTracks()[0]?.getSettings?.()
+      if (vt?.width && vt?.height) setCamDiag(`${vt.width}×${vt.height}`)
       if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}) }
       // Register push after camera permission granted (both are user gestures)
       setupPush()
@@ -685,9 +691,13 @@ function StoryCreateInner() {
     }
     recChunksRef.current = []
     rec.ondataavailable = ev => { if (ev.data.size > 0) recChunksRef.current.push(ev.data) }
+    rec.onerror = () => { toast.error('Aufnahme-Fehler — bitte nochmal versuchen') }
     rec.onstop = () => {
       const blob = new Blob(recChunksRef.current, { type: mime })
-      if (blob.size < 60_000) return // versehentlicher Kurz-Tap
+      if (blob.size < 10_000) {
+        toast.error('Video zu kurz — halte etwas länger drauf')
+        return
+      }
       setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
       setStep('video-share')
     }
@@ -742,7 +752,8 @@ function StoryCreateInner() {
       const zh = cssZoom > 1 ? sh / cssZoom : sh
 
       const frames: HTMLCanvasElement[] = []
-      const FRAME_N = 18
+      // Mehr Frames + gleichmaessiger Takt = deutlich ruhigeres Ergebnis
+      const FRAME_N = 24
       for (let i = 0; i < FRAME_N; i++) {
         const c = document.createElement('canvas'); c.width = W; c.height = H
         const cx = c.getContext('2d')!
@@ -750,7 +761,7 @@ function StoryCreateInner() {
         cx.filter = brightness !== 1 ? `brightness(${brightness})` : 'none'
         cx.drawImage(video, sx, sy, zw, zh, 0, 0, W, H)
         frames.push(c)
-        await new Promise(r => setTimeout(r, 55))
+        await new Promise(r => setTimeout(r, 42))
       }
 
       setBoomPhase('enc')
@@ -1202,6 +1213,12 @@ function StoryCreateInner() {
                 />
               </div>
             )}
+            {/* Kamera-Diagnose (temporaer): tatsaechliche Stream-Aufloesung */}
+            {camDiag && (
+              <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/40 text-white/50 text-[9px] pointer-events-none">
+                {camDiag}
+              </div>
+            )}
             {/* Zoom-Anzeige */}
             {zoom > 1.05 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/50 text-white text-xs font-semibold pointer-events-none">
@@ -1218,8 +1235,8 @@ function StoryCreateInner() {
             {/* Boomerang-Status: klar sichtbar, was gerade passiert */}
             {boomPhase === 'rec' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-white text-6xl font-black animate-pulse drop-shadow-lg">∞</span>
-                <span className="mt-2 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-bold tracking-widest uppercase flex items-center gap-1.5">
+                <span className="text-6xl font-black animate-pulse drop-shadow-lg" style={{ color: '#8BB06A' }}>∞</span>
+                <span className="mt-2 px-3 py-1 rounded-full text-white text-xs font-bold tracking-widest uppercase flex items-center gap-1.5" style={{ background: 'rgba(139,176,106,0.92)' }}>
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   Boomerang läuft
                 </span>
@@ -1348,29 +1365,48 @@ function StoryCreateInner() {
               </button>
 
               {/* Ausloeser: Tap = Foto (Story) / Start-Stopp (Video, freihaendig) /
-                  Boomerang. Halten in STORY = Video aufnehmen wie bei Instagram. */}
-              <button
-                onPointerDown={handleShutterDown}
-                onPointerUp={handleShutterUp}
-                onPointerCancel={() => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); if (holdActiveRef.current) stopRecording() }}
-                disabled={camError || boomBusy}
-                className={`w-[78px] h-[78px] rounded-full border-[4px] flex items-center justify-center disabled:opacity-30 transition-colors ${
-                  recording ? 'border-red-500' : 'border-white'
-                }`}
-              >
-                {boomBusy ? (
-                  <span className="w-8 h-8 border-[3px] border-white/40 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <div className={`rounded-full transition-all duration-200 ${
-                    recording ? 'w-8 h-8 rounded-lg bg-red-500' :
-                    captureMode === 'video' ? 'w-[62px] h-[62px] bg-red-500' :
-                    captureMode === 'boomerang' ? 'w-[62px] h-[62px] bg-white flex items-center justify-center' :
-                    'w-[62px] h-[62px] bg-white'
-                  }`}>
-                    {!recording && captureMode === 'boomerang' && <span className="text-black text-xl font-black">∞</span>}
-                  </div>
+                  Boomerang. Halten in STORY = Video aufnehmen wie bei Instagram.
+                  Waehrend der Aufnahme: gruener Fortschrittsring (15s) + Sekunden. */}
+              <div className="relative w-[78px] h-[78px]">
+                {recording && (
+                  <>
+                    <svg className="absolute -inset-2 pointer-events-none -rotate-90" width="94" height="94" viewBox="0 0 94 94">
+                      <circle cx="47" cy="47" r="43" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="5" />
+                      <circle
+                        cx="47" cy="47" r="43" fill="none" stroke="#8BB06A" strokeWidth="5" strokeLinecap="round"
+                        strokeDasharray={2 * Math.PI * 43}
+                        strokeDashoffset={2 * Math.PI * 43 * (1 - Math.min(recSecs, 15) / 15)}
+                        style={{ transition: 'stroke-dashoffset 1s linear' }}
+                      />
+                    </svg>
+                    <span className="absolute -right-12 top-1/2 -translate-y-1/2 text-white font-bold text-sm tabular-nums pointer-events-none">
+                      {recSecs}s
+                    </span>
+                  </>
                 )}
-              </button>
+                <button
+                  onPointerDown={handleShutterDown}
+                  onPointerUp={handleShutterUp}
+                  onPointerCancel={() => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); if (holdActiveRef.current) stopRecording() }}
+                  disabled={camError || boomBusy}
+                  className={`w-full h-full rounded-full border-[4px] flex items-center justify-center disabled:opacity-30 transition-colors ${
+                    recording ? 'border-[#8BB06A]' : 'border-white'
+                  }`}
+                >
+                  {boomBusy ? (
+                    <span className="w-8 h-8 border-[3px] border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <div className={`rounded-full transition-all duration-200 ${
+                      recording ? 'w-8 h-8 rounded-lg bg-red-500' :
+                      captureMode === 'video' ? 'w-[62px] h-[62px] bg-red-500' :
+                      captureMode === 'boomerang' ? 'w-[62px] h-[62px] bg-white flex items-center justify-center' :
+                      'w-[62px] h-[62px] bg-white'
+                    }`}>
+                      {!recording && captureMode === 'boomerang' && <span className="text-black text-xl font-black">∞</span>}
+                    </div>
+                  )}
+                </button>
+              </div>
 
               <div className="w-14 h-14" />
             </div>
