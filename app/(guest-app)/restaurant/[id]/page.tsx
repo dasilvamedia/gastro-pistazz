@@ -214,12 +214,6 @@ export default function RestaurantDetailPage() {
               ) : null}
             </div>
           </div>
-          <button
-            onClick={() => router.push(`/story/create?restaurant=${restaurant.slug}`)}
-            className="gradient-primary text-white text-sm font-bold px-4 py-2 rounded-xl"
-          >
-            Jetzt teilnehmen
-          </button>
         </div>
 
         {/* Tabs */}
@@ -249,19 +243,30 @@ export default function RestaurantDetailPage() {
                 <p className="text-[#6D9450] text-sm leading-relaxed">{restaurant.description}</p>
               </div>
             )}
-            <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6] grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-[#1C1F1A] font-bold text-xl">{restaurant.total_customers}</p>
-                <p className="text-[#6D9450] text-xs">Gäste</p>
+            {/* Instagram-Story-Kampagne (Gäste/Stories-Metriken sind bewusst
+                nicht oeffentlich - die gehoeren ins Restaurant-Dashboard) */}
+            <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6]">
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-sm shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#f09433 0%,#dc2743 55%,#bc1888 100%)' }}
+                >
+                  IG
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[#1C1F1A] font-bold">Instagram Story</p>
+                  <p className="text-[#6D9450] text-sm">{restaurant.points_per_story ?? 500} Punkte verdienen</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[#1C1F1A] font-bold text-xl">{restaurant.total_stories}</p>
-                <p className="text-[#6D9450] text-xs">Stories</p>
-              </div>
-              <div>
-                <p className="text-[#1C1F1A] font-bold text-xl">{restaurant.points_per_story}</p>
-                <p className="text-[#6D9450] text-xs">P/Story</p>
-              </div>
+              <p className="text-[#6D7A6D] text-sm leading-relaxed mb-3">
+                Nach erfolgreichem Erstellen einer Instagram-Story über {restaurant.name} erhältst du attraktive Punkte und exklusive Benefits!
+              </p>
+              <button
+                onClick={() => router.push(`/story/create?restaurant=${restaurant.slug}`)}
+                className="w-full gradient-primary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-1.5"
+              >
+                Jetzt teilnehmen <span className="text-white/80">›</span>
+              </button>
             </div>
             <StampProgress card={stampCard} restaurant={restaurant} />
           </div>
