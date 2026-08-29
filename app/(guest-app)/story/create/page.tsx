@@ -477,9 +477,23 @@ function StoryCreateInner() {
       // voller Aufloesung. Audio fuer Video-Aufnahmen gleich mit anfragen
       // (Fallback ohne Ton, falls Mikrofon abgelehnt wird).
       const videoC = { facingMode: facing, width: { ideal: 1080 }, height: { ideal: 1920 } }
-      const s = await navigator.mediaDevices
-        .getUserMedia({ video: videoC, audio: true })
-        .catch(() => navigator.mediaDevices.getUserMedia({ video: videoC }))
+      // WICHTIG: In der nativen App darf Audio erst ab Build 9 angefragt
+      // werden - aeltere Builds haben keine NSMicrophoneUsageDescription und
+      // iOS beendet die App beim Mikrofon-Zugriff sofort (Hard-Crash).
+      let wantAudio = true
+      const cap = (window as unknown as { Capacitor?: { Plugins?: { App?: { getInfo: () => Promise<{ build: string }> } } } }).Capacitor
+      if (cap) {
+        wantAudio = false
+        try {
+          const info = await cap.Plugins?.App?.getInfo()
+          if (info && parseInt(info.build, 10) >= 9) wantAudio = true
+        } catch { /* bleibt ohne Audio */ }
+      }
+      const s = wantAudio
+        ? await navigator.mediaDevices
+            .getUserMedia({ video: videoC, audio: true })
+            .catch(() => navigator.mediaDevices.getUserMedia({ video: videoC }))
+        : await navigator.mediaDevices.getUserMedia({ video: videoC })
       setStream(s)
       setZoom(1); setCssZoom(1); setBrightness(1); setFocusPt(null)
       if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}) }

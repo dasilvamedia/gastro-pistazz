@@ -83,6 +83,8 @@
 	<string>Dein ungefährer Standort hilft, Restaurants in deiner Nähe zu zeigen.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Für den Ton bei deinen Video-Storys.</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>Zum automatischen Stempeln deiner Treuekarte per Antippen eines NFC-Tags im Restaurant.</string>
 </dict>
