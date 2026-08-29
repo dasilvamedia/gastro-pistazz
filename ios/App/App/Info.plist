@@ -57,7 +57,17 @@
 				<string>io.pistazz.gastro</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>google-signin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.901816519653-m9f73ten7b0tsi4d514sr6rfel3ah68h</string>
+			</array>
+		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>901816519653-m9f73ten7b0tsi4d514sr6rfel3ah68h.apps.googleusercontent.com</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>instagram</string>

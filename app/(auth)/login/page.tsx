@@ -96,6 +96,44 @@ function LoginInner() {
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider)
+    const w = window as unknown as {
+      Capacitor?: {
+        Plugins?: {
+          NativeAuth?: {
+            signInWithApple: () => Promise<{ identityToken: string; nonce: string; fullName: string }>
+            signInWithGoogle: () => Promise<{ idToken: string }>
+          }
+        }
+      }
+    }
+    const nativeAuth = w.Capacitor?.Plugins?.NativeAuth
+
+    // Voll nativer Login (ab Build 5): Apples/Googles System-Sheet direkt in
+    // der App, ID-Token wird ohne Browser gegen die Supabase-Session
+    // getauscht. Kein Redirect, kein Safari/Chrome.
+    if (nativeAuth) {
+      try {
+        if (provider === 'google') {
+          const { idToken } = await nativeAuth.signInWithGoogle()
+          const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken })
+          if (error) throw error
+        } else {
+          const { identityToken, nonce, fullName } = await nativeAuth.signInWithApple()
+          const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken, nonce })
+          if (error) throw error
+          // Der Name kommt nur beim allerersten Apple-Login mit
+          if (fullName) supabase.auth.updateUser({ data: { full_name: fullName } }).then(undefined, () => {})
+        }
+        // Callback-Seite uebernimmt Profil-Anlage + rollenbasierten Redirect
+        window.location.href = '/auth/callback' + (restaurantSlug ? `?restaurant=${restaurantSlug}` : '')
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (msg !== 'cancelled') toast.error('Anmeldung fehlgeschlagen. Bitte erneut versuchen.')
+        setOauthLoading(null)
+      }
+      return
+    }
+
     const isNative = !!(window as unknown as { Capacitor?: unknown }).Capacitor
     // Nativ: Login laeuft im System-Browser (Google blockiert eingebettete
     // WebViews), Rueckkehr per Custom-URL-Scheme direkt in die App - der
