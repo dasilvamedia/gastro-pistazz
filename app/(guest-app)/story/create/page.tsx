@@ -699,6 +699,8 @@ function StoryCreateInner() {
   // Video-Vorschau: Sticker/Filter werden erst beim Teilen ins Video eingebrannt
   const videoShareRef = useRef<HTMLDivElement>(null)
   const [videoBusy, setVideoBusy] = useState(false)
+  // Temporaere Diagnose: was encodiert iOS WIRKLICH (Dauer + Bitrate)?
+  const [vidDiag, setVidDiag] = useState('')
   const burnedVideoRef = useRef<{ key: string; blob: Blob; mime: string } | null>(null)
   // Fertiges Video (Sticker + Filter eingebrannt) fuer die finale Vorschau
   const [burnedVideo, setBurnedVideo] = useState<{ url: string; blob: Blob; mime: string } | null>(null)
@@ -975,10 +977,18 @@ function StoryCreateInner() {
     setRecPaused(false); recPausedRef.current = false
   }, [])
 
-  // HINWEIS: Die Pause-Funktion wurde entfernt. MediaRecorder.pause()
-  // schreibt auf iOS beim Fortsetzen kaputte Zeitstempel ins MP4 - dabei
-  // entstanden Videos mit Minuten-langer Geisterdauer und Instagram hat
-  // sie zu Matsch komprimiert. Qualitaet geht vor.
+  // Video-Modus: Aufnahme pausieren/fortsetzen (bis Stopp oder 15s gesamt)
+  const pauseResumeRecording = useCallback(() => {
+    const rec = recorderRef.current
+    if (!rec || rec.state === 'inactive') return
+    if (rec.state === 'recording') {
+      rec.pause()
+      setRecPaused(true); recPausedRef.current = true
+    } else if (rec.state === 'paused') {
+      rec.resume()
+      setRecPaused(false); recPausedRef.current = false
+    }
+  }, [])
 
   const startRecording = useCallback(() => {
     const video = videoRef.current
@@ -1050,10 +1060,13 @@ function StoryCreateInner() {
       ? new MediaStream([canvasStream.getVideoTracks()[0], audioTrack])
       : canvasStream
 
-    const mime = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4')
-      ? 'video/mp4' : 'video/webm'
+    // Bitrate aggressiv anfordern - iOS ignoriert die Vorgabe je nach
+    // Codec-Angabe. High-Profile-H.264 explizit versuchen, dann Container pur.
+    const mimeCandidates = ['video/mp4;codecs=avc1.640033', 'video/mp4', 'video/webm']
+    const recMime = mimeCandidates.find(m => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) ?? 'video/webm'
+    const mime = recMime.startsWith('video/mp4') ? 'video/mp4' : 'video/webm'
     let rec: MediaRecorder
-    try { rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 16_000_000, audioBitsPerSecond: 256_000 }) }
+    try { rec = new MediaRecorder(recStream, { mimeType: recMime, videoBitsPerSecond: 25_000_000, audioBitsPerSecond: 256_000 }) }
     catch {
       drawActiveRef.current = false
       if (recRafRef.current) cancelAnimationFrame(recRafRef.current)
@@ -1639,9 +1652,21 @@ function StoryCreateInner() {
             // muted blockiert iOS das Autoplay und zeigt einen Play-Button
             ref={el => { if (el) { el.muted = true; el.play().catch(() => {}) } }}
             onLoadedData={e => { e.currentTarget.play().catch(() => {}) }}
+            onLoadedMetadata={e => {
+              const d = e.currentTarget.duration
+              if (isFinite(d) && d > 0 && capturedVideo) {
+                setVidDiag(`${d.toFixed(1)}s · ${(capturedVideo.blob.size * 8 / d / 1e6).toFixed(1)} Mbit/s · ${(capturedVideo.blob.size / 1e6).toFixed(1)} MB`)
+              }
+            }}
             className="absolute inset-0 w-full h-full object-contain"
             style={{ filter: isBoomEdit && filterCss !== 'none' ? filterCss : undefined }}
           />
+          {/* Temporaere Diagnose: tatsaechliche Encoder-Leistung des Geraets */}
+          {vidDiag && (
+            <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/50 text-white/60 text-[10px] pointer-events-none z-10">
+              {vidDiag}
+            </div>
+          )}
           {/* Sticker: verschiebbar, rastet mittig ein, wird beim Weiter eingebrannt */}
           <StickerOverlay
             color={stickerColor} onColorChange={setStickerColor}
@@ -1884,6 +1909,12 @@ function StoryCreateInner() {
                 </div>
               </div>
             )}
+            {/* Pause-Hinweis */}
+            {recording && recPaused && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold pointer-events-none">
+                ⏸ Pausiert
+              </div>
+            )}
             {/* Zoom-Anzeige */}
             {zoom > 1.05 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/50 text-white text-xs font-semibold pointer-events-none">
@@ -1989,7 +2020,7 @@ function StoryCreateInner() {
       {step === 'capture' && !howtoDismissed && (
         <div
           className="absolute inset-x-4 z-40"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 12px) + 200px)' }}
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 12px) + 330px)' }}
         >
           <div className="rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 p-4">
             <div className="flex items-center justify-between mb-2">
@@ -2034,12 +2065,27 @@ function StoryCreateInner() {
           /* ── CAPTURE: gradient bg so camera shows through, no filter strip ── */
           <div className="bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-6">
             <div className="flex items-center justify-between px-10 pt-2 pb-3">
-              <button
-                onClick={() => galleryInput.current?.click()}
-                className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white/70"
-              >
-                <ImagePlus className="w-6 h-6" />
-              </button>
+              {captureMode === 'video' && recording ? (
+                /* Video: Pause/Weiter - Aufnahme laeuft nach Fortsetzen
+                   weiter, bis Stopp oder die 15s voll sind */
+                <button
+                  onClick={pauseResumeRecording}
+                  className={`w-14 h-14 rounded-2xl border flex items-center justify-center text-white transition-colors ${
+                    recPaused ? 'bg-[#8BB06A] border-[#8BB06A]' : 'bg-white/10 border-white/20'
+                  }`}
+                >
+                  {recPaused
+                    ? <span className="text-xl leading-none">▶</span>
+                    : <span className="text-xl leading-none">⏸</span>}
+                </button>
+              ) : (
+                <button
+                  onClick={() => galleryInput.current?.click()}
+                  className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white/70"
+                >
+                  <ImagePlus className="w-6 h-6" />
+                </button>
+              )}
 
               {/* Ausloeser: Tap = Foto (Story) / Start-Stopp (Video, freihaendig) /
                   Boomerang. Halten in STORY = Video aufnehmen wie bei Instagram.
