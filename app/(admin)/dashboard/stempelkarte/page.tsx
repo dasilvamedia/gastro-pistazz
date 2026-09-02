@@ -21,6 +21,21 @@ interface NfcTag {
 
 function NfcTagsSection() {
   const [tags, setTags] = useState<NfcTag[]>([])
+  // In der App: Tag direkt scannen statt UID per Fremd-App abtippen
+  const [nfcScanBusy, setNfcScanBusy] = useState(false)
+  const nativeNfc = typeof window !== 'undefined'
+    ? (window as unknown as { Capacitor?: { Plugins?: { NfcStamp?: { scan: () => Promise<{ uid: string }> } } } }).Capacitor?.Plugins?.NfcStamp
+    : undefined
+  const scanTagUid = async () => {
+    if (!nativeNfc || nfcScanBusy) return
+    setNfcScanBusy(true)
+    try {
+      const { uid } = await nativeNfc.scan()
+      setNewUid(uid)
+      toast.success('Tag gelesen! UID übernommen.')
+    } catch { /* Nutzer hat abgebrochen oder Lesefehler */ }
+    setNfcScanBusy(false)
+  }
   const [loading, setLoading] = useState(true)
   const [newUid, setNewUid] = useState('')
   const [newLabel, setNewLabel] = useState('')
@@ -61,12 +76,21 @@ function NfcTagsSection() {
       <div>
         <h2 className="font-semibold text-[#1C1F1A]">NFC-Tags (Stempel per Antippen)</h2>
         <p className="text-xs text-gray-500 mt-1">
-          Beschreibe hier die physischen NFC-Karten/-Tags in deinem Restaurant. Die UID liest du mit einer
-          NFC-Tools-App (z.B. auf dem Handy) einmalig vom Tag ab und trägst sie hier ein. Danach vergibt
-          jedes Antippen automatisch einen Stempel, ganz ohne Foto oder Link.
+          Registriere hier die physischen NFC-Karten/-Tags in deinem Restaurant. In der App einfach
+          auf „Tag scannen“ tippen und den Tag ans Handy halten, die UID wird automatisch übernommen.
+          Danach vergibt jedes Antippen durch Gäste automatisch einen Stempel, ganz ohne Foto oder Link.
         </p>
       </div>
 
+      {nativeNfc && (
+        <button
+          onClick={scanTagUid}
+          disabled={nfcScanBusy}
+          className="w-full sm:w-auto px-4 py-2.5 rounded-lg border-2 border-[#8BB06A] text-[#577A3D] text-sm font-bold disabled:opacity-50"
+        >
+          {nfcScanBusy ? 'Halte den Tag ans Handy…' : '📶 Tag scannen (UID automatisch lesen)'}
+        </button>
+      )}
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           value={newUid}

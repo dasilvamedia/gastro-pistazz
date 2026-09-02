@@ -43,6 +43,21 @@ function StempelInner() {
       .then(({ data }) => { if (data) setRestaurant(data as Restaurant) })
   }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // In der App startet der Scan von selbst: Seite oeffnen, Handy an den
+  // Tag halten, fertig - kein Extra-Tap noetig
+  const autoStartedRef = useRef(false)
+  useEffect(() => {
+    if (autoStartedRef.current) return
+    const native = (window as unknown as {
+      Capacitor?: { Plugins?: { NfcStamp?: unknown } }
+    }).Capacitor?.Plugins?.NfcStamp
+    if (!native) return
+    autoStartedRef.current = true
+    const t = setTimeout(() => { startScan() }, 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const submitTag = async (tagUid: string) => {
     try {
       const res = await fetch('/api/nfc/tap', {
