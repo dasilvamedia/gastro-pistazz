@@ -844,13 +844,33 @@ function StoryCreateInner() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Kamera nur EINMAL beim Mount starten. Fruener triggerte jeder
+  // facingMode-Wechsel einen kompletten Neustart (native Preview-View neu
+  // angelegt) - waehrend einer Aufnahme = Schwarzbild + Absturz. Der Wechsel
+  // laeuft jetzt ueber flipCamera() ohne Neustart.
   useEffect(() => {
-    startCamera(facingMode)
+    startCamera(facingRef.current)
     return () => {
       stream?.getTracks().forEach(t => t.stop())
       if (nativeCamRef.current) { getNativeCam()?.stop().catch(() => {}); nativeCamRef.current = false }
     }
-  }, [facingMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Kamera wechseln (Doppeltap + Button): nativ nur den Input tauschen
+  // (flip), Web die Kamera neu starten. Funktioniert auch waehrend einer
+  // laufenden Video-Aufnahme, ohne sie abzureissen.
+  const flipCamera = useCallback(async () => {
+    const nf: 'user' | 'environment' = facingRef.current === 'environment' ? 'user' : 'environment'
+    facingRef.current = nf
+    setFacingMode(nf)
+    if (nativeCamRef.current) {
+      try { await getNativeCam()?.flip() } catch {}
+      return
+    }
+    // Web-Fallback: Stream neu holen
+    stream?.getTracks().forEach(t => t.stop())
+    startCamera(nf)
+  }, [stream]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Belichtungs-Slider steuert bei nativer Kamera die echte Belichtung (EV)
   useEffect(() => {
@@ -1025,7 +1045,7 @@ function StoryCreateInner() {
       // Doppel-Tap: Front/Back wechseln
       lastTapRef.current = 0
       if (singleTapRef.current) { clearTimeout(singleTapRef.current); singleTapRef.current = null }
-      setFacingMode(f => (f === 'environment' ? 'user' : 'environment'))
+      flipCamera()
       return
     }
     lastTapRef.current = now
@@ -1278,11 +1298,13 @@ function StoryCreateInner() {
         const v = document.createElement('video')
         v.src = srcUrl; v.muted = true; v.playsInline = true
         await new Promise<void>((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('load')) })
-        const dur = isFinite(v.duration) && v.duration > 0.2 ? v.duration : 1.2
+        const dur = isFinite(v.duration) && v.duration > 0.2 ? v.duration : 1.4
         const W = 1080, H = 1920
+        // 30 gleichmaessige Frames = smooth genug, ohne den Seek endlos zu machen
+        const N = 30
         const frames: HTMLCanvasElement[] = []
-        for (let i = 0; i < 24; i++) {
-          await new Promise<void>(res => { v.onseeked = () => res(); v.currentTime = Math.min(dur - 0.05, (i / 24) * dur) })
+        for (let i = 0; i < N; i++) {
+          await new Promise<void>(res => { v.onseeked = () => res(); v.currentTime = Math.min(dur - 0.03, (i / N) * dur) })
           const c = document.createElement('canvas'); c.width = W; c.height = H
           const fx = c.getContext('2d')!
           const vw = v.videoWidth || W, vh = v.videoHeight || H
@@ -1293,24 +1315,12 @@ function StoryCreateInner() {
         URL.revokeObjectURL(srcUrl)
         boomFramesRef.current = frames
         capturedNativeRef.current = true
-        // Vorschau-Video aus den Frames (nur Anzeige; geteilt wird der
-        // Single-Encode aus den Rohframes beim Weiter-Schritt)
-        const out = document.createElement('canvas'); out.width = W; out.height = H
-        const octx = out.getContext('2d')!
-        const st = (out as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
-        const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
-        const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 12_000_000 })
-        const chunks: Blob[] = []
-        rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
-        const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
-        rec.start(250)
+        // EIN Vorschau-Encode (ohne Filter/Sticker) ueber den gemeinsamen,
+        // timing-korrekten Encoder. Bei Teilen ohne Filter ist genau DAS
+        // schon das geteilte Video (Sticker geht nativ obendrauf).
         const seq = [...frames, ...frames.slice(1, -1).reverse()]
-        for (let loop = 0; loop < 2; loop++) {
-          for (const f of seq) { octx.drawImage(f, 0, 0); await new Promise(r => setTimeout(r, 34)) }
-        }
-        rec.stop()
-        const blob = await finished
-        setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
+        const { blob } = await encodeFrameSeq(seq, 25, (ctx, f) => ctx.drawImage(f, 0, 0, W, H))
+        setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime: MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm' } })
         ncam.stop().catch(() => {})
         nativeCamRef.current = false; setNativeCam(false)
         setStep('video-edit')
@@ -1388,6 +1398,43 @@ function StoryCreateInner() {
     setBoomBusy(false)
   }
 
+  // Gemeinsamer, schneller Frame-Encoder mit drift-kompensiertem Timing.
+  // captureStream(fps) + exakt fps-getaktetes Zeichnen: die Encode-Dauer
+  // entspricht der Frame-Anzahl / fps -> KEINE Zeitlupe, kein Strecken.
+  const encodeFrameSeq = async (
+    seq: HTMLCanvasElement[],
+    fps: number,
+    onFrame: (ctx: CanvasRenderingContext2D, frame: HTMLCanvasElement) => void,
+    onPct?: (p: number) => void,
+  ): Promise<{ blob: Blob; mime: string }> => {
+    const W = 1080, H = 1920
+    const c = document.createElement('canvas'); c.width = W; c.height = H
+    const ctx = c.getContext('2d')!
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'
+    const cs = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(fps)
+    const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
+    const rec = new MediaRecorder(cs, { mimeType: mime, videoBitsPerSecond: 16_000_000 })
+    const chunks: Blob[] = []
+    rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
+    const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
+    // ersten Frame zeichnen BEVOR die Aufnahme startet (kein Schwarzbild am Anfang)
+    onFrame(ctx, seq[0])
+    rec.start()
+    const frameMs = 1000 / fps
+    const t0 = performance.now()
+    for (let i = 0; i < seq.length; i++) {
+      onFrame(ctx, seq[i])
+      onPct?.(Math.min(99, Math.round(((i + 1) / seq.length) * 100)))
+      const target = t0 + (i + 1) * frameMs
+      const wait = target - performance.now()
+      if (wait > 0) await new Promise(r => setTimeout(r, wait))
+    }
+    // kurz nachlaufen lassen, damit der letzte Frame sicher im Stream ist
+    await new Promise(r => setTimeout(r, 120))
+    rec.stop()
+    return { blob: await done, mime }
+  }
+
   // ── Sticker + Filter fest ins Video einbrennen (Vorschau = geteiltes Video).
   //    Das Video wird dazu einmal durch ein 9:16-Canvas abgespielt und neu
   //    aufgenommen; Ton bleibt ueber WebAudio erhalten. ──
@@ -1438,29 +1485,16 @@ function StoryCreateInner() {
     const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
     const cs = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
 
-    // ── Boomerang: direkt aus den Rohframes encodieren — das Ergebnis ist
-    //    der EINZIGE Encode, Original-Qualitaet ohne Doppel-Kompression ──
+    // ── Boomerang: EIN Encode aus den Rohframes (Filter+Sticker), sauberes
+    //    Timing ueber den gemeinsamen Encoder ──
     if (boomFramesRef.current?.length) {
       const frames = boomFramesRef.current
-      const rec = new MediaRecorder(cs, { mimeType: mime, videoBitsPerSecond: 20_000_000 })
-      const chunks: Blob[] = []
-      rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
-      const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
-      rec.start(250)
       const seq = [...frames, ...frames.slice(1, -1).reverse()]
-      const LOOPS = 2
-      const totalTicks = seq.length * LOOPS
-      let tick = 0
-      for (let loop = 0; loop < LOOPS; loop++) {
-        for (const f of seq) {
-          composeFrame(t => t.drawImage(f, 0, 0, W, H))
-          tick++
-          setBurnPct(Math.min(99, Math.round((tick / totalTicks) * 100)))
-          await new Promise(r => setTimeout(r, 34))
-        }
-      }
-      rec.stop()
-      const blob = await done
+      const { blob } = await encodeFrameSeq(seq, 25, (ctx, f) => {
+        ctx.drawImage(f, 0, 0, W, H)
+        if (op) { if (glf) ctx.drawImage(glf.apply(ctx.canvas), 0, 0); else applyOpPixels(ctx, W, H, op) }
+        if (opts.withSticker) drawSticker(ctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
+      }, setBurnPct)
       const out = { key, blob, mime }
       burnedVideoRef.current = out
       return out
@@ -1569,21 +1603,6 @@ function StoryCreateInner() {
     return c.toDataURL('image/png').split(',')[1]
   }
 
-  // Vorab im HINTERGRUND einbrennen, waehrend der Gast noch schaut/waehlt -
-  // beim Weiter-Tap ist das Video dann meist schon fertig (Cache-Treffer)
-  useEffect(() => {
-    if (step !== 'video-edit' || !capturedVideo) return
-    const isBoom = !!boomFramesRef.current?.length
-    const canNative = hasNativeIG && appBuild >= 10
-    const needsFilterBurn = isBoom || (capturedNativeRef.current && filter !== 'original')
-    if (!needsFilterBurn && canNative) return // Weiter ist ohnehin sofort
-    const t = setTimeout(() => {
-      burnVideoOverlay({ withFilter: needsFilterBurn, withSticker: !canNative }).catch(() => {})
-    }, 600)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, filter, stickerColor, stickerPos, capturedVideo, hasNativeIG, appBuild])
-
   // ── Schritt 1 → 2 ─────────────────────────────────────────────────────
   // Ziel: so wenig Encodes wie moeglich.
   // VIDEO: Filter steckt schon im einzigen Aufnahme-Encode. Ab Build 10
@@ -1595,9 +1614,10 @@ function StoryCreateInner() {
     if (videoShareRef.current) videoBoxDims.current = { w: videoShareRef.current.offsetWidth, h: videoShareRef.current.offsetHeight }
     const isBoom = !!boomFramesRef.current?.length
     const canNative = hasNativeIG && appBuild >= 10
-    // Filter muss nur dann eingebrannt werden, wenn er noch nicht im Video
-    // steckt: Boomerang (Rohframes) und native Aufnahmen mit gewaehltem Filter
-    const needsFilterBurn = isBoom || (capturedNativeRef.current && filter !== 'original')
+    // Re-Encode nur noetig, wenn ein Filter gewaehlt ist ODER die App den
+    // Sticker nicht nativ uebergeben kann. Ohne Filter + faehige App geht das
+    // aufgenommene Video (auch Boomerang) unangetastet raus, Sticker nativ.
+    const needsFilterBurn = filter !== 'original' || !canNative
     if (!needsFilterBurn && canNative) {
       setStickerNative(true)
       setBurnedVideo(prev => {
@@ -1608,6 +1628,7 @@ function StoryCreateInner() {
       return
     }
     setStickerNative(canNative)
+    setBurnPct(0)
     setVideoBusy(true)
     try {
       const b = await burnVideoOverlay({ withFilter: needsFilterBurn, withSticker: !canNative })
@@ -1621,6 +1642,7 @@ function StoryCreateInner() {
       toast.error('Vorbereiten fehlgeschlagen, bitte nochmal versuchen')
     }
     setVideoBusy(false)
+    setBurnPct(0)
   }
 
   // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
@@ -1630,7 +1652,7 @@ function StoryCreateInner() {
     let share: { blob: Blob; mime: string } | null = burnedVideo
     if (!share && capturedVideo) {
       setVideoBusy(true)
-      try { share = await burnVideoOverlay({ withFilter: !!boomFramesRef.current?.length || (capturedNativeRef.current && filter !== 'original'), withSticker: !stickerNative }) } catch { share = capturedVideo }
+      try { share = await burnVideoOverlay({ withFilter: filter !== 'original', withSticker: !stickerNative }) } catch { share = capturedVideo }
       setVideoBusy(false)
     }
     if (!share) return
@@ -2285,7 +2307,7 @@ function StoryCreateInner() {
 
         {step === 'capture' ? (
           <button
-            onClick={() => setFacingMode(f => f === 'environment' ? 'user' : 'environment')}
+            onClick={() => flipCamera()}
             className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
           >
             <FlipHorizontal className="w-5 h-5" />

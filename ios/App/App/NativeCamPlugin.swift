@@ -154,11 +154,40 @@ public class NativeCamPlugin: CAPPlugin, CAPBridgedPlugin, AVCaptureFileOutputRe
         }
     }
 
+    /// Kamera wechseln, ohne die Session komplett neu zu bauen: NUR den
+    /// Video-Input tauschen. Outputs (movieOutput, photoOutput) bleiben
+    /// erhalten - eine LAUFENDE Aufnahme wird dadurch nicht abgerissen, das
+    /// war die Ursache fuer Schwarzbild/Absturz beim Doppeltap.
     @objc func flip(_ call: CAPPluginCall) {
         position = (position == .back) ? .front : .back
         sessionQueue.async { [weak self] in
-            self?.configureSession()
-            call.resolve(["position": self?.position == .front ? "front" : "back"])
+            guard let self = self else { return }
+            self.session.beginConfiguration()
+            if let old = self.videoInput { self.session.removeInput(old) }
+            if let cam = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.position),
+               let vIn = try? AVCaptureDeviceInput(device: cam),
+               self.session.canAddInput(vIn) {
+                self.session.addInput(vIn)
+                self.videoInput = vIn
+                do {
+                    try cam.lockForConfiguration()
+                    cam.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+                    cam.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
+                    cam.unlockForConfiguration()
+                } catch {}
+            }
+            // Spiegelung/Orientierung der bestehenden Outputs aktualisieren
+            if let conn = self.movieOutput.connection(with: .video) {
+                conn.videoOrientation = .portrait
+                if conn.isVideoMirroringSupported { conn.isVideoMirrored = (self.position == .front) }
+                if conn.isVideoStabilizationSupported { conn.preferredVideoStabilizationMode = .cinematic }
+            }
+            if let c = self.photoOutput.connection(with: .video) {
+                c.videoOrientation = .portrait
+                if c.isVideoMirroringSupported { c.isVideoMirrored = (self.position == .front) }
+            }
+            self.session.commitConfiguration()
+            call.resolve(["position": self.position == .front ? "front" : "back"])
         }
     }
 

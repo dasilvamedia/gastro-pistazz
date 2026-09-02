@@ -262,8 +262,11 @@ export default function FavoritenPage() {
   )
 
   return (
-    <div className="min-h-dvh bg-[#F5F9F0] pb-28" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
-      <div className="max-w-md mx-auto px-4">
+    <div
+      className={`bg-[#F5F9F0] ${tab === 'swipe' ? 'fixed inset-0 overflow-hidden flex flex-col' : 'min-h-dvh pb-28'}`}
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', ...(tab === 'swipe' ? { paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)' } : {}) }}
+    >
+      <div className={`max-w-md w-full mx-auto px-4 ${tab === 'swipe' ? 'flex-1 flex flex-col min-h-0' : ''}`}>
 
         <h1 className="text-2xl text-[#1C1F1A] mb-4" style={{ fontFamily: 'DM Serif Display, serif' }}>
           {tab === 'swipe' ? 'Entdecke deine Lieblinge' : 'Meine Favoriten'}
@@ -288,7 +291,7 @@ export default function FavoritenPage() {
           <div className="h-[420px] rounded-3xl skeleton" />
         ) : tab === 'swipe' ? (
           <>
-            <div className="relative h-[56dvh] max-h-[520px] select-none">
+            <div className="relative flex-1 min-h-0 select-none">
               {top ? (
                 <>
                   {next && (
