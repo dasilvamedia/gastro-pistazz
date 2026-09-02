@@ -119,7 +119,7 @@ export default function AnfragePage() {
         </h1>
         <p className="text-[#1C1F1A]/55 text-base leading-relaxed max-w-lg mx-auto">
           Füll das Formular aus, wir melden uns persönlich innerhalb von 24 Stunden.
-          Kein Vertrag, kein Risiko. 90 Tage Geld-zurück-Garantie.
+          Kein Vertrag, kein Risiko. 30 Tage Geld-zurück-Garantie.
         </p>
 
         {/* Trust badges */}

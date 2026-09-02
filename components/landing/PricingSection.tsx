@@ -34,7 +34,7 @@ export function PricingSection() {
             {p.sub}
           </p>
           <div className="mt-6 inline-flex items-center gap-2 bg-white border border-[var(--ind-primary)]/30 rounded-full px-5 py-2 shadow-sm">
-            <span className="text-2xl font-bold text-[var(--ind-primary-dark)]" style={{ fontFamily: 'DM Serif Display, serif' }}>90</span>
+            <span className="text-2xl font-bold text-[var(--ind-primary-dark)]" style={{ fontFamily: 'DM Serif Display, serif' }}>30</span>
             <span className="text-sm text-[#1C1F1A]/60 font-medium">{p.guarantee}</span>
           </div>
         </motion.div>

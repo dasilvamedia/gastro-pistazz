@@ -66,7 +66,7 @@ export const translations = {
     pricing: {
       label: 'Drei Wege. Ein Ziel.',
       h2: 'Wähle deinen Weg',
-      sub: 'Alle Pakete beinhalten 1 Restaurant und die 90-Tage-Geld-zurück-Garantie.',
+      sub: 'Alle Pakete beinhalten 1 Restaurant und die 30-Tage-Geld-zurück-Garantie.',
       guarantee: 'Tage Geld-zurück-Garantie',
       perMonth: '/ Monat',
       ctaBtn: 'Jetzt starten',
@@ -161,8 +161,8 @@ export const translations = {
     guarantee: {
       label: 'Unsere Garantie',
       days: 'Tage Garantie',
-      h2: '90 Tage Geld-zurück-Garantie',
-      p: 'Wir sind von gastro.gastro.pistazz.io überzeugt und du solltest es auch sein. Wenn du innerhalb von 90 Tagen nicht zufrieden bist, erstatten wir dir jeden Cent. Kein Kleingedrucktes, keine Fragen.',
+      h2: '30 Tage Geld-zurück-Garantie',
+      p: 'Wir sind von gastro.gastro.pistazz.io überzeugt und du solltest es auch sein. Wenn du innerhalb von 30 Tagen nicht zufrieden bist, erstatten wir dir jeden Cent. Kein Kleingedrucktes, keine Fragen.',
       items: ['Keine Fragen', 'Volle Erstattung', 'Sofort wirksam'],
     },
     faq: {
@@ -183,8 +183,8 @@ export const translations = {
           a: 'Ja. gastro.pistazz.io ist monatlich kündbar ohne Mindestlaufzeit. Deine Gästedaten kannst du vor der Kündigung exportieren.',
         },
         {
-          q: 'Was ist die 90-Tage-Garantie genau?',
-          a: 'Wenn du innerhalb von 90 Tagen nach deiner Buchung nicht zufrieden bist, erstatten wir dir den vollen bezahlten Betrag. Kein Kleingedrucktes, keine Bedingungen, keine Fragen.',
+          q: 'Was ist die 30-Tage-Garantie genau?',
+          a: 'Wenn du innerhalb von 30 Tagen nach deiner Buchung nicht zufrieden bist, erstatten wir dir den vollen bezahlten Betrag. Kein Kleingedrucktes, keine Bedingungen, keine Fragen.',
         },
         {
           q: 'Funktioniert das auch für mein Café oder meinen Biergarten?',
@@ -280,7 +280,7 @@ export const translations = {
     pricing: {
       label: 'Três caminhos. Um objetivo.',
       h2: 'Escolha seu caminho',
-      sub: 'Todos os planos incluem 1 restaurante e garantia de 90 dias.',
+      sub: 'Todos os planos incluem 1 restaurante e garantia de 30 dias.',
       guarantee: 'dias de garantia',
       perMonth: '/ mês',
       ctaBtn: 'Começar agora',
@@ -375,8 +375,8 @@ export const translations = {
     guarantee: {
       label: 'Nossa Garantia',
       days: 'Dias de Garantia',
-      h2: 'Garantia de 90 dias sem risco',
-      p: 'Estamos convictos do gastro.pistazz.io e você também deve estar. Se não estiver satisfeito em 90 dias, devolvemos cada centavo. Sem letras miúdas, sem perguntas.',
+      h2: 'Garantia de 30 dias sem risco',
+      p: 'Estamos convictos do gastro.pistazz.io e você também deve estar. Se não estiver satisfeito em 30 dias, devolvemos cada centavo. Sem letras miúdas, sem perguntas.',
       items: ['Sem perguntas', 'Reembolso total', 'Efeito imediato'],
     },
     faq: {
@@ -397,8 +397,8 @@ export const translations = {
           a: 'Sim. O gastro.pistazz.io tem cancelamento mensal sem fidelidade mínima. Você pode exportar os dados dos seus clientes antes de cancelar.',
         },
         {
-          q: 'O que é exatamente a garantia de 90 dias?',
-          a: 'Se você não estiver satisfeito nos 90 dias após a contratação, devolvemos o valor total pago. Sem letras miúdas, sem condições, sem perguntas.',
+          q: 'O que é exatamente a garantia de 30 dias?',
+          a: 'Se você não estiver satisfeito nos 30 dias após a contratação, devolvemos o valor total pago. Sem letras miúdas, sem condições, sem perguntas.',
         },
         {
           q: 'Funciona para café ou biergarten também?',
@@ -494,7 +494,7 @@ export const translations = {
     pricing: {
       label: 'Three ways. One goal.',
       h2: 'Choose your path',
-      sub: 'All plans include 1 restaurant and the 90-day money-back guarantee.',
+      sub: 'All plans include 1 restaurant and the 30-day money-back guarantee.',
       guarantee: 'day money-back guarantee',
       perMonth: '/ month',
       ctaBtn: 'Get started',
@@ -589,8 +589,8 @@ export const translations = {
     guarantee: {
       label: 'Our Guarantee',
       days: 'Day Guarantee',
-      h2: '90-day money-back guarantee',
-      p: 'We believe in gastro.pistazz.io and you should too. If you are not satisfied within 90 days, we refund every cent. No fine print, no questions asked.',
+      h2: '30-day money-back guarantee',
+      p: 'We believe in gastro.pistazz.io and you should too. If you are not satisfied within 30 days, we refund every cent. No fine print, no questions asked.',
       items: ['No questions asked', 'Full refund', 'Immediate effect'],
     },
     faq: {
@@ -611,8 +611,8 @@ export const translations = {
           a: 'Yes. gastro.pistazz.io is billed monthly with no minimum term. You can export your guest data before cancelling.',
         },
         {
-          q: 'What exactly is the 90-day guarantee?',
-          a: 'If you are not satisfied within 90 days of signing up, we refund the full amount paid. No fine print, no conditions, no questions.',
+          q: 'What exactly is the 30-day guarantee?',
+          a: 'If you are not satisfied within 30 days of signing up, we refund the full amount paid. No fine print, no conditions, no questions.',
         },
         {
           q: 'Does it work for my café or beer garden too?',

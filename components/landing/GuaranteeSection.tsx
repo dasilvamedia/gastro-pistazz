@@ -26,7 +26,7 @@ export function GuaranteeSection() {
                 <circle cx="72" cy="72" r="56" fill="var(--ind-primary)" />
               </svg>
               <div className="relative z-10 text-center">
-                <p className="text-white text-4xl font-bold leading-none" style={{ fontFamily: 'DM Serif Display, serif' }}>90</p>
+                <p className="text-white text-4xl font-bold leading-none" style={{ fontFamily: 'DM Serif Display, serif' }}>30</p>
                 <p className="text-white/80 text-[10px] uppercase tracking-widest font-bold mt-0.5">{g.days}</p>
               </div>
             </div>

@@ -3,13 +3,8 @@ import { Navbar } from './Navbar'
 import { HeroSection } from './HeroSection'
 import { IndustryProvider } from './IndustryContext'
 import { IndustrySwitcher } from './IndustrySwitcher'
-import { HowItWorksSection } from './HowItWorksSection'
-import { FeaturesSection } from './FeaturesSection'
-import { PricingSection } from './PricingSection'
-import { ROISection } from './ROISection'
-import { GuaranteeSection } from './GuaranteeSection'
-import { FAQSection } from './FAQSection'
-import { CTASection } from './CTASection'
+import { ProblemSection, SystemSection, ScenariosSection } from './StorySections'
+import { PricingV2, LiveFeedSection, TimelineSection, CompareSection, FaqV2, FinalCTA } from './ProofSections'
 import { Footer } from './Footer'
 
 /**
@@ -24,13 +19,18 @@ export function LandingShell({ industrySlug }: { industrySlug?: string }) {
         <main>
           <HeroSection />
           <IndustrySwitcher />
-          <HowItWorksSection />
-          <FeaturesSection />
-          <PricingSection />
-          <ROISection />
-          <GuaranteeSection />
-          <FAQSection />
-          <CTASection />
+          {/* Redaktioneller V2-Aufbau: Problem, System, Für wen, Pakete,
+              Live-Feed, Pfad, Vergleich, FAQ, CTA. Der ROI-Rechner der
+              Vorlage entfaellt bewusst. */}
+          <ProblemSection />
+          <SystemSection />
+          <ScenariosSection />
+          <PricingV2 />
+          <LiveFeedSection />
+          <TimelineSection />
+          <CompareSection />
+          <FaqV2 />
+          <FinalCTA />
         </main>
         <Footer />
       </IndustryProvider>
