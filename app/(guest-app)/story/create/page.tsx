@@ -23,6 +23,151 @@ const STICKER_STYLES: Record<StickerColor, { bg: string; grad?: [string, string]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CSS-Filter auf Canvas: WebKit (iOS-App) ignoriert ctx.filter stillschweigend —
+// deshalb einmal testen und andernfalls die Filterkette (brightness/contrast/
+// saturate/sepia/grayscale/hue-rotate) pixelgenau selbst rechnen. Nur so ist
+// der Export garantiert identisch mit der CSS-Vorschau.
+// ─────────────────────────────────────────────────────────────────────────────
+let _ctxFilterOk: boolean | null = null
+function ctxFilterSupported(): boolean {
+  if (_ctxFilterOk !== null) return _ctxFilterOk
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 1
+    const x = c.getContext('2d')!
+    x.filter = 'brightness(0.5)'
+    _ctxFilterOk = x.filter === 'brightness(0.5)'
+  } catch { _ctxFilterOk = false }
+  return _ctxFilterOk
+}
+
+type ColorOp = { m: number[]; o: number[] } // 3x3-Matrix (zeilenweise) + Offset
+const LUM = [0.2126, 0.7152, 0.0722]
+const identOp = (): ColorOp => ({ m: [1,0,0, 0,1,0, 0,0,1], o: [0,0,0] })
+const composeOps = (a: ColorOp, b: ColorOp): ColorOp => {
+  // erst a, dann b anwenden
+  const m = new Array(9).fill(0), o = [...b.o]
+  for (let r = 0; r < 3; r++) for (let cIdx = 0; cIdx < 3; cIdx++) {
+    for (let k = 0; k < 3; k++) m[r*3+cIdx] += b.m[r*3+k] * a.m[k*3+cIdx]
+    o[r] += b.m[r*3+cIdx] * a.o[cIdx]
+  }
+  return { m, o }
+}
+function cssFilterToOp(css: string): ColorOp {
+  let op = identOp()
+  const re = /(brightness|contrast|saturate|sepia|grayscale|hue-rotate)\(([^)]+)\)/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(css))) {
+    const fn = match[1]
+    const v = parseFloat(match[2])
+    let next: ColorOp | null = null
+    if (fn === 'brightness') next = { m: [v,0,0, 0,v,0, 0,0,v], o: [0,0,0] }
+    else if (fn === 'contrast') { const off = (0.5 - v / 2) * 255; next = { m: [v,0,0, 0,v,0, 0,0,v], o: [off,off,off] } }
+    else if (fn === 'saturate' || fn === 'grayscale') {
+      const s = fn === 'saturate' ? v : 1 - v
+      const m: number[] = []
+      for (let r = 0; r < 3; r++) for (let cIdx = 0; cIdx < 3; cIdx++)
+        m.push(LUM[cIdx] * (1 - s) + (r === cIdx ? s : 0))
+      next = { m, o: [0,0,0] }
+    } else if (fn === 'sepia') {
+      const S = [0.393,0.769,0.189, 0.349,0.686,0.168, 0.272,0.534,0.131]
+      const m = S.map((sv, i) => sv * v + ((i % 4 === 0) ? 1 - v : 0))
+      next = { m, o: [0,0,0] }
+    } else if (fn === 'hue-rotate') {
+      const rad = (v * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad)
+      next = { m: [
+        0.213+cos*0.787-sin*0.213, 0.715-cos*0.715-sin*0.715, 0.072-cos*0.072+sin*0.928,
+        0.213-cos*0.213+sin*0.143, 0.715+cos*0.285+sin*0.140, 0.072-cos*0.072-sin*0.283,
+        0.213-cos*0.213-sin*0.787, 0.715-cos*0.715+sin*0.715, 0.072+cos*0.928+sin*0.072,
+      ], o: [0,0,0] }
+    }
+    if (next) op = composeOps(op, next)
+  }
+  return op
+}
+function applyFilterPixels(ctx: CanvasRenderingContext2D, w: number, h: number, css: string) {
+  if (!css || css === 'none') return
+  const { m, o } = cssFilterToOp(css)
+  const img = ctx.getImageData(0, 0, w, h)
+  const d = img.data
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2]
+    d[i]   = Math.max(0, Math.min(255, m[0]*r + m[1]*g + m[2]*b + o[0]))
+    d[i+1] = Math.max(0, Math.min(255, m[3]*r + m[4]*g + m[5]*b + o[1]))
+    d[i+2] = Math.max(0, Math.min(255, m[6]*r + m[7]*g + m[8]*b + o[2]))
+  }
+  ctx.putImageData(img, 0, 0)
+}
+// Filter auf das ganze Canvas anwenden — nativ wenn moeglich, sonst Pixel-Pfad
+function burnFilter(ctx: CanvasRenderingContext2D, w: number, h: number, css: string) {
+  if (!css || css === 'none') return
+  if (ctxFilterSupported()) {
+    const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h
+    tmp.getContext('2d')!.drawImage(ctx.canvas, 0, 0)
+    ctx.filter = css
+    ctx.drawImage(tmp, 0, 0)
+    ctx.filter = 'none'
+  } else {
+    applyFilterPixels(ctx, w, h, css)
+  }
+}
+
+// Pistazz-Sticker auf ein Story-Canvas zeichnen (geteilt von Foto-Export
+// und Video-Einbrennen) — cx/cy sind Canvas-Koordinaten des Mittelpunkts
+function drawSticker(
+  ctx: CanvasRenderingContext2D, W: number, H: number,
+  stickerColor: StickerColor, sCx: number, sCy: number, stickerScale: number,
+) {
+  const stStyle = STICKER_STYLES[stickerColor]
+  const baseW = W * 0.44, baseH = H * 0.082
+  const sW = baseW * stickerScale
+  const sH = baseH * stickerScale
+  const sX = sCx - sW / 2
+  const sY = sCy - sH / 2
+  ctx.shadowColor   = 'rgba(0,0,0,0.35)'
+  ctx.shadowBlur    = 28
+  ctx.shadowOffsetY = 10
+  if (stStyle.grad) {
+    const g = ctx.createLinearGradient(sX, sY, sX + sW, sY + sH)
+    g.addColorStop(0, stStyle.grad[0])
+    g.addColorStop(1, stStyle.grad[1])
+    ctx.fillStyle = g
+  } else {
+    ctx.fillStyle = stStyle.bg
+  }
+  ctx.beginPath()
+  ctx.roundRect(sX, sY, sW, sH, sH * 0.32)
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
+  ctx.strokeStyle = stStyle.border
+  ctx.lineWidth   = 2
+  ctx.stroke()
+
+  ctx.fillStyle    = stStyle.text + 'B3'
+  ctx.font         = `600 ${W * 0.019 * stickerScale}px -apple-system, sans-serif`
+  ctx.textAlign    = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('P O W E R E D  B Y', sCx, sY + sH * 0.30)
+
+  ctx.fillStyle = stStyle.text
+  ctx.font      = `bold ${W * 0.040 * stickerScale}px 'DM Serif Display', Georgia, serif`
+  ctx.fillText('gastro.pistazz.io', sCx, sY + sH * 0.68)
+}
+
+// Normalisierte Container-Position (0-1) → Position auf dem 9:16-Canvas
+function remapToStoryCanvas(nx: number, ny: number, containerW: number, containerH: number, W: number, H: number) {
+  const safeW_c = Math.min(containerW, containerH * (9 / 16))
+  const safeH_c = Math.min(containerH, containerW * (16 / 9))
+  const safeL   = (containerW - safeW_c) / 2 / containerW
+  const safeT   = (containerH - safeH_c) / 2 / containerH
+  return {
+    cx: ((nx - safeL) / (safeW_c / containerW)) * W,
+    cy: ((ny - safeT) / (safeH_c / containerH)) * H,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Canvas export: draws image + filter + sticker + text overlays + tag pill
 // ─────────────────────────────────────────────────────────────────────────────
 async function exportCanvas(
@@ -54,20 +199,32 @@ async function exportCanvas(
       const iW = img.naturalWidth  || 1080
       const iH = img.naturalHeight || 1920
 
-      // Hintergrund: Bild als Cover + kraeftiger Blur (wie Instagram)
+      // Hintergrund: Bild als Cover + kraeftiger Blur (wie Instagram).
+      // WebKit kann ctx.filter='blur()' nicht — Downscale/Upscale ergibt
+      // denselben weichen Look und funktioniert ueberall.
       const cScale = Math.max(W / iW, H / iH)
-      ctx.filter = 'blur(48px)'
-      ctx.drawImage(img, (W - iW * cScale) / 2, (H - iH * cScale) / 2, iW * cScale, iH * cScale)
-      ctx.filter = ''
+      if (ctxFilterSupported()) {
+        ctx.filter = 'blur(48px)'
+        ctx.drawImage(img, (W - iW * cScale) / 2, (H - iH * cScale) / 2, iW * cScale, iH * cScale)
+        ctx.filter = 'none'
+      } else {
+        const t = document.createElement('canvas')
+        t.width = Math.max(2, Math.round(W / 24)); t.height = Math.max(2, Math.round(H / 24))
+        const tx = t.getContext('2d')!
+        tx.imageSmoothingEnabled = true
+        const ts = Math.max(t.width / iW, t.height / iH)
+        tx.drawImage(img, (t.width - iW * ts) / 2, (t.height - iH * ts) / 2, iW * ts, iH * ts)
+        ctx.drawImage(t, 0, 0, W, H)
+      }
       ctx.fillStyle = 'rgba(0,0,0,0.18)'
       ctx.fillRect(0, 0, W, H)
 
-      // Vordergrund: das komplette Original, scharf und unbeschnitten
+      // Vordergrund: das komplette Original, scharf und unbeschnitten;
+      // danach den gewaehlten Filter fest einbrennen (Vorschau = Export)
       const fScale = Math.min(W / iW, H / iH)
       const dW = iW * fScale, dH = iH * fScale
-      ctx.filter = filterCss === 'none' ? '' : filterCss
       ctx.drawImage(img, (W - dW) / 2, (H - dH) / 2, dW, dH)
-      ctx.filter = ''
+      burnFilter(ctx, W, H, filterCss)
 
       // Helper: remap a normalised (0-1) screen position to the 9:16 canvas position.
       // When the container IS 9:16 this is identity; when wider/taller we offset into the safe zone.
@@ -83,44 +240,8 @@ async function exportCanvas(
       })
 
       // 2. Pistazz sticker at user-defined position + scale (remapped to canvas)
-      const stStyle = STICKER_STYLES[stickerColor]
       const { cx: sCx, cy: sCy } = toCanvas(stickerX, stickerY)
-      const baseW = W * 0.44, baseH = H * 0.082
-      const sW = baseW * stickerScale
-      const sH = baseH * stickerScale
-      const sX = sCx - sW / 2
-      const sY = sCy - sH / 2
-      // Weicher Schatten fuer den "Sticker liegt auf dem Foto"-Look
-      ctx.shadowColor   = 'rgba(0,0,0,0.35)'
-      ctx.shadowBlur    = 28
-      ctx.shadowOffsetY = 10
-      if (stStyle.grad) {
-        const g = ctx.createLinearGradient(sX, sY, sX + sW, sY + sH)
-        g.addColorStop(0, stStyle.grad[0])
-        g.addColorStop(1, stStyle.grad[1])
-        ctx.fillStyle = g
-      } else {
-        ctx.fillStyle = stStyle.bg
-      }
-      ctx.beginPath()
-      ctx.roundRect(sX, sY, sW, sH, sH * 0.32)
-      ctx.fill()
-      ctx.shadowColor = 'transparent'
-      ctx.shadowBlur = 0
-      ctx.shadowOffsetY = 0
-      ctx.strokeStyle = stStyle.border
-      ctx.lineWidth   = 2
-      ctx.stroke()
-
-      ctx.fillStyle    = stStyle.text + 'B3'
-      ctx.font         = `600 ${W * 0.019 * stickerScale}px -apple-system, sans-serif`
-      ctx.textAlign    = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('P O W E R E D  B Y', sCx, sY + sH * 0.30)
-
-      ctx.fillStyle = stStyle.text
-      ctx.font      = `bold ${W * 0.040 * stickerScale}px 'DM Serif Display', Georgia, serif`
-      ctx.fillText('gastro.pistazz.io', sCx, sY + sH * 0.68)
+      drawSticker(ctx, W, H, stickerColor, sCx, sCy, stickerScale)
 
       // 4. Text overlays (remapped from screen coords to canvas coords)
       textBlocks.forEach(block => {
@@ -424,7 +545,8 @@ function StoryCreateInner() {
   const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'video-share' | 'success'>('capture')
   const [copiedTags, setCopiedTags] = useState<Record<string, boolean>>({})
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
-    typeof window !== 'undefined' && sessionStorage.getItem('storyHowto') === '1')
+    typeof window !== 'undefined'
+    && (sessionStorage.getItem('storyHowto') === '1' || localStorage.getItem('storyHowtoNever') === '1'))
   const [camError, setCamError] = useState(false)
   const [exportedBlob,    setExportedBlob]    = useState<Blob | null>(null)
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null)
@@ -453,7 +575,10 @@ function StoryCreateInner() {
   const [recPaused, setRecPaused] = useState(false)
   const recPausedRef  = useRef(false)
   const [boomPhase, setBoomPhase] = useState<null | 'rec' | 'enc'>(null)
-  const [camDiag, setCamDiag] = useState('')
+  // Video-Vorschau: Sticker/Filter werden erst beim Teilen ins Video eingebrannt
+  const videoShareRef = useRef<HTMLDivElement>(null)
+  const [videoBusy, setVideoBusy] = useState(false)
+  const burnedVideoRef = useRef<{ key: string; blob: Blob; mime: string } | null>(null)
   // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
   // waehrend der Aufnahme mitbekommt
   const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
@@ -522,9 +647,6 @@ function StoryCreateInner() {
         const oneX = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1))
         track.applyConstraints({ advanced: [{ zoom: oneX } as unknown as MediaTrackConstraintSet] }).catch(() => {})
       }
-      // Diagnose: Objektiv + Aufloesung + Zoom-Range, die iOS wirklich liefert
-      const vt = track?.getSettings?.() as (MediaTrackSettings & { zoom?: number }) | undefined
-      setCamDiag(`${track?.label ?? '?'} · ${vt?.width}×${vt?.height}${caps?.zoom ? ` · z${caps.zoom.min}-${caps.zoom.max}` : ''}`)
       if (videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play().catch(() => {}) }
       // Register push after camera permission granted (both are user gestures)
       setupPush()
@@ -585,11 +707,13 @@ function StoryCreateInner() {
     ctx.imageSmoothingQuality = 'high'
 
     if (facingMode === 'user') { ctx.translate(1080, 0); ctx.scale(-1, 1) }
-    // Belichtungs-Anpassung (Tap auf die Flaeche) wird ins Foto eingebacken
+    ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, 1080, 1920)
+    ctx.resetTransform()
+    // Belichtungs-Anpassung (Tap auf die Flaeche) wird ins Foto eingebacken —
+    // ueber den Pixel-Pfad, weil WebKit ctx.filter ignoriert
     const bFilter = brightness !== 1 ? `brightness(${brightness})` : ''
     const combined = [filterCss === 'none' ? '' : filterCss, bFilter].filter(Boolean).join(' ')
-    ctx.filter = combined || 'none'
-    ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, 1080, 1920)
+    if (combined) burnFilter(ctx, 1080, 1920, combined)
 
     stream?.getTracks().forEach(t => t.stop()); setStream(null)
     setCapturedSrc(canvas.toDataURL('image/jpeg', 0.95))
@@ -723,9 +847,20 @@ function StoryCreateInner() {
         if (z > 1) { const nw = sw / z, nh = sh / z; sx += (sw - nw) / 2; sy += (sh - nh) / 2; sw = nw; sh = nh }
         cx.save()
         if (facingRef.current === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
-        cx.filter = brightRef.current !== 1 ? `brightness(${brightRef.current})` : 'none'
         cx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
         cx.restore()
+        // Belichtung als schnelles Overlay (ctx.filter kann WebKit nicht;
+        // ein Pixel-Pass waere bei 30fps zu langsam)
+        const b = brightRef.current
+        if (b < 1) {
+          cx.fillStyle = `rgba(0,0,0,${Math.min(0.85, 1 - b)})`
+          cx.fillRect(0, 0, W, H)
+        } else if (b > 1) {
+          cx.globalCompositeOperation = 'lighter'
+          cx.fillStyle = `rgba(255,255,255,${Math.min(0.6, (b - 1) * 0.55)})`
+          cx.fillRect(0, 0, W, H)
+          cx.globalCompositeOperation = 'source-over'
+        }
       }
       if (!drawActiveRef.current) return
       const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }
@@ -821,8 +956,17 @@ function StoryCreateInner() {
         const c = document.createElement('canvas'); c.width = W; c.height = H
         const cx = c.getContext('2d')!
         if (facingMode === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
-        cx.filter = brightness !== 1 ? `brightness(${brightness})` : 'none'
         cx.drawImage(video, sx, sy, zw, zh, 0, 0, W, H)
+        cx.resetTransform()
+        if (brightness < 1) {
+          cx.fillStyle = `rgba(0,0,0,${Math.min(0.85, 1 - brightness)})`
+          cx.fillRect(0, 0, W, H)
+        } else if (brightness > 1) {
+          cx.globalCompositeOperation = 'lighter'
+          cx.fillStyle = `rgba(255,255,255,${Math.min(0.6, (brightness - 1) * 0.55)})`
+          cx.fillRect(0, 0, W, H)
+          cx.globalCompositeOperation = 'source-over'
+        }
         frames.push(c)
         await new Promise(r => setTimeout(r, 42))
       }
@@ -852,9 +996,90 @@ function StoryCreateInner() {
     setBoomBusy(false)
   }
 
+  // ── Sticker + Filter fest ins Video einbrennen (Vorschau = geteiltes Video).
+  //    Das Video wird dazu einmal durch ein 9:16-Canvas abgespielt und neu
+  //    aufgenommen; Ton bleibt ueber WebAudio erhalten. ──
+  const burnVideoOverlay = async (): Promise<{ blob: Blob; mime: string }> => {
+    const src = capturedVideo!
+    const key = `${src.url}|${filter}|${stickerColor}|${stickerPos.x.toFixed(3)},${stickerPos.y.toFixed(3)},${stickerPos.scale.toFixed(2)}`
+    if (burnedVideoRef.current?.key === key) return burnedVideoRef.current
+
+    const v = document.createElement('video')
+    v.src = src.url
+    v.playsInline = true
+    v.muted = false
+    await new Promise<void>((res, rej) => {
+      v.onloadedmetadata = () => res()
+      v.onerror = () => rej(new Error('Video laden fehlgeschlagen'))
+    })
+
+    const W = 1080, H = 1920
+    const c = document.createElement('canvas'); c.width = W; c.height = H
+    const bctx = c.getContext('2d')!
+    bctx.imageSmoothingEnabled = true
+    bctx.imageSmoothingQuality = 'high'
+    const cont = videoShareRef.current
+    const cW = cont?.offsetWidth ?? 390, cH = cont?.offsetHeight ?? 844
+    const { cx: sCx, cy: sCy } = remapToStoryCanvas(stickerPos.x, stickerPos.y, cW, cH, W, H)
+    const filterOk = ctxFilterSupported()
+    const usePixelFilter = !filterOk && filterCss !== 'none'
+
+    const cs = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
+    const tracks: MediaStreamTrack[] = [cs.getVideoTracks()[0]]
+    let ac: AudioContext | null = null
+    try {
+      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      ac = new AC()
+      const node = ac.createMediaElementSource(v)
+      const dest = ac.createMediaStreamDestination()
+      node.connect(dest)
+      const at = dest.stream.getAudioTracks()[0]
+      if (at) tracks.push(at)
+    } catch { /* ohne Ton weiter (Boomerang hat sowieso keinen) */ }
+
+    const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
+    const rec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 256_000 })
+    const chunks: Blob[] = []
+    rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
+    const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
+
+    let active = true
+    const draw = () => {
+      if (!active) return
+      const vW = v.videoWidth || W, vH = v.videoHeight || H
+      const cover = Math.max(W / vW, H / vH)
+      const dw = vW * cover, dh = vH * cover
+      if (filterOk && filterCss !== 'none') bctx.filter = filterCss
+      bctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh)
+      bctx.filter = 'none'
+      if (usePixelFilter) applyFilterPixels(bctx, W, H, filterCss)
+      drawSticker(bctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
+      const vv = v as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }
+      if (vv.requestVideoFrameCallback) vv.requestVideoFrameCallback(draw)
+      else requestAnimationFrame(draw)
+    }
+    v.onended = () => {
+      active = false
+      setTimeout(() => { try { rec.stop() } catch {} ; ac?.close().catch(() => {}) }, 150)
+    }
+    rec.start(250)
+    await v.play()
+    draw()
+    const blob = await done
+    const out = { key, blob, mime }
+    burnedVideoRef.current = out
+    return out
+  }
+
   // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
   const shareVideoToIG = async () => {
-    if (!capturedVideo) return
+    if (!capturedVideo || videoBusy) return
+    setVideoBusy(true)
+    // Sticker/Filter einbrennen; wenn das schiefgeht, Original teilen
+    let share: { blob: Blob; mime: string } = capturedVideo
+    try { share = await burnVideoOverlay() } catch { /* Original als Fallback */ }
+    setVideoBusy(false)
+
     const native = (window as unknown as {
       Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string }) => Promise<{ shared: boolean }> } } }
     }).Capacitor?.Plugins?.InstagramStory
@@ -864,14 +1089,14 @@ function StoryCreateInner() {
           const r = new FileReader()
           r.onload = () => res((r.result as string).split(',')[1])
           r.onerror = rej
-          r.readAsDataURL(capturedVideo.blob)
+          r.readAsDataURL(share.blob)
         })
         const out = await native.shareVideo({ base64, appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097' })
         if (out?.shared) return
       } catch { /* Fallback unten */ }
     }
-    const ext = capturedVideo.mime.includes('mp4') ? 'mp4' : 'webm'
-    const file = new File([capturedVideo.blob], `pistazz-story.${ext}`, { type: capturedVideo.mime })
+    const ext = share.mime.includes('mp4') ? 'mp4' : 'webm'
+    const file = new File([share.blob], `pistazz-story.${ext}`, { type: share.mime })
     if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
       try { await navigator.share({ files: [file], title: 'pistazz Story' }); return } catch { /* abgebrochen */ }
     }
@@ -1125,11 +1350,19 @@ function StoryCreateInner() {
   if (step === 'video-share' && capturedVideo) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
-        <div className="flex-1 relative overflow-hidden">
+        <div ref={videoShareRef} className="flex-1 relative overflow-hidden">
           <video
             src={capturedVideo.url}
             autoPlay loop muted playsInline
             className="absolute inset-0 w-full h-full object-contain"
+            style={{ filter: filterCss === 'none' ? undefined : filterCss }}
+          />
+          {/* Sticker: verschiebbar wie beim Foto — wird beim Teilen eingebrannt */}
+          <StickerOverlay
+            color={stickerColor} onColorChange={setStickerColor}
+            x={stickerPos.x} y={stickerPos.y} scale={stickerPos.scale}
+            onUpdate={(x, y, scale) => setStickerPos({ x, y, scale })}
+            containerRef={videoShareRef}
           />
           <button
             onClick={retake}
@@ -1138,18 +1371,50 @@ function StoryCreateInner() {
           >
             <X className="w-5 h-5" />
           </button>
+          {videoBusy && (
+            <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center pointer-events-none">
+              <span className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="mt-3 text-white text-sm font-semibold">Video wird vorbereitet…</span>
+            </div>
+          )}
         </div>
         <div
-          className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
+          className="bg-[#1C1F1A] pt-2 space-y-2.5"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
         >
+          <FilterStrip selected={filter} onChange={setFilter} />
+          <div className="px-5 space-y-2.5">
           <p className="text-white/80 text-[13px] leading-snug text-center">
-            Füge in Instagram <strong className="text-white">beide Tags</strong> hinzu — dafür gibt es deine Punkte:{' '}
-            {restaurant?.instagram_handle ? <strong className="text-white">@{restaurant.instagram_handle.replace(/^@+/, '')}</strong> : null} <strong className="text-white">@gastro.pistazz.io</strong>
+            Vergiss nicht: Füge <strong className="text-white">beide Tags</strong> in deine Story ein. Dafür gibt es deine Punkte!
+          </p>
+          <div className="flex gap-2">
+            {[restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null, '@gastro.pistazz.io'].filter((t): t is string => !!t).map(tag => {
+              const done = !!copiedTags[tag]
+              return (
+                <button
+                  key={tag}
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(tag); setCopiedTags(prev => ({ ...prev, [tag]: true })) } catch {}
+                  }}
+                  className={`flex-1 min-w-0 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 border transition-colors ${
+                    done ? 'bg-[#8BB06A]/15 border-[#8BB06A]/50 active:bg-[#8BB06A]/25' : 'bg-white/8 border-white/15 active:bg-white/15'
+                  }`}
+                >
+                  <span className="text-white font-bold text-[13px] truncate">{tag}</span>
+                  <span className={`text-[11px] font-semibold shrink-0 flex items-center gap-1 ${done ? 'text-[#8BB06A]' : 'text-white/60'}`}>
+                    {done ? <><CheckCircle className="w-3.5 h-3.5" />Kopiert</> : 'Kopieren'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-white/45 text-[11px] leading-snug text-center px-2">
+            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> — nicht nur eintippen, sonst zählt der Tag nicht.
           </p>
           <button
             onClick={shareVideoToIG}
-            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 active:opacity-80 transition-opacity"
+            disabled={videoBusy}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 active:opacity-80 transition-opacity disabled:opacity-60"
             style={{ background: 'linear-gradient(90deg,#f09433 0%,#dc2743 55%,#bc1888 100%)' }}
           >
             <svg width="24" height="24" viewBox="0 0 18 18" fill="none" className="shrink-0">
@@ -1157,7 +1422,9 @@ function StoryCreateInner() {
               <circle cx="13.2" cy="4.8" r="1" fill="white"/>
               <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
             </svg>
-            <span className="text-white font-bold text-base flex-1 text-left">Video in Instagram teilen</span>
+            <span className="text-white font-bold text-base flex-1 text-left">
+              {videoBusy ? 'Video wird vorbereitet…' : 'Story in Instagram teilen'}
+            </span>
             <span className="text-white/70 text-lg">›</span>
           </button>
           <button
@@ -1173,6 +1440,7 @@ function StoryCreateInner() {
             <RotateCcw className="w-3.5 h-3.5" />
             Neu aufnehmen
           </button>
+          </div>
         </div>
       </div>
     )
@@ -1282,12 +1550,6 @@ function StoryCreateInner() {
                 </div>
               </div>
             )}
-            {/* Kamera-Diagnose (temporaer): tatsaechliche Stream-Aufloesung */}
-            {camDiag && (
-              <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/40 text-white/50 text-[9px] pointer-events-none">
-                {camDiag}
-              </div>
-            )}
             {/* Zoom-Anzeige */}
             {zoom > 1.05 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/50 text-white text-xs font-semibold pointer-events-none">
@@ -1393,25 +1655,44 @@ function StoryCreateInner() {
         )}
       </div>
 
-      {/* ── SO GIBT'S PUNKTE: Anleitung vor dem Erstellen ── */}
+      {/* ── SO GIBT'S PUNKTE: Anleitung vor dem Erstellen — unten in
+             Daumenreichweite; X = nur fuer jetzt weg, "Okay" = diese Sitzung,
+             "Nicht mehr anzeigen" = dauerhaft ── */}
       {step === 'capture' && !howtoDismissed && (
-        <div className="absolute inset-x-4 z-40" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 68px)' }}>
-          <div className="rounded-2xl bg-black/70 backdrop-blur-md border border-white/15 p-4">
+        <div
+          className="absolute inset-x-4 z-40"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 12px) + 200px)' }}
+        >
+          <div className="rounded-2xl bg-black/75 backdrop-blur-md border border-white/15 p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-white font-bold text-sm">So bekommst du deine Punkte</p>
               <button
-                onClick={() => { setHowtoDismissed(true); sessionStorage.setItem('storyHowto', '1') }}
+                onClick={() => setHowtoDismissed(true)}
                 className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
-              <li><strong className="text-white">1.</strong> Foto aufnehmen und Sticker platzieren</li>
-              <li><strong className="text-white">2.</strong> Bild sichern und in Instagram als Story teilen</li>
+              <li><strong className="text-white">1.</strong> Foto oder Video aufnehmen und Sticker platzieren</li>
+              <li><strong className="text-white">2.</strong> Auf „Teilen“ tippen — deine Story geht direkt an Instagram</li>
               <li><strong className="text-white">3.</strong> Zurück in der App: Kassenbon fotografieren (Beweis, dass du vor Ort bist)</li>
               <li><strong className="text-white">4.</strong> Punkte anfordern. Fertig!</li>
             </ol>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => { setHowtoDismissed(true); sessionStorage.setItem('storyHowto', '1') }}
+                className="flex-1 py-2.5 rounded-xl gradient-primary text-white font-bold text-[13px]"
+              >
+                Okay, verstanden
+              </button>
+              <button
+                onClick={() => { setHowtoDismissed(true); localStorage.setItem('storyHowtoNever', '1') }}
+                className="flex-1 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white/70 font-semibold text-[13px]"
+              >
+                Nicht mehr anzeigen
+              </button>
+            </div>
           </div>
         </div>
       )}
