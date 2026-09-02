@@ -733,6 +733,9 @@ function StoryCreateInner() {
   // Wurde das aktuelle Video nativ aufgenommen? (Filter dann erst beim Teilen)
   const capturedNativeRef = useRef(false)
   const burnedVideoRef = useRef<{ key: string; blob: Blob; mime: string } | null>(null)
+  // Laufendes Einbrennen nicht doppelt starten (Vorab-Burn + Weiter-Tap)
+  const burnInflightRef = useRef<{ key: string; p: Promise<{ key: string; blob: Blob; mime: string }> } | null>(null)
+  const [burnPct, setBurnPct] = useState(0)
   // Fertiges Video (Sticker + Filter eingebrannt) fuer die finale Vorschau
   const [burnedVideo, setBurnedVideo] = useState<{ url: string; blob: Blob; mime: string } | null>(null)
   // Boomerang-Rohframes: das geteilte Video wird direkt daraus encodiert
@@ -1302,7 +1305,7 @@ function StoryCreateInner() {
         const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
         rec.start(250)
         const seq = [...frames, ...frames.slice(1, -1).reverse()]
-        for (let loop = 0; loop < 3; loop++) {
+        for (let loop = 0; loop < 2; loop++) {
           for (const f of seq) { octx.drawImage(f, 0, 0); await new Promise(r => setTimeout(r, 34)) }
         }
         rec.stop()
@@ -1368,7 +1371,7 @@ function StoryCreateInner() {
       const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
       rec.start(250)
       const seq = [...frames, ...frames.slice(1, -1).reverse()]
-      for (let loop = 0; loop < 3; loop++) {
+      for (let loop = 0; loop < 2; loop++) {
         for (const f of seq) { octx.drawImage(f, 0, 0); await new Promise(r => setTimeout(r, 34)) }
       }
       rec.stop()
@@ -1392,6 +1395,14 @@ function StoryCreateInner() {
     const src = capturedVideo!
     const key = `${src.url}|${opts.withFilter ? filter : '-'}|${opts.withSticker ? `${stickerColor}|${stickerPos.x.toFixed(3)},${stickerPos.y.toFixed(3)},${stickerPos.scale.toFixed(2)}` : '-'}`
     if (burnedVideoRef.current?.key === key) return burnedVideoRef.current
+    if (burnInflightRef.current?.key === key) return burnInflightRef.current.p
+    const job = burnVideoJob(key, opts)
+    burnInflightRef.current = { key, p: job }
+    try { return await job } finally { if (burnInflightRef.current?.key === key) burnInflightRef.current = null }
+  }
+
+  const burnVideoJob = async (key: string, opts: { withFilter: boolean; withSticker: boolean }): Promise<{ key: string; blob: Blob; mime: string }> => {
+    const src = capturedVideo!
 
     const W = 1080, H = 1920
     const c = document.createElement('canvas'); c.width = W; c.height = H
@@ -1437,9 +1448,14 @@ function StoryCreateInner() {
       const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
       rec.start(250)
       const seq = [...frames, ...frames.slice(1, -1).reverse()]
-      for (let loop = 0; loop < 3; loop++) {
+      const LOOPS = 2
+      const totalTicks = seq.length * LOOPS
+      let tick = 0
+      for (let loop = 0; loop < LOOPS; loop++) {
         for (const f of seq) {
           composeFrame(t => t.drawImage(f, 0, 0, W, H))
+          tick++
+          setBurnPct(Math.min(99, Math.round((tick / totalTicks) * 100)))
           await new Promise(r => setTimeout(r, 34))
         }
       }
@@ -1495,9 +1511,13 @@ function StoryCreateInner() {
       setTimeout(() => { try { rec.stop() } catch {} ; ac?.close().catch(() => {}) }, 150)
     }
     rec.start(250)
+    const expectedMs = (isFinite(v.duration) && v.duration > 0 ? v.duration : 10) * 1000
+    const t0 = Date.now()
+    const pctIv = setInterval(() => setBurnPct(Math.min(99, Math.round(((Date.now() - t0) / expectedMs) * 100))), 200)
     await v.play()
     draw()
     const blob = await done
+    clearInterval(pctIv)
     const out = { key, blob, mime }
     burnedVideoRef.current = out
     return out
@@ -1506,8 +1526,12 @@ function StoryCreateInner() {
   // Vorschau-Videos MUESSEN von selbst laufen: muted hart als Attribut
   // setzen (React laesst es weg), play() mehrfach nachschieben (iOS
   // blockiert sonst z.B. im Stromsparmodus und zeigt einen Play-Button)
-  const forcePlay = (el: HTMLVideoElement | null) => {
-    if (!el) return
+  // WICHTIG: stabile Referenz + Einmal-Initialisierung. Eine Inline-Ref
+  // wird von React bei JEDEM Render neu angehaengt - dadurch feuerte
+  // load() im Takt der Renders und die Vorschau flackerte, statt zu laufen.
+  const forcePlay = useCallback((el: HTMLVideoElement | null) => {
+    if (!el || el.dataset.fpInit === '1') return
+    el.dataset.fpInit = '1'
     el.muted = true
     el.setAttribute('muted', '')
     el.setAttribute('playsinline', '')
@@ -1532,7 +1556,7 @@ function StoryCreateInner() {
       }
       tryPlay()
     }, 350)
-  }
+  }, [])
 
   // Transparentes Story-PNG mit dem Sticker an der gewaehlten Position -
   // Instagram legt es als eigenes Element ueber das Original-Video
@@ -1544,6 +1568,21 @@ function StoryCreateInner() {
     drawSticker(ctx, W, H, stickerColor, cx, cy, stickerPos.scale)
     return c.toDataURL('image/png').split(',')[1]
   }
+
+  // Vorab im HINTERGRUND einbrennen, waehrend der Gast noch schaut/waehlt -
+  // beim Weiter-Tap ist das Video dann meist schon fertig (Cache-Treffer)
+  useEffect(() => {
+    if (step !== 'video-edit' || !capturedVideo) return
+    const isBoom = !!boomFramesRef.current?.length
+    const canNative = hasNativeIG && appBuild >= 10
+    const needsFilterBurn = isBoom || (capturedNativeRef.current && filter !== 'original')
+    if (!needsFilterBurn && canNative) return // Weiter ist ohnehin sofort
+    const t = setTimeout(() => {
+      burnVideoOverlay({ withFilter: needsFilterBurn, withSticker: !canNative }).catch(() => {})
+    }, 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, filter, stickerColor, stickerPos, capturedVideo, hasNativeIG, appBuild])
 
   // ── Schritt 1 → 2 ─────────────────────────────────────────────────────
   // Ziel: so wenig Encodes wie moeglich.
@@ -1919,7 +1958,7 @@ function StoryCreateInner() {
           {videoBusy && (
             <div className="absolute inset-0 z-40 bg-black/60 flex flex-col items-center justify-center pointer-events-none">
               <span className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-              <span className="mt-3 text-white text-sm font-semibold">Video wird vorbereitet…</span>
+              <span className="mt-3 text-white text-sm font-semibold">Video wird vorbereitet… {burnPct > 0 ? `${burnPct}%` : ''}</span>
             </div>
           )}
         </div>
@@ -1934,7 +1973,7 @@ function StoryCreateInner() {
               disabled={videoBusy}
               className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {videoBusy ? 'Video wird vorbereitet…' : 'Weiter'}
+              {videoBusy ? `Video wird vorbereitet… ${burnPct > 0 ? burnPct + '%' : ''}` : 'Weiter'}
               <span className="text-white/80 text-lg leading-none">›</span>
             </button>
           </div>

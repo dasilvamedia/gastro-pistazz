@@ -227,6 +227,7 @@ function LeafletMap({
   const mapRef = useRef<any>(null)
   const markersLayerRef = useRef<any>(null)
   const locationLayerRef = useRef<any>(null)
+  const [mapReady, setMapReady] = useState(false)
   const cleanupTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const resizeObsRef = useRef<ResizeObserver | null>(null)
 
@@ -252,13 +253,22 @@ function LeafletMap({
       const isAll = cityRef.current === 'alle'
       const coords: [number, number] = isAll ? [51.1657, 10.4515] : (GERMAN_CITIES[cityRef.current] ?? [48.7758, 9.1829])
       const zoom = isAll ? 6 : 13
-      const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false }).setView(coords, zoom)
+      const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false, fadeAnimation: true }).setView(coords, zoom)
       mapRef.current = map
 
-      L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=de&gl=DE', {
+      const tiles = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=de&gl=DE', {
         maxZoom: 20,
         attribution: '',
       }).addTo(map)
+      // Karte erst zeigen, wenn Tiles UND Layout-Settle durch sind -
+      // vorher deckt ein weicher Vorhang das Marker-/Tile-Geflacker ab
+      setMapReady(false)
+      let tilesDone = false, settleDone = false
+      const maybeReady = () => { if (tilesDone && settleDone) setMapReady(true) }
+      tiles.once('load', () => { tilesDone = true; maybeReady() })
+      setTimeout(() => { settleDone = true; maybeReady() }, 1300)
+      // Fallback: nie ewig verdeckt lassen
+      setTimeout(() => setMapReady(true), 3500)
 
       const layer = L.layerGroup().addTo(map)
       markersLayerRef.current = layer
@@ -343,6 +353,18 @@ function LeafletMap({
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full" />
+      {/* Weicher Vorhang beim Kartenaufbau: kein Tile-/Marker-Geflacker */}
+      <div
+        className="absolute inset-0 pointer-events-none flex items-center justify-center"
+        style={{
+          zIndex: 950,
+          background: '#E8EDE3',
+          opacity: mapReady ? 0 : 1,
+          transition: 'opacity 0.45s ease',
+        }}
+      >
+        <span className="w-9 h-9 border-[3px] rounded-full animate-spin" style={{ borderColor: 'rgba(139,176,106,0.3)', borderTopColor: '#8BB06A' }} />
+      </div>
 
       {/* Google Maps logo */}
       <div style={{ position: 'absolute', bottom: 140, left: 12, zIndex: 900, pointerEvents: 'none' }}>

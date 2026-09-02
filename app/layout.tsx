@@ -4,6 +4,7 @@ import './globals.css'
 import { Providers } from '@/components/Providers'
 import NativeAuthHandler from '@/components/NativeAuthHandler'
 import ThemeApplier from '@/components/ThemeApplier'
+import NativeLinkGuard from '@/components/NativeLinkGuard'
 import Script from 'next/script'
 
 const dmSans = DM_Sans({
@@ -94,6 +95,7 @@ export default function RootLayout({
           }
         `}</Script>
         <ThemeApplier />
+        <NativeLinkGuard />
         <NativeAuthHandler />
         <Providers>{children}</Providers>
       </body>
