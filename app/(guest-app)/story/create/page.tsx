@@ -329,6 +329,17 @@ function StickerOverlay({
   const s = STICKER_STYLES[color]
   const COLORS: StickerColor[] = ['green', 'white', 'black', 'glass', 'sunset', 'beige']
   const drag = useRef({ sx: 0, sy: 0, px: x, py: y, dist: 0, sc: scale })
+  // Instagram-Style: beim Ziehen rastet der Sticker in der Mitte ein und
+  // eine Hilfslinie zeigt die Zentrierung an
+  const [guides, setGuides] = useState({ v: false, h: false })
+  const SNAP = 0.018
+  const snap = (nx: number, ny: number) => {
+    const v = Math.abs(nx - 0.5) < SNAP
+    const h = Math.abs(ny - 0.5) < SNAP
+    setGuides({ v, h })
+    return { nx: v ? 0.5 : nx, ny: h ? 0.5 : ny }
+  }
+  const clearGuides = () => setGuides({ v: false, h: false })
 
   const handleTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation()
@@ -359,11 +370,12 @@ function StickerOverlay({
       drag.current.sy = e.touches[0].clientY
       drag.current.px = x; drag.current.py = y
       const onMove = (te: TouchEvent) => {
-        const nx = Math.min(0.95, Math.max(0.05, drag.current.px + (te.touches[0].clientX - drag.current.sx) / rect.width))
-        const ny = Math.min(0.95, Math.max(0.05, drag.current.py + (te.touches[0].clientY - drag.current.sy) / rect.height))
+        const rx = Math.min(0.95, Math.max(0.05, drag.current.px + (te.touches[0].clientX - drag.current.sx) / rect.width))
+        const ry = Math.min(0.95, Math.max(0.05, drag.current.py + (te.touches[0].clientY - drag.current.sy) / rect.height))
+        const { nx, ny } = snap(rx, ry)
         onUpdate(nx, ny, scale)
       }
-      const onEnd = () => { window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd) }
+      const onEnd = () => { clearGuides(); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd) }
       window.addEventListener('touchmove', onMove)
       window.addEventListener('touchend', onEnd)
     }
@@ -375,17 +387,29 @@ function StickerOverlay({
     if (!container) return
     const rect = container.getBoundingClientRect()
     const sx = e.clientX, sy = e.clientY, px = x, py = y
-    const onMove = (me: MouseEvent) => onUpdate(
-      Math.min(0.95, Math.max(0.05, px + (me.clientX - sx) / rect.width)),
-      Math.min(0.95, Math.max(0.05, py + (me.clientY - sy) / rect.height)),
-      scale,
-    )
-    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    const onMove = (me: MouseEvent) => {
+      const rx = Math.min(0.95, Math.max(0.05, px + (me.clientX - sx) / rect.width))
+      const ry = Math.min(0.95, Math.max(0.05, py + (me.clientY - sy) / rect.height))
+      const { nx, ny } = snap(rx, ry)
+      onUpdate(nx, ny, scale)
+    }
+    const onUp = () => { clearGuides(); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }
 
   return (
+    <>
+    {/* Zentrier-Hilfslinien (wie Instagram): erscheinen, sobald der Sticker
+        auf der Mittelachse einrastet */}
+    {guides.v && (
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] z-30 pointer-events-none"
+        style={{ background: '#8BB06A', boxShadow: '0 0 6px rgba(139,176,106,0.9)' }} />
+    )}
+    {guides.h && (
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] z-30 pointer-events-none"
+        style={{ background: '#8BB06A', boxShadow: '0 0 6px rgba(139,176,106,0.9)' }} />
+    )}
     <div
       className="absolute pointer-events-auto cursor-move select-none z-20"
       style={{
@@ -413,6 +437,7 @@ function StickerOverlay({
         Ziehen · 2× Tippen = Stil
       </p>
     </div>
+    </>
   )
 }
 
@@ -542,7 +567,7 @@ function StoryCreateInner() {
   const [showSheet,    setShowSheet]   = useState(false) // kept for compatibility
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
-  const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'video-share' | 'success'>('capture')
+  const [step, setStep] = useState<'capture' | 'edit' | 'share-options' | 'video-edit' | 'video-share' | 'success'>('capture')
   const [copiedTags, setCopiedTags] = useState<Record<string, boolean>>({})
   const [howtoDismissed, setHowtoDismissed] = useState(() =>
     typeof window !== 'undefined'
@@ -579,6 +604,8 @@ function StoryCreateInner() {
   const videoShareRef = useRef<HTMLDivElement>(null)
   const [videoBusy, setVideoBusy] = useState(false)
   const burnedVideoRef = useRef<{ key: string; blob: Blob; mime: string } | null>(null)
+  // Fertiges Video (Sticker + Filter eingebrannt) fuer die finale Vorschau
+  const [burnedVideo, setBurnedVideo] = useState<{ url: string; blob: Blob; mime: string } | null>(null)
   // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
   // waehrend der Aufnahme mitbekommt
   const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
@@ -879,7 +906,7 @@ function StoryCreateInner() {
     const mime = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4')
       ? 'video/mp4' : 'video/webm'
     let rec: MediaRecorder
-    try { rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 256_000 }) }
+    try { rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 16_000_000, audioBitsPerSecond: 256_000 }) }
     catch {
       drawActiveRef.current = false
       if (recRafRef.current) cancelAnimationFrame(recRafRef.current)
@@ -895,7 +922,7 @@ function StoryCreateInner() {
         return
       }
       setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
-      setStep('video-share')
+      setStep('video-edit')
     }
     rec.start(250)
     recorderRef.current = rec
@@ -937,7 +964,7 @@ function StoryCreateInner() {
     setBoomBusy(true)
     setBoomPhase('rec')
     try {
-      const W = 720, H = 1280
+      const W = 1080, H = 1920
       const vW = video.videoWidth || 1080, vH = video.videoHeight || 1920
       const cover = Math.max(W / vW, H / vH)
       const sw = W / cover, sh = H / cover
@@ -976,7 +1003,7 @@ function StoryCreateInner() {
       const octx = out.getContext('2d')!
       const st = (out as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
       const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
-      const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 5_000_000 })
+      const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 12_000_000 })
       const chunks: Blob[] = []
       rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
       const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
@@ -988,7 +1015,7 @@ function StoryCreateInner() {
       rec.stop()
       const blob = await finished
       setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
-      setStep('video-share')
+      setStep('video-edit')
     } catch {
       toast.error('Boomerang fehlgeschlagen, bitte nochmal versuchen')
     }
@@ -1038,7 +1065,9 @@ function StoryCreateInner() {
     } catch { /* ohne Ton weiter (Boomerang hat sowieso keinen) */ }
 
     const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
-    const rec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 12_000_000, audioBitsPerSecond: 256_000 })
+    // Hoher Bitrate-Ansatz: der zweite Encode (Einbrennen) darf sichtbar
+    // nichts kosten, Instagram komprimiert am Ende sowieso selbst
+    const rec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 20_000_000, audioBitsPerSecond: 256_000 })
     const chunks: Blob[] = []
     rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
     const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
@@ -1071,14 +1100,34 @@ function StoryCreateInner() {
     return out
   }
 
-  // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
-  const shareVideoToIG = async () => {
+  // ── Schritt 1 → 2: Sticker + Filter einbrennen, dann finale Vorschau ─────
+  const handleVideoNext = async () => {
     if (!capturedVideo || videoBusy) return
     setVideoBusy(true)
-    // Sticker/Filter einbrennen; wenn das schiefgeht, Original teilen
-    let share: { blob: Blob; mime: string } = capturedVideo
-    try { share = await burnVideoOverlay() } catch { /* Original als Fallback */ }
+    try {
+      const b = await burnVideoOverlay()
+      setBurnedVideo(prev => {
+        if (prev) URL.revokeObjectURL(prev.url)
+        return { url: URL.createObjectURL(b.blob), blob: b.blob, mime: b.mime }
+      })
+      setStep('video-share')
+    } catch {
+      toast.error('Vorbereiten fehlgeschlagen, bitte nochmal versuchen')
+    }
     setVideoBusy(false)
+  }
+
+  // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
+  const shareVideoToIG = async () => {
+    if (videoBusy) return
+    // Normalfall: fertig eingebranntes Video liegt schon vor
+    let share: { blob: Blob; mime: string } | null = burnedVideo
+    if (!share && capturedVideo) {
+      setVideoBusy(true)
+      try { share = await burnVideoOverlay() } catch { share = capturedVideo }
+      setVideoBusy(false)
+    }
+    if (!share) return
 
     const native = (window as unknown as {
       Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string }) => Promise<{ shared: boolean }> } } }
@@ -1215,6 +1264,8 @@ function StoryCreateInner() {
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
     setExportedBlob(null)
     if (capturedVideo) { URL.revokeObjectURL(capturedVideo.url); setCapturedVideo(null) }
+    if (burnedVideo) { URL.revokeObjectURL(burnedVideo.url); setBurnedVideo(null) }
+    burnedVideoRef.current = null
     stopRecording()
     setStep('capture')
     startCamera(facingMode)
@@ -1345,9 +1396,9 @@ function StoryCreateInner() {
   // Render: Success
   // ─────────────────────────────────────────────────────────────────────────
   // ─────────────────────────────────────────────────────────────────────────
-  // Render: Video/Boomerang-Vorschau + Teilen
+  // Render: Video/Boomerang Schritt 1 - Bearbeiten (Sticker + Filter, Vollbild)
   // ─────────────────────────────────────────────────────────────────────────
-  if (step === 'video-share' && capturedVideo) {
+  if (step === 'video-edit' && capturedVideo) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
         <div ref={videoShareRef} className="flex-1 relative overflow-hidden">
@@ -1357,7 +1408,7 @@ function StoryCreateInner() {
             className="absolute inset-0 w-full h-full object-contain"
             style={{ filter: filterCss === 'none' ? undefined : filterCss }}
           />
-          {/* Sticker: verschiebbar wie beim Foto — wird beim Teilen eingebrannt */}
+          {/* Sticker: verschiebbar, rastet mittig ein, wird beim Weiter eingebrannt */}
           <StickerOverlay
             color={stickerColor} onColorChange={setStickerColor}
             x={stickerPos.x} y={stickerPos.y} scale={stickerPos.scale}
@@ -1366,24 +1417,63 @@ function StoryCreateInner() {
           />
           <button
             onClick={retake}
-            className="absolute left-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white z-10"
+            className="absolute left-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white z-30"
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
           >
             <X className="w-5 h-5" />
           </button>
           {videoBusy && (
-            <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 z-40 bg-black/60 flex flex-col items-center justify-center pointer-events-none">
               <span className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
               <span className="mt-3 text-white text-sm font-semibold">Video wird vorbereitet…</span>
             </div>
           )}
         </div>
         <div
-          className="bg-[#1C1F1A] pt-2 space-y-2.5"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
+          className="bg-black pt-1"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 10px)' }}
         >
           <FilterStrip selected={filter} onChange={setFilter} />
-          <div className="px-5 space-y-2.5">
+          <div className="px-5 pt-1">
+            <button
+              onClick={handleVideoNext}
+              disabled={videoBusy}
+              className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {videoBusy ? 'Video wird vorbereitet…' : 'Weiter'}
+              <span className="text-white/80 text-lg leading-none">›</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render: Video/Boomerang Schritt 2 - fertige Story teilen
+  // ─────────────────────────────────────────────────────────────────────────
+  if (step === 'video-share' && burnedVideo) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
+        <div className="flex-1 relative overflow-hidden">
+          {/* Finale Vorschau: exakt das Video, das an Instagram geht */}
+          <video
+            src={burnedVideo.url}
+            autoPlay loop muted playsInline
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+          <button
+            onClick={() => setStep('video-edit')}
+            className="absolute left-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white z-10"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div
+          className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 12px)' }}
+        >
           <p className="text-white/80 text-[13px] leading-snug text-center">
             Vergiss nicht: Füge <strong className="text-white">beide Tags</strong> in deine Story ein. Dafür gibt es deine Punkte!
           </p>
@@ -1408,9 +1498,6 @@ function StoryCreateInner() {
               )
             })}
           </div>
-          <p className="text-white/45 text-[11px] leading-snug text-center px-2">
-            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> und nicht nur eintippen, sonst zählt der Tag nicht.
-          </p>
           <button
             onClick={shareVideoToIG}
             disabled={videoBusy}
@@ -1422,9 +1509,7 @@ function StoryCreateInner() {
               <circle cx="13.2" cy="4.8" r="1" fill="white"/>
               <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
             </svg>
-            <span className="text-white font-bold text-base flex-1 text-left">
-              {videoBusy ? 'Video wird vorbereitet…' : 'Story in Instagram teilen'}
-            </span>
+            <span className="text-white font-bold text-base flex-1 text-left">Story in Instagram teilen</span>
             <span className="text-white/70 text-lg">›</span>
           </button>
           <button
@@ -1440,7 +1525,6 @@ function StoryCreateInner() {
             <RotateCcw className="w-3.5 h-3.5" />
             Neu aufnehmen
           </button>
-          </div>
         </div>
       </div>
     )
