@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { CameraOff, CheckCircle, Copy, FlipHorizontal, ImagePlus, RotateCcw, Share2, X } from 'lucide-react'
@@ -84,9 +84,8 @@ function cssFilterToOp(css: string): ColorOp {
   }
   return op
 }
-function applyFilterPixels(ctx: CanvasRenderingContext2D, w: number, h: number, css: string) {
-  if (!css || css === 'none') return
-  const { m, o } = cssFilterToOp(css)
+function applyOpPixels(ctx: CanvasRenderingContext2D, w: number, h: number, op: ColorOp) {
+  const { m, o } = op
   const img = ctx.getImageData(0, 0, w, h)
   const d = img.data
   for (let i = 0; i < d.length; i += 4) {
@@ -96,6 +95,10 @@ function applyFilterPixels(ctx: CanvasRenderingContext2D, w: number, h: number, 
     d[i+2] = Math.max(0, Math.min(255, m[6]*r + m[7]*g + m[8]*b + o[2]))
   }
   ctx.putImageData(img, 0, 0)
+}
+function applyFilterPixels(ctx: CanvasRenderingContext2D, w: number, h: number, css: string) {
+  if (!css || css === 'none') return
+  applyOpPixels(ctx, w, h, cssFilterToOp(css))
 }
 // Filter auf das ganze Canvas anwenden — nativ wenn moeglich, sonst Pixel-Pfad
 function burnFilter(ctx: CanvasRenderingContext2D, w: number, h: number, css: string) {
@@ -328,7 +331,20 @@ function StickerOverlay({
 }) {
   const s = STICKER_STYLES[color]
   const COLORS: StickerColor[] = ['green', 'white', 'black', 'glass', 'sunset', 'beige']
-  const drag = useRef({ sx: 0, sy: 0, px: x, py: y, dist: 0, sc: scale })
+  const drag = useRef({ sx: 0, sy: 0, px: x, py: y, dist: 0, sc: scale, lx: x, ly: y })
+
+  // WYSIWYG-Groesse: exakt dieselbe Mathematik wie der Canvas-Export
+  // (drawSticker: Breite = 44% der 9:16-Zone, Hoehe/Fonts proportional).
+  // Damit ist der Sticker in Vorschau und geteilter Story IMMER gleich gross,
+  // egal ob Foto, Video oder Boomerang.
+  const [cbox, setCbox] = useState({ w: 390, h: 693 })
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (el && el.offsetWidth > 0) setCbox({ w: el.offsetWidth, h: el.offsetHeight })
+  }, [containerRef])
+  const safeW = Math.min(cbox.w, cbox.h * 9 / 16)
+  const boxW = safeW * 0.44
+  const boxH = boxW * ((1920 * 0.082) / (1080 * 0.44))
   // Instagram-Style: beim Ziehen rastet der Sticker in der Mitte ein und
   // eine Hilfslinie zeigt die Zentrierung an
   const [guides, setGuides] = useState({ v: false, h: false })
@@ -365,17 +381,33 @@ function StickerOverlay({
       window.addEventListener('touchmove', onPinch)
       window.addEventListener('touchend', onEnd)
     } else {
-      // Single-touch → drag
+      // Single-touch → drag; legt der zweite Finger irgendwo auf dem Bild
+      // nach, wird daraus ein Pinch zum Vergroessern/Verkleinern (wie man es
+      // von Stickern kennt)
       drag.current.sx = e.touches[0].clientX
       drag.current.sy = e.touches[0].clientY
       drag.current.px = x; drag.current.py = y
+      drag.current.lx = x; drag.current.ly = y
+      drag.current.dist = 0; drag.current.sc = scale
       const onMove = (te: TouchEvent) => {
+        if (te.touches.length >= 2) {
+          const d = Math.hypot(te.touches[1].clientX - te.touches[0].clientX, te.touches[1].clientY - te.touches[0].clientY)
+          if (!drag.current.dist) drag.current.dist = d
+          const ns = Math.min(3, Math.max(0.3, drag.current.sc * (d / drag.current.dist)))
+          onUpdate(drag.current.lx, drag.current.ly, ns)
+          return
+        }
+        if (drag.current.dist) return // nach Pinch nicht wieder in Drag springen
         const rx = Math.min(0.95, Math.max(0.05, drag.current.px + (te.touches[0].clientX - drag.current.sx) / rect.width))
         const ry = Math.min(0.95, Math.max(0.05, drag.current.py + (te.touches[0].clientY - drag.current.sy) / rect.height))
         const { nx, ny } = snap(rx, ry)
+        drag.current.lx = nx; drag.current.ly = ny
         onUpdate(nx, ny, scale)
       }
-      const onEnd = () => { clearGuides(); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd) }
+      const onEnd = (te: TouchEvent) => {
+        if (te.touches.length > 0) return // erst wenn alle Finger weg sind
+        clearGuides(); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd)
+      }
       window.addEventListener('touchmove', onMove)
       window.addEventListener('touchend', onEnd)
     }
@@ -423,15 +455,16 @@ function StickerOverlay({
       onDoubleClick={() => { const i = COLORS.indexOf(color); onColorChange(COLORS[(i + 1) % COLORS.length]) }}
     >
       <div
-        className="rounded-2xl px-5 py-2 flex flex-col items-center gap-0 border shadow-xl"
+        className="flex flex-col items-center justify-center border shadow-xl"
         style={{
+          width: boxW, height: boxH, borderRadius: boxH * 0.32,
           background: s.grad ? `linear-gradient(135deg, ${s.grad[0]}, ${s.grad[1]})` : s.bg,
           borderColor: s.border,
           ...(color === 'glass' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } : {}),
         }}
       >
-        <span className="text-[7px] font-semibold tracking-[0.25em] uppercase" style={{ color: s.text, opacity: 0.7 }}>Powered by</span>
-        <span className="font-serif text-lg font-bold leading-tight" style={{ color: s.text }}>gastro.pistazz.io</span>
+        <span style={{ color: s.text, opacity: 0.7, fontSize: boxW * 0.0432, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.5 }}>Powered by</span>
+        <span style={{ color: s.text, fontSize: boxW * 0.0908, fontFamily: "'DM Serif Display', Georgia, serif", fontWeight: 700, lineHeight: 1.2 }}>gastro.pistazz.io</span>
       </div>
       <p className="text-center text-white/45 text-[9px] mt-1 leading-tight">
         Ziehen · 2× Tippen = Stil
@@ -606,6 +639,9 @@ function StoryCreateInner() {
   const burnedVideoRef = useRef<{ key: string; blob: Blob; mime: string } | null>(null)
   // Fertiges Video (Sticker + Filter eingebrannt) fuer die finale Vorschau
   const [burnedVideo, setBurnedVideo] = useState<{ url: string; blob: Blob; mime: string } | null>(null)
+  // Boomerang-Rohframes: das geteilte Video wird direkt daraus encodiert
+  // (nur EIN Encode statt Aufnahme+Einbrennen = keine Doppel-Kompression)
+  const boomFramesRef = useRef<HTMLCanvasElement[] | null>(null)
   // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
   // waehrend der Aufnahme mitbekommt
   const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
@@ -895,6 +931,7 @@ function StoryCreateInner() {
       else recRafRef.current = requestAnimationFrame(drawFrame)
     }
     drawActiveRef.current = true
+    boomFramesRef.current = null
     drawFrame()
 
     const canvasStream = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
@@ -1014,6 +1051,9 @@ function StoryCreateInner() {
       }
       rec.stop()
       const blob = await finished
+      // Rohframes behalten: das geteilte Video wird beim Einbrennen direkt
+      // daraus encodiert (Original-Qualitaet, keine zweite Kompression)
+      boomFramesRef.current = frames
       setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
       setStep('video-edit')
     } catch {
@@ -1031,15 +1071,6 @@ function StoryCreateInner() {
     const key = `${src.url}|${filter}|${stickerColor}|${stickerPos.x.toFixed(3)},${stickerPos.y.toFixed(3)},${stickerPos.scale.toFixed(2)}`
     if (burnedVideoRef.current?.key === key) return burnedVideoRef.current
 
-    const v = document.createElement('video')
-    v.src = src.url
-    v.playsInline = true
-    v.muted = false
-    await new Promise<void>((res, rej) => {
-      v.onloadedmetadata = () => res()
-      v.onerror = () => rej(new Error('Video laden fehlgeschlagen'))
-    })
-
     const W = 1080, H = 1920
     const c = document.createElement('canvas'); c.width = W; c.height = H
     const bctx = c.getContext('2d')!
@@ -1049,9 +1080,61 @@ function StoryCreateInner() {
     const cW = cont?.offsetWidth ?? 390, cH = cont?.offsetHeight ?? 844
     const { cx: sCx, cy: sCy } = remapToStoryCanvas(stickerPos.x, stickerPos.y, cW, cH, W, H)
     const filterOk = ctxFilterSupported()
-    const usePixelFilter = !filterOk && filterCss !== 'none'
+    const op = !filterOk && filterCss !== 'none' ? cssFilterToOp(filterCss) : null
 
+    // Jeder Frame wird KOMPLETT auf einem Arbeits-Canvas gebaut (Bild +
+    // Filter + Sticker) und erst dann in einem Zug auf das aufgenommene
+    // Canvas kopiert. Der Encoder sieht so nie halbfertige Frames, das war
+    // der Grund, warum Filter im Ergebnis nicht 1:1 ankamen.
+    const work = document.createElement('canvas'); work.width = W; work.height = H
+    const wctx = work.getContext('2d')!
+    wctx.imageSmoothingEnabled = true
+    wctx.imageSmoothingQuality = 'high'
+    const composeFrame = (drawSrc: (t: CanvasRenderingContext2D) => void) => {
+      if (filterOk && filterCss !== 'none') wctx.filter = filterCss
+      drawSrc(wctx)
+      wctx.filter = 'none'
+      if (op) applyOpPixels(wctx, W, H, op)
+      drawSticker(wctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
+      bctx.drawImage(work, 0, 0)
+    }
+
+    const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
     const cs = (c as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
+
+    // ── Boomerang: direkt aus den Rohframes encodieren — das Ergebnis ist
+    //    der EINZIGE Encode, Original-Qualitaet ohne Doppel-Kompression ──
+    if (boomFramesRef.current?.length) {
+      const frames = boomFramesRef.current
+      const rec = new MediaRecorder(cs, { mimeType: mime, videoBitsPerSecond: 20_000_000 })
+      const chunks: Blob[] = []
+      rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
+      const done = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
+      rec.start(250)
+      const seq = [...frames, ...frames.slice(1, -1).reverse()]
+      for (let loop = 0; loop < 3; loop++) {
+        for (const f of seq) {
+          composeFrame(t => t.drawImage(f, 0, 0, W, H))
+          await new Promise(r => setTimeout(r, 34))
+        }
+      }
+      rec.stop()
+      const blob = await done
+      const out = { key, blob, mime }
+      burnedVideoRef.current = out
+      return out
+    }
+
+    // ── Video: einmal durchspielen und mit Ton neu aufnehmen ──
+    const v = document.createElement('video')
+    v.src = src.url
+    v.playsInline = true
+    v.muted = false
+    await new Promise<void>((res, rej) => {
+      v.onloadedmetadata = () => res()
+      v.onerror = () => rej(new Error('Video laden fehlgeschlagen'))
+    })
+
     const tracks: MediaStreamTrack[] = [cs.getVideoTracks()[0]]
     let ac: AudioContext | null = null
     try {
@@ -1062,9 +1145,8 @@ function StoryCreateInner() {
       node.connect(dest)
       const at = dest.stream.getAudioTracks()[0]
       if (at) tracks.push(at)
-    } catch { /* ohne Ton weiter (Boomerang hat sowieso keinen) */ }
+    } catch { /* ohne Ton weiter */ }
 
-    const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
     // Hoher Bitrate-Ansatz: der zweite Encode (Einbrennen) darf sichtbar
     // nichts kosten, Instagram komprimiert am Ende sowieso selbst
     const rec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 20_000_000, audioBitsPerSecond: 256_000 })
@@ -1078,11 +1160,7 @@ function StoryCreateInner() {
       const vW = v.videoWidth || W, vH = v.videoHeight || H
       const cover = Math.max(W / vW, H / vH)
       const dw = vW * cover, dh = vH * cover
-      if (filterOk && filterCss !== 'none') bctx.filter = filterCss
-      bctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh)
-      bctx.filter = 'none'
-      if (usePixelFilter) applyFilterPixels(bctx, W, H, filterCss)
-      drawSticker(bctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
+      composeFrame(t => t.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh))
       const vv = v as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }
       if (vv.requestVideoFrameCallback) vv.requestVideoFrameCallback(draw)
       else requestAnimationFrame(draw)
@@ -1266,6 +1344,7 @@ function StoryCreateInner() {
     if (capturedVideo) { URL.revokeObjectURL(capturedVideo.url); setCapturedVideo(null) }
     if (burnedVideo) { URL.revokeObjectURL(burnedVideo.url); setBurnedVideo(null) }
     burnedVideoRef.current = null
+    boomFramesRef.current = null
     stopRecording()
     setStep('capture')
     startCamera(facingMode)
