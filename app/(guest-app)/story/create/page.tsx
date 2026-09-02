@@ -100,6 +100,57 @@ function applyFilterPixels(ctx: CanvasRenderingContext2D, w: number, h: number, 
   if (!css || css === 'none') return
   applyOpPixels(ctx, w, h, cssFilterToOp(css))
 }
+
+// Farbmatrix auf der GPU (WebGL): wendet die Filterkette in ~1ms pro Frame an.
+// Der CPU-Pixel-Pfad (applyOpPixels) blockierte bei 30fps den Hauptthread -
+// das verursachte Tonknistern, Ruckeln und verpasste Frames.
+function makeGlColorFilter(W: number, H: number, op: ColorOp) {
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = W; canvas.height = H
+    const gl = canvas.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true }) as WebGLRenderingContext | null
+    if (!gl) return null
+    const compile = (type: number, src: string) => {
+      const s = gl.createShader(type)!
+      gl.shaderSource(s, src); gl.compileShader(s)
+      return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null
+    }
+    const vs = compile(gl.VERTEX_SHADER,
+      'attribute vec2 p; varying vec2 t; void main(){ t = vec2((p.x+1.0)/2.0, (1.0-p.y)/2.0); gl_Position = vec4(p,0.,1.); }')
+    const fs = compile(gl.FRAGMENT_SHADER,
+      'precision mediump float; varying vec2 t; uniform sampler2D u; uniform mat3 m; uniform vec3 o;' +
+      'void main(){ vec4 c = texture2D(u, t); gl_FragColor = vec4(clamp(m * c.rgb + o, 0.0, 1.0), c.a); }')
+    if (!vs || !fs) return null
+    const prog = gl.createProgram()!
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null
+    gl.useProgram(prog)
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW)
+    const loc = gl.getAttribLocation(prog, 'p')
+    gl.enableVertexAttribArray(loc)
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    // op.m ist zeilenweise, WebGL-mat3 erwartet Spalten
+    const m = op.m
+    gl.uniformMatrix3fv(gl.getUniformLocation(prog, 'm'), false,
+      new Float32Array([m[0],m[3],m[6], m[1],m[4],m[7], m[2],m[5],m[8]]))
+    gl.uniform3fv(gl.getUniformLocation(prog, 'o'),
+      new Float32Array([op.o[0] / 255, op.o[1] / 255, op.o[2] / 255]))
+    gl.viewport(0, 0, W, H)
+    return {
+      apply(src: TexImageSource): HTMLCanvasElement {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src)
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+        return canvas
+      },
+    }
+  } catch { return null }
+}
 // Filter auf das ganze Canvas anwenden — nativ wenn moeglich, sonst Pixel-Pfad
 function burnFilter(ctx: CanvasRenderingContext2D, w: number, h: number, css: string) {
   if (!css || css === 'none') return
@@ -949,6 +1000,13 @@ function StoryCreateInner() {
     const cx = c.getContext('2d')!
     cx.imageSmoothingEnabled = true
     cx.imageSmoothingQuality = 'high'
+    // Jeder Frame wird erst KOMPLETT auf dem Arbeits-Canvas gebaut und dann
+    // in einem Zug auf das aufgenommene Canvas kopiert - der Encoder kann so
+    // nie einen halbfertigen Zustand erwischen (das war das Flackern)
+    const work = document.createElement('canvas'); work.width = W; work.height = H
+    const wcx = work.getContext('2d')!
+    wcx.imageSmoothingEnabled = true
+    wcx.imageSmoothingQuality = 'high'
     const drawFrame = () => {
       if (!recPausedRef.current) {
         const vW = video.videoWidth || W, vH = video.videoHeight || H
@@ -957,22 +1015,23 @@ function StoryCreateInner() {
         let sx = (vW - sw) / 2, sy = (vH - sh) / 2
         const z = cssZoomRef.current
         if (z > 1) { const nw = sw / z, nh = sh / z; sx += (sw - nw) / 2; sy += (sh - nh) / 2; sw = nw; sh = nh }
-        cx.save()
-        if (facingRef.current === 'user') { cx.translate(W, 0); cx.scale(-1, 1) }
-        cx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
-        cx.restore()
+        wcx.save()
+        if (facingRef.current === 'user') { wcx.translate(W, 0); wcx.scale(-1, 1) }
+        wcx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H)
+        wcx.restore()
         // Belichtung als schnelles Overlay (ctx.filter kann WebKit nicht;
         // ein Pixel-Pass waere bei 30fps zu langsam)
         const b = brightRef.current
         if (b < 1) {
-          cx.fillStyle = `rgba(0,0,0,${Math.min(0.85, 1 - b)})`
-          cx.fillRect(0, 0, W, H)
+          wcx.fillStyle = `rgba(0,0,0,${Math.min(0.85, 1 - b)})`
+          wcx.fillRect(0, 0, W, H)
         } else if (b > 1) {
-          cx.globalCompositeOperation = 'lighter'
-          cx.fillStyle = `rgba(255,255,255,${Math.min(0.6, (b - 1) * 0.55)})`
-          cx.fillRect(0, 0, W, H)
-          cx.globalCompositeOperation = 'source-over'
+          wcx.globalCompositeOperation = 'lighter'
+          wcx.fillStyle = `rgba(255,255,255,${Math.min(0.6, (b - 1) * 0.55)})`
+          wcx.fillRect(0, 0, W, H)
+          wcx.globalCompositeOperation = 'source-over'
         }
+        cx.drawImage(work, 0, 0)
       }
       if (!drawActiveRef.current) return
       const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }
@@ -1127,22 +1186,26 @@ function StoryCreateInner() {
     bctx.imageSmoothingQuality = 'high'
     if (videoShareRef.current) videoBoxDims.current = { w: videoShareRef.current.offsetWidth, h: videoShareRef.current.offsetHeight }
     const { cx: sCx, cy: sCy } = remapToStoryCanvas(stickerPos.x, stickerPos.y, videoBoxDims.current.w, videoBoxDims.current.h, W, H)
-    const filterOk = ctxFilterSupported()
-    const op = !filterOk && filterCss !== 'none' ? cssFilterToOp(filterCss) : null
+    // WICHTIG: ctx.filter wird hier bewusst NIE benutzt - neuere iOS-Versionen
+    // melden es als unterstuetzt, wenden es beim Zeichnen von Videos aber
+    // stillschweigend nicht an. Die Filterkette laeuft deshalb immer als
+    // Farbmatrix: auf der GPU (schnell), zur Not auf der CPU.
+    const op = filterCss !== 'none' ? cssFilterToOp(filterCss) : null
+    const glf = op ? makeGlColorFilter(W, H, op) : null
 
     // Jeder Frame wird KOMPLETT auf einem Arbeits-Canvas gebaut (Bild +
     // Filter + Sticker) und erst dann in einem Zug auf das aufgenommene
-    // Canvas kopiert. Der Encoder sieht so nie halbfertige Frames, das war
-    // der Grund, warum Filter im Ergebnis nicht 1:1 ankamen.
+    // Canvas kopiert. Der Encoder sieht so nie halbfertige Frames (Flackern).
     const work = document.createElement('canvas'); work.width = W; work.height = H
     const wctx = work.getContext('2d')!
     wctx.imageSmoothingEnabled = true
     wctx.imageSmoothingQuality = 'high'
     const composeFrame = (drawSrc: (t: CanvasRenderingContext2D) => void) => {
-      if (filterOk && filterCss !== 'none') wctx.filter = filterCss
       drawSrc(wctx)
-      wctx.filter = 'none'
-      if (op) applyOpPixels(wctx, W, H, op)
+      if (op) {
+        if (glf) wctx.drawImage(glf.apply(work), 0, 0)
+        else applyOpPixels(wctx, W, H, op)
+      }
       drawSticker(wctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
       bctx.drawImage(work, 0, 0)
     }
@@ -1561,7 +1624,11 @@ function StoryCreateInner() {
         <div ref={videoShareRef} className="flex-1 relative overflow-hidden">
           <video
             src={capturedVideo.url}
-            autoPlay loop muted playsInline
+            autoPlay loop muted playsInline preload="auto"
+            // React setzt das muted-Attribut nicht zuverlaessig - ohne echtes
+            // muted blockiert iOS das Autoplay und zeigt einen Play-Button
+            ref={el => { if (el) { el.muted = true; el.play().catch(() => {}) } }}
+            onLoadedData={e => { e.currentTarget.play().catch(() => {}) }}
             className="absolute inset-0 w-full h-full object-contain"
             style={{ filter: filterCss === 'none' ? undefined : filterCss }}
           />
@@ -1616,7 +1683,9 @@ function StoryCreateInner() {
           {/* Finale Vorschau: exakt das Video, das an Instagram geht */}
           <video
             src={burnedVideo.url}
-            autoPlay loop muted playsInline
+            autoPlay loop muted playsInline preload="auto"
+            ref={el => { if (el) { el.muted = true; el.play().catch(() => {}) } }}
+            onLoadedData={e => { e.currentTarget.play().catch(() => {}) }}
             className="absolute inset-0 w-full h-full object-contain"
           />
           {/* Original-Modus: Sticker ist nicht eingebrannt, sondern geht als
