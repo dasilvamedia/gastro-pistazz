@@ -14,7 +14,7 @@
 		A11A2B3C4D5E6F7080910112 /* InstagramStoryPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A2B3C4D5E6F7080910111 /* InstagramStoryPlugin.swift */; };
 		B21A2B3C4D5E6F7080910114 /* NfcStampPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21A2B3C4D5E6F7080910113 /* NfcStampPlugin.swift */; };
 		C31A2B3C4D5E6F7080910117 /* NativeAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31A2B3C4D5E6F7080910116 /* NativeAuthPlugin.swift */; };
-		C31A2B3C4D5E6F7080910119 /* NativeCamPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31A2B3C4D5E6F7080910118 /* NativeCamPlugin.swift */; };
+		AA10CAFE0001000000000002 /* NativeCamPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10CAFE0001000000000001 /* NativeCamPlugin.swift */; };
 		D41A2B3C4D5E6F708091011C /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D41A2B3C4D5E6F708091011B /* MainViewController.swift */; };
 		C31A2B3C4D5E6F7080910119 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C31A2B3C4D5E6F7080910118 /* GoogleSignIn */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
@@ -31,7 +31,7 @@
 		A11A2B3C4D5E6F7080910111 /* InstagramStoryPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramStoryPlugin.swift; sourceTree = "<group>"; };
 		B21A2B3C4D5E6F7080910113 /* NfcStampPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NfcStampPlugin.swift; sourceTree = "<group>"; };
 		C31A2B3C4D5E6F7080910116 /* NativeAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAuthPlugin.swift; sourceTree = "<group>"; };
-		C31A2B3C4D5E6F7080910118 /* NativeCamPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCamPlugin.swift; sourceTree = "<group>"; };
+		AA10CAFE0001000000000001 /* NativeCamPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCamPlugin.swift; sourceTree = "<group>"; };
 		D41A2B3C4D5E6F708091011B /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		B21A2B3C4D5E6F7080910115 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -80,7 +80,7 @@
 				A11A2B3C4D5E6F7080910111 /* InstagramStoryPlugin.swift */,
 				B21A2B3C4D5E6F7080910113 /* NfcStampPlugin.swift */,
 				C31A2B3C4D5E6F7080910116 /* NativeAuthPlugin.swift */,
-				C31A2B3C4D5E6F7080910118 /* NativeCamPlugin.swift */,
+				AA10CAFE0001000000000001 /* NativeCamPlugin.swift */,
 				D41A2B3C4D5E6F708091011B /* MainViewController.swift */,
 				B21A2B3C4D5E6F7080910115 /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -180,7 +180,7 @@
 				A11A2B3C4D5E6F7080910112 /* InstagramStoryPlugin.swift in Sources */,
 				B21A2B3C4D5E6F7080910114 /* NfcStampPlugin.swift in Sources */,
 				C31A2B3C4D5E6F7080910117 /* NativeAuthPlugin.swift in Sources */,
-				C31A2B3C4D5E6F7080910119 /* NativeCamPlugin.swift in Sources */,
+				AA10CAFE0001000000000002 /* NativeCamPlugin.swift in Sources */,
 				D41A2B3C4D5E6F708091011C /* MainViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
