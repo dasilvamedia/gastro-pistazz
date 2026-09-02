@@ -23,7 +23,7 @@ const DAYS: { key: string; label: string }[] = [
   { key: 'sunday', label: 'Sonntag' },
 ]
 
-function StampProgress({ card, restaurant }: { card: StampCard | null; restaurant: Restaurant }) {
+function StampProgress({ card, restaurant, onStamp }: { card: StampCard | null; restaurant: Restaurant; onStamp: () => void }) {
   if (!restaurant.stamp_card_enabled) return null
   const total = restaurant.stamp_card_total || 10
   const current = card?.current_stamps ?? 0
@@ -52,12 +52,12 @@ function StampProgress({ card, restaurant }: { card: StampCard | null; restauran
       )}
       {/* NFC-Stempeln - gleiche Funktion wie auf der dunklen /r/[slug]-Ansicht */}
       {restaurant.slug && (
-        <a
-          href={`/stempel?restaurant=${restaurant.slug}`}
+        <button
+          onClick={onStamp}
           className="mt-3 w-full flex items-center justify-center gap-2 gradient-primary text-white font-semibold py-3 rounded-xl text-sm"
         >
           📶 Stempel per Antippen sammeln
-        </a>
+        </button>
       )}
     </div>
   )
@@ -269,7 +269,7 @@ export default function RestaurantDetailPage() {
                 Jetzt teilnehmen <span className="text-white/80">›</span>
               </button>
             </div>
-            <StampProgress card={stampCard} restaurant={restaurant} />
+            <StampProgress card={stampCard} restaurant={restaurant} onStamp={() => router.push(`/stempel?restaurant=${restaurant.slug}`)} />
           </div>
         )}
 

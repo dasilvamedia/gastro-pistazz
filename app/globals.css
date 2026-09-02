@@ -223,6 +223,22 @@ input, select, textarea {
   font-size: max(16px, 1rem); /* <16px loest iOS-Zoom beim Fokussieren aus */
 }
 
+/* ── Kein Text markieren/kopieren in der ganzen App (App-Feeling) ──
+   Ausgenommen: echte Eingabefelder und bewusst als kopierbar markierte
+   Elemente (z.B. die Restaurant-Tags per data-copyable). Kopieren der
+   Tags laeuft ohnehin ueber den Kopier-Button (Clipboard-API), nicht ueber
+   manuelles Markieren. */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea, [contenteditable="true"], [data-copyable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Dark Mode (Anzeige-Einstellung: Dunkel bzw. System=dunkel).
    Die App nutzt eine sehr konsistente Farbwelt aus wenigen Hex-Utilities -

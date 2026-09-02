@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Heart, X, MapPin, Star, RotateCcw, AtSign, ChevronRight } from 'lucide-react'
+import { Heart, X, MapPin, Star, RotateCcw, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
@@ -111,7 +111,7 @@ export default function FavoritenPage() {
     // der Standard-Toast sass oben unter der Notch
     toast(`${r.name} ist jetzt ein Favorit`, {
       duration: 1400,
-      position: 'bottom-center',
+      position: 'top-center',
       icon: '💚',
       style: {
         background: 'linear-gradient(135deg, #8BB06A 0%, #6D9450 100%)',
@@ -121,7 +121,7 @@ export default function FavoritenPage() {
         borderRadius: '9999px',
         padding: '10px 18px',
         boxShadow: '0 8px 24px rgba(139,176,106,0.45)',
-        marginBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+        marginTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
       },
     })
   }, [dbOk, userId, supabase])
@@ -444,7 +444,7 @@ export default function FavoritenPage() {
                 )}
                 {detail.instagram_handle && (
                   <span className="flex items-center gap-1 text-[13px] text-[#6D7A6D]">
-                    <AtSign className="w-3.5 h-3.5" />@{detail.instagram_handle.replace(/^@+/, '')}
+                    @{detail.instagram_handle.replace(/^@+/, '')}
                   </span>
                 )}
                 {detail.points_per_story > 0 && (

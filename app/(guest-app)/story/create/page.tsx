@@ -1319,7 +1319,7 @@ function StoryCreateInner() {
         // timing-korrekten Encoder. Bei Teilen ohne Filter ist genau DAS
         // schon das geteilte Video (Sticker geht nativ obendrauf).
         const seq = [...frames, ...frames.slice(1, -1).reverse()]
-        const { blob } = await encodeFrameSeq(seq, 25, (ctx, f) => ctx.drawImage(f, 0, 0, W, H))
+        const { blob } = await encodeFrameSeq(seq, 30, (ctx, f) => ctx.drawImage(f, 0, 0, W, H))
         setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime: MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm' } })
         ncam.stop().catch(() => {})
         nativeCamRef.current = false; setNativeCam(false)
@@ -1490,7 +1490,7 @@ function StoryCreateInner() {
     if (boomFramesRef.current?.length) {
       const frames = boomFramesRef.current
       const seq = [...frames, ...frames.slice(1, -1).reverse()]
-      const { blob } = await encodeFrameSeq(seq, 25, (ctx, f) => {
+      const { blob } = await encodeFrameSeq(seq, 30, (ctx, f) => {
         ctx.drawImage(f, 0, 0, W, H)
         if (op) { if (glf) ctx.drawImage(glf.apply(ctx.canvas), 0, 0); else applyOpPixels(ctx, W, H, op) }
         if (opts.withSticker) drawSticker(ctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)

@@ -154,40 +154,56 @@ public class NativeCamPlugin: CAPPlugin, CAPBridgedPlugin, AVCaptureFileOutputRe
         }
     }
 
-    /// Kamera wechseln, ohne die Session komplett neu zu bauen: NUR den
-    /// Video-Input tauschen. Outputs (movieOutput, photoOutput) bleiben
-    /// erhalten - eine LAUFENDE Aufnahme wird dadurch nicht abgerissen, das
-    /// war die Ursache fuer Schwarzbild/Absturz beim Doppeltap.
+    private func applyVideoInput() {
+        session.beginConfiguration()
+        if let old = videoInput { session.removeInput(old) }
+        if let cam = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+           let vIn = try? AVCaptureDeviceInput(device: cam),
+           session.canAddInput(vIn) {
+            session.addInput(vIn)
+            videoInput = vIn
+            do {
+                try cam.lockForConfiguration()
+                cam.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+                cam.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
+                cam.unlockForConfiguration()
+            } catch {}
+        }
+        if let conn = movieOutput.connection(with: .video) {
+            conn.videoOrientation = .portrait
+            if conn.isVideoMirroringSupported { conn.isVideoMirrored = (position == .front) }
+            if conn.isVideoStabilizationSupported { conn.preferredVideoStabilizationMode = .cinematic }
+        }
+        if let c = photoOutput.connection(with: .video) {
+            c.videoOrientation = .portrait
+            if c.isVideoMirroringSupported { c.isVideoMirrored = (position == .front) }
+        }
+        session.commitConfiguration()
+    }
+
+    /// Kamera wechseln. Waehrend einer laufenden Aufnahme wird das aktuelle
+    /// Segment sauber beendet, der Input getauscht und ein NEUES Segment
+    /// gestartet - so nimmt die neue (z.B. Front-)Kamera garantiert weiter
+    /// auf. Ohne Aufnahme reicht der reine Input-Tausch.
     @objc func flip(_ call: CAPPluginCall) {
         position = (position == .back) ? .front : .back
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
-            self.session.beginConfiguration()
-            if let old = self.videoInput { self.session.removeInput(old) }
-            if let cam = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.position),
-               let vIn = try? AVCaptureDeviceInput(device: cam),
-               self.session.canAddInput(vIn) {
-                self.session.addInput(vIn)
-                self.videoInput = vIn
-                do {
-                    try cam.lockForConfiguration()
-                    cam.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
-                    cam.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
-                    cam.unlockForConfiguration()
-                } catch {}
+            if self.movieOutput.isRecording {
+                self.segmentDone = { [weak self] _ in
+                    guard let self = self else { return }
+                    self.sessionQueue.async {
+                        self.applyVideoInput()
+                        let url = self.newSegmentURL()
+                        self.movieOutput.startRecording(to: url, recordingDelegate: self)
+                        call.resolve(["position": self.position == .front ? "front" : "back"])
+                    }
+                }
+                self.movieOutput.stopRecording()
+            } else {
+                self.applyVideoInput()
+                call.resolve(["position": self.position == .front ? "front" : "back"])
             }
-            // Spiegelung/Orientierung der bestehenden Outputs aktualisieren
-            if let conn = self.movieOutput.connection(with: .video) {
-                conn.videoOrientation = .portrait
-                if conn.isVideoMirroringSupported { conn.isVideoMirrored = (self.position == .front) }
-                if conn.isVideoStabilizationSupported { conn.preferredVideoStabilizationMode = .cinematic }
-            }
-            if let c = self.photoOutput.connection(with: .video) {
-                c.videoOrientation = .portrait
-                if c.isVideoMirroringSupported { c.isVideoMirrored = (self.position == .front) }
-            }
-            self.session.commitConfiguration()
-            call.resolve(["position": self.position == .front ? "front" : "back"])
         }
     }
 
