@@ -74,7 +74,7 @@ export default function AdminLoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-white">Admin-Bereich</h1>
           <p className="text-white/40 text-sm mt-1.5">
-            <span className="text-[#8BB06A]">pistazz</span>.io — Geschützter Zugang
+            <span className="text-[#8BB06A]">pistazz</span>.io | Geschützter Zugang
           </p>
         </div>
 

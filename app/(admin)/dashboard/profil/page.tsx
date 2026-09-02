@@ -142,7 +142,7 @@ export default function ProfilPage() {
         toast.error('Fehler beim Speichern')
       } else {
         if (json.restaurant) setRestaurant(json.restaurant)
-        toast.success('Profil gespeichert — Änderungen sind sofort live ✓')
+        toast.success('Profil gespeichert, Änderungen sind sofort live ✓')
       }
     } catch (err) {
       console.error('Save exception:', err)
@@ -267,10 +267,10 @@ export default function ProfilPage() {
       {/* ── Google Bewertung ── */}
       <div className={sectionCls}>
         <h2 className="font-semibold text-[#1C1F1A]">Google Bewertung</h2>
-        <p className="text-xs text-gray-400">Aktuelle Google-Sterne und Anzahl Bewertungen — wird Gästen auf den Karten angezeigt.</p>
+        <p className="text-xs text-gray-400">Aktuelle Google-Sterne und Anzahl Bewertungen, wird Gästen auf den Karten angezeigt.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Google Sterne (1.0 – 5.0)</label>
+            <label className={labelCls}>Google Sterne (1.0 - 5.0)</label>
             <input
               type="number" step="0.1" min="1" max="5" placeholder="z. B. 4.7"
               value={googleRating}
@@ -313,7 +313,7 @@ export default function ProfilPage() {
                     onChange={e => setOpeningHours(h => ({ ...h, [key]: { ...h[key], open: e.target.value } }))}
                     className="px-2 py-1 rounded border border-gray-200 text-sm"
                   />
-                  <span className="text-gray-400 text-sm">–</span>
+                  <span className="text-gray-400 text-sm">-</span>
                   <input
                     type="time"
                     value={openingHours[key]?.close ?? '22:00'}

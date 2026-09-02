@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
           <table style="width:100%;border-collapse:collapse;font-size:14px;color:#1C1F1A;">
             <tr>
               <td style="padding:8px 0;color:#666;width:120px;">Name</td>
-              <td style="padding:8px 0;font-weight:600;">${name ?? '—'}</td>
+              <td style="padding:8px 0;font-weight:600;">${name ?? '-'}</td>
             </tr>
             <tr>
               <td style="padding:8px 0;color:#666;">E-Mail</td>

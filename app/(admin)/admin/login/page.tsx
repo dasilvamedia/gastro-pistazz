@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
             <Lock className="w-7 h-7 text-[#8BB06A]" />
           </div>
           <h1 className="text-2xl font-bold text-white">Admin-Bereich</h1>
-          <p className="text-white/40 text-sm mt-1">pistazz.io — Geschützter Zugang</p>
+          <p className="text-white/40 text-sm mt-1">pistazz.io | Geschützter Zugang</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

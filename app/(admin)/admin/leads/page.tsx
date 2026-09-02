@@ -220,8 +220,8 @@ export default function AdminLeadsPage() {
                 {filtered.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-5 py-3.5 font-medium text-charcoal">{lead.name}</td>
-                    <td className="px-5 py-3.5 text-gray-500 text-xs">{lead.type ?? '—'}</td>
-                    <td className="px-5 py-3.5 text-gray-500">{lead.city ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-gray-500 text-xs">{lead.type ?? '-'}</td>
+                    <td className="px-5 py-3.5 text-gray-500">{lead.city ?? '-'}</td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={lead.status} />
                     </td>
@@ -229,7 +229,7 @@ export default function AdminLeadsPage() {
                       <StarRating value={lead.match_rating} />
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 text-xs max-w-48 truncate">
-                      {lead.next_action ?? '—'}
+                      {lead.next_action ?? '-'}
                     </td>
                     <td className="px-5 py-3.5">
                       <Link

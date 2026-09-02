@@ -44,7 +44,7 @@ export function OpeningHoursTable({ opening_hours, note, className = '' }: Props
             {(!h || h.closed) ? (
               <span className="text-gray-400">Geschlossen</span>
             ) : (
-              <span>{h.open} – {h.close} Uhr</span>
+              <span>{h.open} - {h.close} Uhr</span>
             )}
           </div>
         )

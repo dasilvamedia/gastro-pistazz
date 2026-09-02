@@ -208,7 +208,7 @@ export default function SuperAdminDashboard() {
                   <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-6 py-3.5 text-gray-400 font-mono text-xs">{i + 1}</td>
                     <td className="px-6 py-3.5 font-medium text-charcoal">{r.name}</td>
-                    <td className="px-6 py-3.5 text-gray-500">{r.city ?? '—'}</td>
+                    <td className="px-6 py-3.5 text-gray-500">{r.city ?? '-'}</td>
                     <td className="px-6 py-3.5">
                       <span className="font-semibold text-primary">{r.total_stories}</span>
                     </td>

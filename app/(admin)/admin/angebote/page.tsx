@@ -254,7 +254,7 @@ export default function AngebotePage() {
                           €{p.monthly_fee.toFixed(2).replace('.', ',')}
                         </span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400">-</span>
                       )}
                     </td>
                     <td className="px-6 py-3.5">
@@ -263,7 +263,7 @@ export default function AngebotePage() {
                     <td className="px-6 py-3.5 text-gray-500 text-xs">
                       {p.valid_until
                         ? new Date(p.valid_until).toLocaleDateString('de-DE')
-                        : '—'}
+                        : '-'}
                     </td>
                     <td className="px-6 py-3.5 text-gray-400 text-xs">
                       {new Date(p.created_at).toLocaleDateString('de-DE')}

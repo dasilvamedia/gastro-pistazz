@@ -62,7 +62,7 @@ function NfcTagsSection() {
         <h2 className="font-semibold text-[#1C1F1A]">NFC-Tags (Stempel per Antippen)</h2>
         <p className="text-xs text-gray-500 mt-1">
           Beschreibe hier die physischen NFC-Karten/-Tags in deinem Restaurant. Die UID liest du mit einer
-          NFC-Tools-App (z.B. auf dem Handy) einmalig vom Tag ab und trägst sie hier ein — danach vergibt
+          NFC-Tools-App (z.B. auf dem Handy) einmalig vom Tag ab und trägst sie hier ein. Danach vergibt
           jedes Antippen automatisch einen Stempel, ganz ohne Foto oder Link.
         </p>
       </div>

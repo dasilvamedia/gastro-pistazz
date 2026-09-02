@@ -84,7 +84,7 @@ function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: s
 // ─── Trial-Badge ─────────────────────────────────────────────────────────────
 
 function TrialBadge({ sub }: { sub: SubRow | null }) {
-  if (!sub) return <span className="text-xs text-gray-300">–</span>
+  if (!sub) return <span className="text-xs text-gray-300">-</span>
   const sl = STATUS_LABEL[sub.status]
   const pl = PLANS[sub.plan]
   return (
@@ -412,7 +412,7 @@ function RestaurantPanel({ acc, sub, onClose, onImpersonate, onUpdate }: {
               <select value={planVal} onChange={e => savePlan(e.target.value as PlanKey)} disabled={planSaving}
                 className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8BB06A] bg-white disabled:opacity-50">
                 {Object.values(PLANS).map(p => (
-                  <option key={p.key} value={p.key}>{p.name} — {p.price_monthly}€/Mo</option>
+                  <option key={p.key} value={p.key}>{p.name} - {p.price_monthly}€/Mo</option>
                 ))}
               </select>
               {planSaving && <span className="text-xs text-gray-400 animate-pulse">…</span>}
@@ -471,7 +471,7 @@ function RestaurantPanel({ acc, sub, onClose, onImpersonate, onUpdate }: {
                       {copied ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-500" />}
                     </button>
                   </div>
-                  <p className="text-[10px] text-gray-400">Einmaliger Link — nur einmal verwendbar.</p>
+                  <p className="text-[10px] text-gray-400">Einmaliger Link, nur einmal verwendbar.</p>
                 </div>
               )}
             </div>
@@ -776,7 +776,7 @@ export default function AccountsPage() {
                           <Avatar name={acc.full_name} />
                           <div>
                             <p className={`font-medium text-[#1C1F1A] text-sm ${acc.is_banned ? 'line-through' : ''}`}>
-                              {acc.restaurant_name ?? acc.full_name ?? '—'}
+                              {acc.restaurant_name ?? acc.full_name ?? '-'}
                             </p>
                             <p className="text-xs text-gray-400">{acc.restaurant_city ?? acc.email}</p>
                           </div>

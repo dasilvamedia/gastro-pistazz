@@ -37,7 +37,7 @@ async function analyzeWithClaude(opts: {
   const { type, permalink, mediaUrl, screenshotUrl, receiptUrl, distanceM, caption, restaurantName, restaurantHandle, userHandle, igChecks, submittedAt } = opts
 
   if (!ANTHROPIC_API_KEY) {
-    return { verdict: 'pending', confidence: 0, notes: 'Kein API-Schlüssel konfiguriert – manuelle Prüfung erforderlich.' }
+    return { verdict: 'pending', confidence: 0, notes: 'Kein API-Schlüssel konfiguriert, manuelle Prüfung erforderlich.' }
   }
 
   // Wenn URL-Username klar nicht übereinstimmt → sofort suspicious, kein Claude-Call nötig
@@ -109,13 +109,13 @@ Analysiere den Instagram-Screenshot GENAU. Antworte NUR als JSON ohne weiteren T
 Regeln:
 - has_restaurant_tag: true wenn ${handleInfo} oder der Restaurantname als @Mention, Location-Tag oder deutlich sichtbar im Bild ist
 - has_pistazz_tag: true wenn "@gastro.pistazz.io" oder "gastro.pistazz.io" oder "pistazz" als @Mention, Sticker oder Text sichtbar ist
-- is_recent: true wenn der Story-Timestamp < 24h zeigt (z.B. "Gerade", "2 Min", "1 Std") — NICHT bei Datum wie "15. Mai" oder "vor 3 Tagen"
+- is_recent: true wenn der Story-Timestamp < 24h zeigt (z.B. "Gerade", "2 Min", "1 Std"), NICHT bei Datum wie "15. Mai" oder "vor 3 Tagen"
 - Kein Timestamp sichtbar → is_recent: false, verdict: "suspicious" (manuelle Prüfung)
 - Timestamp sichtbar aber alt (> 24h) → verdict: "rejected"
 - verdict "rejected": kein Restaurantbezug ODER kein echter Instagram-Screenshot ODER Story älter als 24h
 - verdict "suspicious": Restaurantbezug unklar ODER @gastro.pistazz.io fehlt ODER kein Timestamp sichtbar ODER Username nicht lesbar
 - verdict "approved": BEIDE Tags sichtbar (Restauranttag UND @gastro.pistazz.io) UND Timestamp zeigt < 24h
-Sei streng — lieber suspicious als approved wenn du unsicher bist.`
+Sei streng: lieber suspicious als approved wenn du unsicher bist.`
 
       contentBlocks.push({ type: 'image', source: { type: 'url', url: screenshotUrl } })
       contentBlocks.push({ type: 'text', text: 'Analysiere diesen Instagram-Screenshot gemäß den Anweisungen.' })
@@ -161,13 +161,13 @@ Ist das ein valider Instagram-Link? Format korrekt? Enthält die Beschreibung Hi
     const systemPrompt = `Du bist ein strenger KI-Qualitätsprüfer für ein Gastro-Marketing-Programm.
 Restaurant: "${restaurantName}"
 Antwort immer als JSON: {"verdict":"approved"|"suspicious"|"rejected","confidence":0-100,"notes":"Kurze deutsche Begründung (max. 2 Sätze)"}
-Sei streng: Ohne Screenshot kann nur das URL-Format und der Restaurantbezug in der Beschreibung geprüft werden — setze verdict auf "suspicious" wenn keine anderen Signale vorliegen.`
+Sei streng: Ohne Screenshot kann nur das URL-Format und der Restaurantbezug in der Beschreibung geprüft werden. Setze verdict auf "suspicious" wenn keine anderen Signale vorliegen.`
 
     contentBlocks.push({ type: 'text', text: userMessage })
     return callClaude(systemPrompt, contentBlocks)
   }
 
-  return { verdict: 'pending', confidence: 50, notes: 'Unbekannter Einreichungstyp – manuelle Prüfung erforderlich.' }
+  return { verdict: 'pending', confidence: 50, notes: 'Unbekannter Einreichungstyp, manuelle Prüfung erforderlich.' }
 }
 
 async function callClaude(systemPrompt: string, contentBlocks: unknown[]): Promise<AnalyzeResult> {
@@ -190,7 +190,7 @@ async function callClaude(systemPrompt: string, contentBlocks: unknown[]): Promi
 
     if (!res.ok) {
       console.error('Anthropic API error:', await res.text())
-      return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen – manuelle Prüfung erforderlich.' }
+      return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen, manuelle Prüfung erforderlich.' }
     }
 
     const json = await res.json()
@@ -206,7 +206,7 @@ async function callClaude(systemPrompt: string, contentBlocks: unknown[]): Promi
     }
   } catch (err) {
     console.error('AI analyze error:', err)
-    return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen – manuelle Prüfung erforderlich.' }
+    return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen, manuelle Prüfung erforderlich.' }
   }
 }
 
@@ -230,7 +230,7 @@ async function callClaudeStructured(systemPrompt: string, contentBlocks: unknown
 
     if (!res.ok) {
       console.error('Anthropic API error:', await res.text())
-      return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen – manuelle Prüfung erforderlich.', has_restaurant_tag: false, is_recent: false }
+      return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen, manuelle Prüfung erforderlich.', has_restaurant_tag: false, is_recent: false }
     }
 
     const json = await res.json()
@@ -240,7 +240,7 @@ async function callClaudeStructured(systemPrompt: string, contentBlocks: unknown
     return JSON.parse(match[0]) as Record<string, unknown>
   } catch (err) {
     console.error('AI structured analyze error:', err)
-    return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen – manuelle Prüfung erforderlich.', has_restaurant_tag: false, is_recent: false }
+    return { verdict: 'pending', confidence: 0, notes: 'KI-Analyse fehlgeschlagen, manuelle Prüfung erforderlich.', has_restaurant_tag: false, is_recent: false }
   }
 }
 
@@ -295,12 +295,12 @@ export async function POST(request: Request) {
       const tooFar = distance == null || distance > 500
       if (!hasReceipt) {
         finalVerdict = 'suspicious'
-        finalNotes = 'Kein Kassenbon vorhanden — manuelle Prüfung erforderlich.'
+        finalNotes = 'Kein Kassenbon vorhanden, manuelle Prüfung erforderlich.'
       } else if (tooFar) {
         finalVerdict = 'suspicious'
         finalNotes = distance == null
-          ? 'Kein Standort übermittelt — manuelle Prüfung erforderlich.'
-          : `Standort war ${distance}m vom Restaurant entfernt — manuelle Prüfung erforderlich.`
+          ? 'Kein Standort übermittelt, manuelle Prüfung erforderlich.'
+          : `Standort war ${distance}m vom Restaurant entfernt, manuelle Prüfung erforderlich.`
       }
     }
 

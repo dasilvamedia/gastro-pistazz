@@ -57,7 +57,7 @@ function StempelInner() {
         } else if (data.error === 'unknown_tag') {
           toast.error('Dieser Tag ist nicht registriert.')
         } else if (data.error === 'card_already_complete') {
-          toast.error('Deine Karte ist schon voll — löse deine Belohnung ein!')
+          toast.error('Deine Karte ist schon voll. Löse deine Belohnung ein!')
         } else {
           toast.error('Fehler beim Stempeln')
         }
@@ -174,7 +174,7 @@ function StempelInner() {
             <p className="font-semibold text-sm">NFC noch nicht verfügbar</p>
           </div>
           <p className="text-white/60 text-xs leading-relaxed">
-            Auf diesem Gerät funktioniert das automatische Stempeln noch nicht — frag im Restaurant nach einem manuellen Stempel.
+            Auf diesem Gerät funktioniert das automatische Stempeln noch nicht. Frag im Restaurant nach einem manuellen Stempel.
           </p>
         </div>
       ) : (

@@ -107,7 +107,7 @@ export default function KundenPage() {
                             {(p.full_name ?? p.email)[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-medium text-[#1C1F1A]">{p.full_name ?? '—'}</p>
+                            <p className="font-medium text-[#1C1F1A]">{p.full_name ?? '-'}</p>
                             <p className="text-xs text-gray-400">{p.email}</p>
                           </div>
                         </div>

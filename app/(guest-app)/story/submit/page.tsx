@@ -391,7 +391,7 @@ function StorySubmitInner() {
                       </li>
                       <li className="flex items-start gap-2 text-xs text-[#6D7A6D] bg-red-50 rounded-xl p-2 border border-red-100">
                         <span className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
-                        <span><strong className="text-red-700">Zum Schluss</strong> Kassenbon-Foto hochladen — das bestätigt, dass du gerade wirklich vor Ort bist.</span>
+                        <span><strong className="text-red-700">Zum Schluss</strong> Kassenbon-Foto hochladen. Das bestätigt, dass du gerade wirklich vor Ort bist.</span>
                       </li>
                     </>)}
                     {selectedType === 'instagram_reel' && (<>
@@ -596,7 +596,7 @@ function StorySubmitInner() {
                     Kassenbon <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span>
                   </label>
                   <p className="text-[#6D7A6D] text-xs mb-2">
-                    Beweist, dass du gerade wirklich bei <strong>{selectedRestaurant?.name}</strong> bist — dein Standort wird beim Hochladen automatisch mit übermittelt.
+                    Beweist, dass du gerade wirklich bei <strong>{selectedRestaurant?.name}</strong> bist. Dein Standort wird beim Hochladen automatisch mit übermittelt.
                   </p>
                   <input
                     type="file"
@@ -634,7 +634,7 @@ function StorySubmitInner() {
                     )}
                     {locationStatus === 'denied' && (
                       <span className="text-amber-600 flex items-center gap-1">
-                        <AlertTriangle size={13} />Standort nicht verfügbar — bitte in den Geräte-Einstellungen erlauben
+                        <AlertTriangle size={13} />Standort nicht verfügbar, bitte in den Geräte-Einstellungen erlauben
                       </span>
                     )}
                   </div>
@@ -672,7 +672,7 @@ function StorySubmitInner() {
                   <div className="flex items-start gap-2 bg-[#EEF5E6] rounded-xl p-3 border border-[#D4E8C2]">
                     <span className="text-base flex-shrink-0">✅</span>
                     <p className="text-[#577A3D] text-xs leading-relaxed">
-                      Dein Beleg wird zur Verifizierung benötigt. Bitte lade nur echte Belege hoch – nur verifizierte Einreichungen erhalten Punkte.
+                      Dein Beleg wird zur Verifizierung benötigt. Bitte lade nur echte Belege hoch. Nur verifizierte Einreichungen erhalten Punkte.
                     </p>
                   </div>
                 </div>

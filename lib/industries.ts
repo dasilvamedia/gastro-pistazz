@@ -55,7 +55,7 @@ export const INDUSTRIES: Industry[] = [
   {
     slug: 'gastro',
     emoji: '🍽️',
-    metaTitle: 'Gastro – Mehr Stammgäste durch Social-Media-Loyalty',
+    metaTitle: 'Gastro - Mehr Stammgäste durch Social-Media-Loyalty',
     metaDescription:
       'Digitale Stempelkarten und Social-Media-Loyalty für Restaurants, Bars und Cafés. Gäste posten, sammeln Punkte und kommen wieder.',
     theme: {
@@ -122,7 +122,7 @@ export const INDUSTRIES: Industry[] = [
       "Gastronomie": "Barber-Welt"
     },
     emoji: '💈',
-    metaTitle: 'Barbershop & Friseur – Digitale Stempelkarte statt Papierkarte',
+    metaTitle: 'Barbershop & Friseur - Digitale Stempelkarte statt Papierkarte',
     metaDescription:
       'Die digitale Stempelkarte für Barbershops und Friseure. Jeder Schnitt zählt, jeder Post bringt neue Kunden.',
     theme: {
@@ -188,7 +188,7 @@ export const INDUSTRIES: Industry[] = [
       "Gastronomie": "Wellness-Welt"
     },
     emoji: '💆',
-    metaTitle: 'Spa & Wellness – Treueprogramm für Ruhe-Momente',
+    metaTitle: 'Spa & Wellness - Treueprogramm für Ruhe-Momente',
     metaDescription:
       'Loyalty für Spas, Saunen und Wellness-Studios. Gäste sammeln Punkte für jeden Besuch und teilen ihre Auszeit.',
     theme: {
@@ -254,7 +254,7 @@ export const INDUSTRIES: Industry[] = [
       "Gastronomie": "Fitness-Welt"
     },
     emoji: '💪',
-    metaTitle: 'Fitness & Gym – Mitglieder halten statt neu werben',
+    metaTitle: 'Fitness & Gym - Mitglieder halten statt neu werben',
     metaDescription:
       'Loyalty fürs Gym: Jedes Training zählt, jeder Post bringt Reichweite. Weniger Kündigungen, mehr Empfehlungen.',
     theme: {
@@ -320,7 +320,7 @@ export const INDUSTRIES: Industry[] = [
       "Gastronomie": "Beauty-Welt"
     },
     emoji: '💅',
-    metaTitle: 'Beauty & Nails – Jeder Termin wird zum Post',
+    metaTitle: 'Beauty & Nails - Jeder Termin wird zum Post',
     metaDescription:
       'Loyalty für Nagel- und Kosmetikstudios. Kundinnen und Kunden zeigen ihr Ergebnis, du gewinnst neue Termine.',
     theme: {
@@ -386,7 +386,7 @@ export const INDUSTRIES: Industry[] = [
       "Gastronomie": "Tattoo-Szene"
     },
     emoji: '🖤',
-    metaTitle: 'Tattoo & Piercing – Empfehlungen statt Stempelkarte',
+    metaTitle: 'Tattoo & Piercing - Empfehlungen statt Stempelkarte',
     metaDescription:
       'Loyalty für Tattoo- und Piercing-Studios: Bei seltenen Besuchen zählt die Weiterempfehlung mehr als jede Stempelkarte.',
     theme: {
@@ -406,7 +406,7 @@ export const INDUSTRIES: Industry[] = [
         heroLine1: 'Dein Kunde kommt einmal.',
         heroLine2: 'Sein Post bleibt.',
         heroSub:
-          'Bei seltenen Terminen zieht keine Stempelkarte. Hier zählt die Weiterempfehlung — und genau die belohnst du.',
+          'Bei seltenen Terminen zieht keine Stempelkarte. Hier zählt die Weiterempfehlung, und genau die belohnst du.',
         heroNote: 'Gebaut für Tattoo-, Piercing- und Ink-Studios',
         stepReward:
           'Punkte fürs Mitbringen: Wer jemanden bringt, bekommt Rabatt aufs nächste Piece oder ein Aftercare-Set.',
@@ -417,7 +417,7 @@ export const INDUSTRIES: Industry[] = [
         heroLine1: 'Seu cliente vem uma vez.',
         heroLine2: 'O post dele fica.',
         heroSub:
-          'Com visitas raras, cartão de carimbo não funciona. Aqui vale a indicação — e é isso que você premia.',
+          'Com visitas raras, cartão de carimbo não funciona. Aqui vale a indicação, e é isso que você premia.',
         heroNote: 'Feito para estúdios de tatuagem, piercing e ink',
         stepReward:
           'Pontos por indicar: quem traz alguém ganha desconto na próxima peça ou um kit de cicatrização.',
@@ -428,7 +428,7 @@ export const INDUSTRIES: Industry[] = [
         heroLine1: 'Your client comes once.',
         heroLine2: 'Their post stays.',
         heroSub:
-          'With rare appointments a stamp card gets you nowhere. Here the referral is what counts — so reward exactly that.',
+          'With rare appointments a stamp card gets you nowhere. Here the referral is what counts, so reward exactly that.',
         heroNote: 'Built for tattoo, piercing and ink studios',
         stepReward:
           'Points for bringing someone: a referral earns a discount on the next piece or an aftercare kit.',

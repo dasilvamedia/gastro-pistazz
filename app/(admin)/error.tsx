@@ -19,7 +19,7 @@ export default function AdminError({
 
   return (
     <div style={{ padding: 24, fontFamily: 'monospace', maxWidth: 900 }}>
-      <h2 style={{ color: 'red' }}>Admin-Fehler — bitte Screenshot senden</h2>
+      <h2 style={{ color: 'red' }}>Admin-Fehler, bitte Screenshot senden</h2>
       <pre style={{ background: '#fee', padding: 16, borderRadius: 8, fontSize: 11, whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
         {error.message}
         {'\n\n'}

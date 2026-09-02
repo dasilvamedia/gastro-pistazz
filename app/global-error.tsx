@@ -20,7 +20,7 @@ export default function GlobalError({
   return (
     <html>
       <body style={{ fontFamily: 'monospace', padding: 24 }}>
-        <h2 style={{ color: 'red' }}>Globaler Fehler — bitte Screenshot senden</h2>
+        <h2 style={{ color: 'red' }}>Globaler Fehler, bitte Screenshot senden</h2>
         <pre style={{ background: '#fee', padding: 16, borderRadius: 8, fontSize: 11, whiteSpace: 'pre-wrap', overflow: 'auto' }}>
           {error.message}
           {'\n\n'}

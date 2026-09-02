@@ -290,7 +290,7 @@ export default function NutzerPage() {
                     {/* ── Restaurants ── */}
                     <div className="hidden lg:flex flex-col gap-1 min-w-0">
                       {uniqueRests.length === 0
-                        ? <span className="text-xs text-gray-300 italic">–</span>
+                        ? <span className="text-xs text-gray-300 italic">-</span>
                         : uniqueRests.slice(0, 2).map(r => (
                             <span key={r.restaurant_id} className="text-[11px] bg-[#EEF5E6] text-[#577A3D] px-2 py-0.5 rounded-full font-medium truncate max-w-full">
                               🍽️ {r.name}
@@ -326,7 +326,7 @@ export default function NutzerPage() {
                     <div className="hidden lg:block text-right">
                       {u.total_stories > 0
                         ? <p className="text-sm font-bold text-purple-600">{u.total_stories} 📸</p>
-                        : <p className="text-sm text-gray-300">–</p>}
+                        : <p className="text-sm text-gray-300">-</p>}
                     </div>
 
                     {/* ── Datum ── */}

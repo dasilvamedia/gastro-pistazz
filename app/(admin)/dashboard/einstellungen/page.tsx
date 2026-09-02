@@ -160,7 +160,7 @@ export default function EinstellungenPage() {
                   {statusInfo.emoji} {statusInfo.label}
                 </span>
                 {isTrialActive && (
-                  <span className="text-sm text-gray-400">— noch {trialDaysRemaining} {trialDaysRemaining === 1 ? 'Tag' : 'Tage'} kostenlos</span>
+                  <span className="text-sm text-gray-400">noch {trialDaysRemaining} {trialDaysRemaining === 1 ? 'Tag' : 'Tage'} kostenlos</span>
                 )}
               </div>
             )}
@@ -168,7 +168,7 @@ export default function EinstellungenPage() {
             {/* Trial: alle drei Pakete als Auswahl */}
             {(isTrialActive || isTrialExpired) ? (
               <>
-                <p className="text-xs text-gray-400">Wähle dein Paket — Buchung folgt in Kürze.</p>
+                <p className="text-xs text-gray-400">Wähle dein Paket, Buchung folgt in Kürze.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {(Object.keys(PLANS) as PlanKey[]).map(key => {
                     const p = PLANS[key]
@@ -235,7 +235,7 @@ export default function EinstellungenPage() {
                               opacity: isCurrent ? 1 : 0.5,
                             }}
                           >
-                            {isCurrent ? '✓ Dein Testpaket' : 'Buchen — bald'}
+                            {isCurrent ? '✓ Dein Testpaket' : 'Buchen (bald)'}
                           </button>
                         </div>
                       </div>

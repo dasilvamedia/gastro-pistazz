@@ -142,7 +142,7 @@ function NeuesAngebotForm() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <div>
             <h2 className="font-semibold text-[#1C1F1A]">Paket-Vorlage</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Wähle ein Paket — Preise und Features werden automatisch eingetragen</p>
+            <p className="text-xs text-gray-400 mt-0.5">Wähle ein Paket, Preise und Features werden automatisch eingetragen</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {(Object.keys(PLANS) as PlanKey[]).map(key => {

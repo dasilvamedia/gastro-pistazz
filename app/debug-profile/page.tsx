@@ -62,7 +62,7 @@ export default function DebugProfilePage() {
         </span>
         {!isAdmin && (
           <p style={{ color: '#E86B5A', marginTop: 8 }}>
-            ❌ Noch nicht super_admin — kopiere deine ID oben und führe das SQL unten aus.
+            ❌ Noch nicht super_admin. Kopiere deine ID oben und führe das SQL unten aus.
           </p>
         )}
         {isAdmin && (

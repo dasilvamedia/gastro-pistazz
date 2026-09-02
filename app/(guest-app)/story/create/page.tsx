@@ -303,7 +303,7 @@ async function sendPushNotification(userId: string) {
       body:    JSON.stringify({
         user_id: userId,
         title:   '📸 Story eingereicht!',
-        body:    'Zur Gutschrift deiner Bonuspunkte wird deine Story geprüft – meist in wenigen Stunden.',
+        body:    'Zur Gutschrift deiner Bonuspunkte wird deine Story geprüft, meist in wenigen Stunden.',
         url:     '/home',
       }),
     })
@@ -449,7 +449,7 @@ function ShareSheet({
         <div className="text-center space-y-1">
           <h2 className="text-lg font-bold text-[#1C1F1A]">Story teilen 📸</h2>
           <p className="text-sm text-gray-500">
-            Im nächsten Schritt <strong className="text-[#1C1F1A]">„Instagram Stories"</strong> wählen — das Bild wird direkt in deine Story geladen.
+            Im nächsten Schritt <strong className="text-[#1C1F1A]">„Instagram Stories"</strong> wählen, das Bild wird direkt in deine Story geladen.
           </p>
         </div>
 
@@ -464,7 +464,7 @@ function ShareSheet({
             </svg>
           </div>
           <p className="text-xs text-gray-600">
-            Tippe auf <strong>„Instagram Stories"</strong> im Menü, nicht auf „Instagram" — dann geht das Bild direkt in deine Story.
+            Tippe auf <strong>„Instagram Stories"</strong> im Menü, nicht auf „Instagram", dann geht das Bild direkt in deine Story.
           </p>
         </div>
 
@@ -887,11 +887,11 @@ function StoryCreateInner() {
     }
     recChunksRef.current = []
     rec.ondataavailable = ev => { if (ev.data.size > 0) recChunksRef.current.push(ev.data) }
-    rec.onerror = () => { toast.error('Aufnahme-Fehler — bitte nochmal versuchen') }
+    rec.onerror = () => { toast.error('Aufnahme-Fehler, bitte nochmal versuchen') }
     rec.onstop = () => {
       const blob = new Blob(recChunksRef.current, { type: mime })
       if (blob.size < 10_000) {
-        toast.error('Video zu kurz — halte etwas länger drauf')
+        toast.error('Video zu kurz, halte etwas länger drauf')
         return
       }
       setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
@@ -990,7 +990,7 @@ function StoryCreateInner() {
       setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
       setStep('video-share')
     } catch {
-      toast.error('Boomerang fehlgeschlagen — bitte nochmal versuchen')
+      toast.error('Boomerang fehlgeschlagen, bitte nochmal versuchen')
     }
     setBoomPhase(null)
     setBoomBusy(false)
@@ -1289,13 +1289,13 @@ function StoryCreateInner() {
             })}
           </div>
           <p className="text-white/45 text-[11px] leading-snug text-center px-2">
-            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> — nicht nur eintippen, sonst zählt der Tag nicht.
+            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> und nicht nur eintippen, sonst zählt der Tag nicht.
           </p>
 
           {hasNativeIG ? (
             /* Direkte Bild-Uebergabe: kein Speichern, kein Galerie-Umweg */
             <p className="text-[#8BB06A] text-[12px] leading-snug text-center">
-              ✨ Dein Bild wird <strong>automatisch an Instagram übergeben</strong> — einfach unten tippen.
+              ✨ Dein Bild wird <strong>automatisch an Instagram übergeben</strong>, einfach unten tippen.
             </p>
           ) : (
             /* Manueller Weg fuer aeltere App-Versionen / Web */
@@ -1409,7 +1409,7 @@ function StoryCreateInner() {
             })}
           </div>
           <p className="text-white/45 text-[11px] leading-snug text-center px-2">
-            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> — nicht nur eintippen, sonst zählt der Tag nicht.
+            In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> und nicht nur eintippen, sonst zählt der Tag nicht.
           </p>
           <button
             onClick={shareVideoToIG}
@@ -1675,7 +1675,7 @@ function StoryCreateInner() {
             </div>
             <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
               <li><strong className="text-white">1.</strong> Foto oder Video aufnehmen und Sticker platzieren</li>
-              <li><strong className="text-white">2.</strong> Auf „Teilen“ tippen — deine Story geht direkt an Instagram</li>
+              <li><strong className="text-white">2.</strong> Auf „Teilen“ tippen, deine Story geht direkt an Instagram</li>
               <li><strong className="text-white">3.</strong> Zurück in der App: Kassenbon fotografieren (Beweis, dass du vor Ort bist)</li>
               <li><strong className="text-white">4.</strong> Punkte anfordern. Fertig!</li>
             </ol>

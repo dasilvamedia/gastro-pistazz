@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
           <p style="font-size:16px;color:#1C1F1A;font-weight:600;">Hallo ${d.name},</p>
           <p style="font-size:14px;color:#4b5563;line-height:1.6;">
             vielen Dank für deine Anfrage! Wir haben alles erhalten und melden uns innerhalb von
-            <strong>24–48 Stunden</strong> bei dir — persönlich, nicht automatisiert.
+            <strong>24-48 Stunden</strong> bei dir, persönlich und nicht automatisiert.
           </p>
 
           <div style="background:#EEF5E6;border-radius:10px;padding:16px 20px;margin:20px 0;border-left:4px solid #8BB06A;">

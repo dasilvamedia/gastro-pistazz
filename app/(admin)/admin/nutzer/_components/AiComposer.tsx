@@ -34,7 +34,7 @@ const TEMPLATES: Record<KanbanCol, { title: string; message: string; emoji: stri
     },
     {
       title: 'Empfehle pistazz weiter',
-      message: 'Du liebst pistazz — teile das Erlebnis! 🌟\nFür jede Person, die sich über deinen Link anmeldet, bekommst du Extra-Punkte. Teile jetzt!',
+      message: 'Du liebst pistazz? Teile das Erlebnis! 🌟\nFür jede Person, die sich über deinen Link anmeldet, bekommst du Extra-Punkte. Teile jetzt!',
       emoji: '🤝',
     },
   ],
@@ -46,19 +46,19 @@ const TEMPLATES: Record<KanbanCol, { title: string; message: string; emoji: stri
     },
     {
       title: 'Danke für deine Treue 💚',
-      message: 'Du bist einer unserer treuesten pistazz-Nutzer — das wollen wir feiern! 🎉\nAls Dankeschön: 200 Bonus-Punkte warten auf dich. Jetzt in der App abholen!',
+      message: 'Du bist einer unserer treuesten pistazz-Nutzer, das wollen wir feiern! 🎉\nAls Dankeschön: 200 Bonus-Punkte warten auf dich. Jetzt in der App abholen!',
       emoji: '🎁',
     },
   ],
   inaktiv: [
     {
       title: 'Wir vermissen dich! 😔',
-      message: 'Hey, wir haben dich eine Weile nicht mehr gesehen.\nKomm zurück und entdecke neue Deals in deiner Nähe — dein nächstes Gratis-Dessert wartet schon auf dich! 🍰',
+      message: 'Hey, wir haben dich eine Weile nicht mehr gesehen.\nKomm zurück und entdecke neue Deals in deiner Nähe, dein nächstes Gratis-Dessert wartet schon auf dich! 🍰',
       emoji: '💫',
     },
     {
       title: 'Etwas Neues wartet auf dich',
-      message: 'Seit deinem letzten Besuch haben wir viel Neues hinzugefügt! 🆕\nNeue Restaurants, neue Deals, neue Möglichkeiten. Schau mal rein — nur 2 Minuten! ⚡',
+      message: 'Seit deinem letzten Besuch haben wir viel Neues hinzugefügt! 🆕\nNeue Restaurants, neue Deals, neue Möglichkeiten. Schau mal rein, dauert nur 2 Minuten! ⚡',
       emoji: '✨',
     },
   ],
@@ -100,7 +100,7 @@ export function AiComposer({ column, userCount, restaurants, onClose }: Props) {
     if (!title.trim() || !msg.trim()) { toast.error('Titel und Nachricht sind Pflichtfelder'); return }
     setSending(true)
     await new Promise(r => setTimeout(r, 1000))
-    toast.success(`Nachricht für "${colInfo.label}" gespeichert — wird versendet sobald Push live ist 🚀`)
+    toast.success(`Nachricht für "${colInfo.label}" gespeichert, wird versendet sobald Push live ist 🚀`)
     setSending(false)
     onClose()
   }

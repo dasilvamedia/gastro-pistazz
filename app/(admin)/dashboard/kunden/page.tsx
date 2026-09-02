@@ -126,7 +126,7 @@ export default function KundenPage() {
               </button>
             </div>
             <p className="text-sm text-gray-500">
-              E-Mail-Adresse des Nutzers eingeben — dieser wird sofort in deiner Kundendatenbank sichtbar.
+              E-Mail-Adresse des Nutzers eingeben, dieser wird sofort in deiner Kundendatenbank sichtbar.
               <br /><span className="text-[#8BB06A] font-medium">Hinweis:</span> Normalerweise erscheinen Kunden automatisch sobald sie eine Story eingereicht, Punkte gesammelt oder einen Deal eingelöst haben.
             </p>
             <input
@@ -213,7 +213,7 @@ export default function KundenPage() {
                             {(p.full_name ?? p.email)[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-medium text-[#1C1F1A]">{p.full_name ?? '—'}</p>
+                            <p className="font-medium text-[#1C1F1A]">{p.full_name ?? '-'}</p>
                             <p className="text-xs text-gray-400">{p.email}</p>
                           </div>
                         </div>

@@ -19,7 +19,7 @@ export default function DashboardError({
 
   return (
     <div style={{ padding: 24, fontFamily: 'monospace' }}>
-      <h2 style={{ color: 'red' }}>Dashboard Fehler — bitte Screenshot senden</h2>
+      <h2 style={{ color: 'red' }}>Dashboard-Fehler, bitte Screenshot senden</h2>
       <pre style={{ background: '#fee', padding: 16, borderRadius: 8, fontSize: 12, whiteSpace: 'pre-wrap' }}>
         {error.message}
         {'\n\n'}

@@ -79,7 +79,7 @@ export default function RestaurantLoginPage() {
           </div>
           <h1 className="text-2xl font-bold" style={{ color: '#1C1F1A' }}>Restaurant-Login</h1>
           <p className="text-sm mt-1.5" style={{ color: '#1C1F1A60' }}>
-            <span style={{ color: '#577A3D' }}>pistazz</span>.io — Dein Dashboard
+            <span style={{ color: '#577A3D' }}>pistazz</span>.io | Dein Dashboard
           </p>
         </div>
 

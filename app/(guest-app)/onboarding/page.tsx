@@ -40,7 +40,7 @@ function Slide0() {
         </h2>
         <p style={{ color: '#6D7A6D', fontSize: '1rem', lineHeight: 1.6 }}>
           Free Food? Yes, please! 🎉<br />
-          Schnapp dir deine Freunde – los geht&apos;s!
+          Schnapp dir deine Freunde, los geht&apos;s!
         </p>
       </motion.div>
     </div>

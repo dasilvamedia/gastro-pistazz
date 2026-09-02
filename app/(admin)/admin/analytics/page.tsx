@@ -33,7 +33,7 @@ export default function AnalyticsPage() {
   const [reachData, setReachData] = useState<DailyReach[]>([])
   const [dealData, setDealData] = useState<DealByTrigger[]>([])
   const [pieData, setPieData] = useState<GuestPie[]>([])
-  const [kpi, setKpi] = useState<KPISummary>({ totalReach: 0, avgPoints: 0, topDeal: '—', conversionRate: 0 })
+  const [kpi, setKpi] = useState<KPISummary>({ totalReach: 0, avgPoints: 0, topDeal: '-', conversionRate: 0 })
 
   const fetchAnalytics = useCallback(async (rid: string, r: Range) => {
     setLoading(true)
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
     setKpi({
       totalReach: allReach,
       avgPoints,
-      topDeal: topDealRes.data?.[0]?.title ?? '—',
+      topDeal: topDealRes.data?.[0]?.title ?? '-',
       conversionRate,
     })
     setLoading(false)

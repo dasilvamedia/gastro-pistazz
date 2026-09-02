@@ -24,7 +24,7 @@ export function TrialBanner({ restaurantId }: { restaurantId: string | null }) {
       <div className="bg-[#EEF5E6] border-b border-[#D4E8C2] px-6 py-2.5 flex items-center gap-3">
         <span className="text-base">🧪</span>
         <p className="text-sm font-semibold text-[#577A3D]">
-          Testphase läuft — noch {trialDaysRemaining} {trialDaysRemaining === 1 ? 'Tag' : 'Tage'} kostenlos
+          Testphase läuft, noch {trialDaysRemaining} {trialDaysRemaining === 1 ? 'Tag' : 'Tage'} kostenlos
         </p>
       </div>
     )

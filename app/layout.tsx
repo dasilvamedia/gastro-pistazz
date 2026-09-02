@@ -31,11 +31,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'Gastro | pistazz.io – Mehr Stammgäste durch Social-Media-Loyalty',
+    default: 'Gastro | pistazz.io - Mehr Stammgäste durch Social-Media-Loyalty',
     template: '%s | pistazz.io',
   },
   description:
-    'Digitale Stempelkarten, Social-Media-Loyalty und Gäste-CRM in einer Plattform. Deine Gäste posten, sammeln Punkte und kommen wieder — für Restaurants, Bars, Cafés und mehr.',
+    'Digitale Stempelkarten, Social-Media-Loyalty und Gäste-CRM in einer Plattform. Deine Gäste posten, sammeln Punkte und kommen wieder. Für Restaurants, Bars, Cafés und mehr.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

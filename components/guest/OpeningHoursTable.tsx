@@ -62,7 +62,7 @@ export default function OpeningHoursTable({ openingHours, note, compact = false 
                     : 'text-gray-600'
                 }
               >
-                {isClosed ? 'Geschlossen' : `${hours!.open} – ${hours!.close} Uhr`}
+                {isClosed ? 'Geschlossen' : `${hours!.open} - ${hours!.close} Uhr`}
               </span>
             </div>
           )

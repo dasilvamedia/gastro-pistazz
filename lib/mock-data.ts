@@ -184,7 +184,7 @@ export const MOCK_DEALS: Deal[] = [
     restaurant_id: 'rest-001',
     restaurant: MOCK_RESTAURANTS[0],
     title: '20% auf deine Rechnung 💰',
-    description: 'Poste eine Instagram Story von deinem Besuch und zeige sie dem Kellner – du bekommst 20% Rabatt!',
+    description: 'Poste eine Instagram Story von deinem Besuch und zeige sie dem Kellner, du bekommst 20% Rabatt!',
     trigger: 'instagram_story',
     status: 'active',
     reward_type: 'discount_percent',
@@ -304,7 +304,7 @@ export const MOCK_TRANSACTIONS: PointsTransaction[] = [
 export const MOCK_STORIES: StorySubmission[] = [
   { id: 'sub-001', user_id: 'mock-user-001', user: MOCK_USER, restaurant_id: 'rest-001', restaurant: MOCK_RESTAURANTS[0], type: 'instagram_story', status: 'approved', media_url: null, thumbnail_url: null, instagram_media_id: null, instagram_permalink: 'https://instagram.com/p/abc123', caption: 'Lecker beim Pistazz Kitchen! 🍕', verified_at: '2025-05-01T15:00:00Z', verified_by: 'mock-owner-001', rejection_reason: null, reach: 1240, impressions: 3400, likes: 89, points_awarded: 500, created_at: '2025-05-01T14:30:00Z', updated_at: '2025-05-01T15:00:00Z' },
   { id: 'sub-005', user_id: 'mock-user-002', restaurant_id: 'rest-001', type: 'instagram_reel', status: 'pending', media_url: null, thumbnail_url: null, instagram_media_id: null, instagram_permalink: 'https://instagram.com/reel/xyz789', caption: 'Amazing food! 🍝', verified_at: null, verified_by: null, rejection_reason: null, reach: 0, impressions: 0, likes: 0, points_awarded: 0, created_at: '2025-05-06T10:00:00Z', updated_at: '2025-05-06T10:00:00Z' },
-  { id: 'sub-006', user_id: 'mock-user-003', restaurant_id: 'rest-001', type: 'google_review', status: 'pending', media_url: null, thumbnail_url: null, instagram_media_id: null, instagram_permalink: null, caption: '5 Sterne – absolut empfehlenswert!', verified_at: null, verified_by: null, rejection_reason: null, reach: 0, impressions: 0, likes: 0, points_awarded: 0, created_at: '2025-05-06T08:30:00Z', updated_at: '2025-05-06T08:30:00Z' },
+  { id: 'sub-006', user_id: 'mock-user-003', restaurant_id: 'rest-001', type: 'google_review', status: 'pending', media_url: null, thumbnail_url: null, instagram_media_id: null, instagram_permalink: null, caption: '5 Sterne, absolut empfehlenswert!', verified_at: null, verified_by: null, rejection_reason: null, reach: 0, impressions: 0, likes: 0, points_awarded: 0, created_at: '2025-05-06T08:30:00Z', updated_at: '2025-05-06T08:30:00Z' },
 ]
 
 export const MOCK_ADMIN_PROFILES: Profile[] = [

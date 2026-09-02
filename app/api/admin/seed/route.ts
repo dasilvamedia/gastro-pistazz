@@ -9,8 +9,8 @@ const RESTAURANTS = [
   { email: 'yuma@gastro.pistazz.io', password: 'YumaSushi2026!', name: 'Yuma Sushi & Tapas', slug: 'yuma-aalen', city: 'Aalen' },
   { email: 'rambazamba@gastro.pistazz.io', password: 'Rambazamba2026!', name: 'Rambazamba Aalen', slug: 'rambazamba-aalen', city: 'Aalen' },
   { email: 'osteria@gastro.pistazz.io', password: 'Osteria2026!', name: 'Osteria Aalen', slug: 'osteria-aalen', city: 'Aalen' },
-  { email: 'podium@gastro.pistazz.io', password: 'Podium2026!', name: 'Stefanie Winter – Podium', slug: 'podium-aalen', city: 'Aalen' },
-  { email: 'konrad@gastro.pistazz.io', password: 'Konrad2026!', name: 'Stefanie Winter – Konrad', slug: 'konrad-aalen', city: 'Aalen' },
+  { email: 'podium@gastro.pistazz.io', password: 'Podium2026!', name: 'Stefanie Winter - Podium', slug: 'podium-aalen', city: 'Aalen' },
+  { email: 'konrad@gastro.pistazz.io', password: 'Konrad2026!', name: 'Stefanie Winter - Konrad', slug: 'konrad-aalen', city: 'Aalen' },
   { email: 'rosmarie@gastro.pistazz.io', password: 'Rosmarie2026!', name: 'Rosmarie', slug: 'rosmarie-gmuend', city: 'Schwäbisch Gmünd' },
   { email: 'hicharles@gastro.pistazz.io', password: 'HiCharles2026!', name: 'Hi, Charles', slug: 'hi-charles-gmuend', city: 'Schwäbisch Gmünd' },
   { email: 'bassano@gastro.pistazz.io', password: 'Bassano2026!', name: 'Bassano Bar', slug: 'bassano-gmuend', city: 'Schwäbisch Gmünd' },
@@ -18,7 +18,7 @@ const RESTAURANTS = [
   { email: 'rosengarten@gastro.pistazz.io', password: 'Rosengarten2026!', name: 'Rosengarten', slug: 'rosengarten-ellwangen', city: 'Ellwangen' },
   { email: 'leuchtturm@gastro.pistazz.io', password: 'Leuchtturm2026!', name: 'Leuchtturm', slug: 'leuchtturm-bucher-stausee', city: 'Bucher Stausee' },
   { email: 'beachbar@gastro.pistazz.io', password: 'BeachBar2026!', name: 'Beach Bar', slug: 'beach-bar-bucher-stausee', city: 'Bucher Stausee' },
-  { email: 'waldschaenke@gastro.pistazz.io', password: 'Waldschaenke2026!', name: 'Pierre Grebenisan – Waldschänke', slug: 'waldschaenke-ellwangen', city: 'Ellwangen' },
+  { email: 'waldschaenke@gastro.pistazz.io', password: 'Waldschaenke2026!', name: 'Pierre Grebenisan - Waldschänke', slug: 'waldschaenke-ellwangen', city: 'Ellwangen' },
 ]
 
 export async function POST() {

@@ -192,7 +192,7 @@ export default function SuperAdminEinstellungenPage() {
                 </div>
               </div>
               <div>
-                <p className="font-medium text-[#1C1F1A]">{profile?.full_name ?? '—'}</p>
+                <p className="font-medium text-[#1C1F1A]">{profile?.full_name ?? '-'}</p>
                 <p className="text-sm text-gray-500">{profile?.email}</p>
                 <p className="text-xs text-gray-400 mt-0.5">Super Admin</p>
               </div>
@@ -415,7 +415,7 @@ export default function SuperAdminEinstellungenPage() {
                     {billingRestaurants.map(r => (
                       <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
                         <td className="px-6 py-3.5 font-medium text-[#1C1F1A]">{r.name}</td>
-                        <td className="px-6 py-3.5 text-gray-500">{r.city ?? '—'}</td>
+                        <td className="px-6 py-3.5 text-gray-500">{r.city ?? '-'}</td>
                         <td className="px-6 py-3.5">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             r.contract_status === 'active'
@@ -431,13 +431,13 @@ export default function SuperAdminEinstellungenPage() {
                               €{r.monthly_fee.toFixed(2).replace('.', ',')}
                             </span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-gray-400">-</span>
                           )}
                         </td>
                         <td className="px-6 py-3.5 text-gray-600">
                           {r.monthly_fee != null && r.contract_status === 'active'
                             ? `€${(r.monthly_fee * 12).toLocaleString('de-DE', { minimumFractionDigits: 2 })}`
-                            : '—'}
+                            : '-'}
                         </td>
                       </tr>
                     ))}

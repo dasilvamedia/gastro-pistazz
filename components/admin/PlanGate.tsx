@@ -40,7 +40,7 @@ export function PlanGate({ feature, children }: Props) {
         <p className="text-sm text-gray-500">
           {featureLabel} ist ab dem <strong>Professional-Paket</strong> verfügbar.
           {subscription?.trial_ends_at && (
-            <> Du kannst es jetzt in der Testphase ausprobieren — nach Ablauf ist ein Upgrade notwendig.</>
+            <> Du kannst es jetzt in der Testphase ausprobieren, nach Ablauf ist ein Upgrade notwendig.</>
           )}
         </p>
         <Link

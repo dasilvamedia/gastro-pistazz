@@ -62,7 +62,7 @@ function StatusToggle({ active, onClick }: { active: boolean; onClick: () => voi
 }
 
 function TrialBadge({ sub }: { sub: SubInfo | null }) {
-  if (!sub) return <span className="text-xs text-gray-300">—</span>
+  if (!sub) return <span className="text-xs text-gray-300">-</span>
   const s = STATUS_LABEL[sub.status]
   return (
     <div className="flex flex-col gap-0.5">
@@ -304,7 +304,7 @@ export default function AdminRestaurantsPage() {
                       {r.city && <span className="block text-xs text-gray-400">{r.city}</span>}
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 text-xs">
-                      {r.owner_name ?? <span className="text-gray-300">—</span>}
+                      {r.owner_name ?? <span className="text-gray-300">-</span>}
                     </td>
                     <td className="px-5 py-3.5 font-semibold text-primary">{r.total_stories}</td>
                     <td className="px-5 py-3.5 text-gray-600">{r.total_customers}</td>
