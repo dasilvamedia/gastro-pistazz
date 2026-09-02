@@ -854,6 +854,18 @@ function StoryCreateInner() {
     if (nativeCamRef.current) getNativeCam()?.setExposure({ bias: (brightness - 1) * 2.5 }).catch(() => {})
   }, [brightness])
 
+  // Native Kamera liegt HINTER der WebView: auch html/body muessen
+  // durchsichtig sein, sonst verdeckt der weisse App-Hintergrund die
+  // Vorschau (weisser Kasten statt Kamerabild)
+  useEffect(() => {
+    if (!(nativeCam && step === 'capture')) return
+    const de = document.documentElement, b = document.body
+    const prev = [de.style.background, b.style.background]
+    de.style.background = 'transparent'
+    b.style.background = 'transparent'
+    return () => { de.style.background = prev[0]; b.style.background = prev[1] }
+  }, [nativeCam, step])
+
   // ── Capture ──────────────────────────────────────────────────────────────
   const capturePhoto = () => {
     // Nativ: volles Geraete-Foto, Belichtung/Zoom sind echte Kamera-Werte
