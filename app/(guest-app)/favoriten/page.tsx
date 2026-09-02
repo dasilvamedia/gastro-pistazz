@@ -107,7 +107,23 @@ export default function FavoritenPage() {
     } else {
       saveIds(LOCAL_FAV_KEY, [...loadIds(LOCAL_FAV_KEY), r.id])
     }
-    toast(`❤️ ${r.name} gemerkt`, { duration: 1100 })
+    // Huebsche Pistazz-Pille UNTEN (ueber der Taskleiste), gut lesbar -
+    // der Standard-Toast sass oben unter der Notch
+    toast(`${r.name} ist jetzt ein Favorit`, {
+      duration: 1400,
+      position: 'bottom-center',
+      icon: '💚',
+      style: {
+        background: 'linear-gradient(135deg, #8BB06A 0%, #6D9450 100%)',
+        color: '#fff',
+        fontWeight: 700,
+        fontSize: '14px',
+        borderRadius: '9999px',
+        padding: '10px 18px',
+        boxShadow: '0 8px 24px rgba(139,176,106,0.45)',
+        marginBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+      },
+    })
   }, [dbOk, userId, supabase])
 
   const removeFavorite = useCallback(async (r: Restaurant) => {

@@ -684,7 +684,7 @@ function StoryCreateInner() {
     const w = window as unknown as { Capacitor?: { Plugins?: { InstagramStory?: unknown } } }
     setHasNativeIG(!!w.Capacitor?.Plugins?.InstagramStory)
   }, [])
-  const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.7, scale: 1.0 })
+  const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.78, scale: 1.0 })
   const [showSheet,    setShowSheet]   = useState(false) // kept for compatibility
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
@@ -1732,7 +1732,7 @@ function StoryCreateInner() {
   }
 
   const retake = () => {
-    setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.7, scale: 1.0 })
+    setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.78, scale: 1.0 })
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
     setExportedBlob(null)
     if (capturedVideo) { URL.revokeObjectURL(capturedVideo.url); setCapturedVideo(null) }
