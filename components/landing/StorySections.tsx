@@ -11,8 +11,8 @@ import { motion } from 'framer-motion'
 export const INK = '#1C1F1A'
 export const CREAM = '#F2EFE6'
 export const HAIR = 'rgba(28,31,26,0.14)'
-export const SERIF = "'Instrument Serif', 'DM Serif Display', Georgia, serif"
-export const MONO = "'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+export const SERIF = "var(--font-instrument), 'DM Serif Display', Georgia, serif"
+export const MONO = "var(--font-dm-mono), ui-monospace, 'SF Mono', Menlo, monospace"
 
 export function Kicker({ children }: { children: React.ReactNode }) {
   return (

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, DM_Serif_Display } from 'next/font/google'
+import { DM_Sans, DM_Serif_Display, Instrument_Serif, DM_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import NativeAuthHandler from '@/components/NativeAuthHandler'
@@ -16,6 +16,22 @@ const dmSerifDisplay = DM_Serif_Display({
   subsets: ['latin'],
   weight: ['400'],
   variable: '--font-dm-serif',
+  display: 'swap',
+})
+
+// Redaktionelle Landing-Sektionen (V2-Design)
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  variable: '--font-instrument',
+  display: 'swap',
+})
+
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-dm-mono',
   display: 'swap',
 })
 
@@ -63,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="de" className={`${dmSans.variable} ${dmSerifDisplay.variable}`}>
+    <html lang="de" className={`${dmSans.variable} ${dmSerifDisplay.variable} ${instrumentSerif.variable} ${dmMono.variable}`}>
       <body className="font-sans bg-pale text-charcoal antialiased">
         {/* Blockierend VOR dem ersten Paint: verhindert den weissen Blitz,
             bevor der Dark Mode greift (ThemeApplier uebernimmt danach live) */}
