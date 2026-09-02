@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, Gift, User } from 'lucide-react'
+import { Home, Search, Gift, User, Heart } from 'lucide-react'
 
+// Das Herz sitzt bewusst in der MITTE als erhabener Pistazz-Button
+// (Tinder-Style-Restaurant-Swipe unter /favoriten)
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/entdecken', label: 'Entdecken', icon: Search },
+  { href: '/favoriten', label: '', icon: Heart, isHeart: true },
   { href: '/deals', label: 'Deals', icon: Gift },
   { href: '/profil', label: 'Profil', icon: User },
 ]
@@ -32,8 +35,31 @@ export function BottomNav() {
       />
 
       <div className="relative flex items-center justify-around px-3 h-[62px]">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon, isHeart }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
+          if (isHeart) {
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-label="Favoriten"
+                className="flex items-center justify-center flex-1 relative"
+              >
+                <span
+                  className="flex items-center justify-center w-[52px] h-[52px] rounded-full -mt-6 transition-transform active:scale-90"
+                  style={{
+                    background: 'linear-gradient(135deg, #8BB06A 0%, #6D9450 100%)',
+                    boxShadow: '0 6px 18px rgba(139,176,106,0.45), 0 0 0 4px var(--nav-bg-a)',
+                  }}
+                >
+                  <Heart
+                    className="text-white"
+                    style={{ width: 26, height: 26, fill: isActive ? '#fff' : 'transparent', strokeWidth: 2.2 }}
+                  />
+                </span>
+              </Link>
+            )
+          }
           return (
             <Link
               key={href}
