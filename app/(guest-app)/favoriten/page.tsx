@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, X, MapPin, Star, RotateCcw, Instagram, ChevronRight } from 'lucide-react'
+import { Heart, X, MapPin, Star, RotateCcw, AtSign, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
@@ -419,7 +419,7 @@ export default function FavoritenPage() {
                 )}
                 {detail.instagram_handle && (
                   <span className="flex items-center gap-1 text-[13px] text-[#6D7A6D]">
-                    <Instagram className="w-3.5 h-3.5" />@{detail.instagram_handle.replace(/^@+/, '')}
+                    <AtSign className="w-3.5 h-3.5" />@{detail.instagram_handle.replace(/^@+/, '')}
                   </span>
                 )}
                 {detail.points_per_story > 0 && (
