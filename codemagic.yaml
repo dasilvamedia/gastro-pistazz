@@ -25,15 +25,16 @@ workflows:
       branch_patterns:
         - pattern: master
           include: true
-      # Nur bauen, wenn sich App-relevante Dateien geaendert haben -
-      # reine Web-Deploys sollen keine Build-Minuten verbrennen
-      when:
-        changeset:
-          includes:
-            - 'ios/**'
-            - 'android/**'
-            - 'capacitor.config.*'
-            - 'codemagic.yaml'
+    # Nur bauen, wenn sich App-relevante Dateien geaendert haben -
+    # reine Web-Deploys sollen keine Build-Minuten verbrennen.
+    # WICHTIG: 'when' gehoert auf Workflow-Ebene, nicht unter 'triggering'
+    when:
+      changeset:
+        includes:
+          - 'ios/**'
+          - 'android/**'
+          - 'capacitor.config.*'
+          - 'codemagic.yaml'
     scripts:
       - name: Install dependencies
         script: npm ci
@@ -82,15 +83,16 @@ workflows:
       branch_patterns:
         - pattern: master
           include: true
-      # Nur bauen, wenn sich App-relevante Dateien geaendert haben -
-      # reine Web-Deploys sollen keine Build-Minuten verbrennen
-      when:
-        changeset:
-          includes:
-            - 'ios/**'
-            - 'android/**'
-            - 'capacitor.config.*'
-            - 'codemagic.yaml'
+    # Nur bauen, wenn sich App-relevante Dateien geaendert haben -
+    # reine Web-Deploys sollen keine Build-Minuten verbrennen.
+    # WICHTIG: 'when' gehoert auf Workflow-Ebene, nicht unter 'triggering'
+    when:
+      changeset:
+        includes:
+          - 'ios/**'
+          - 'android/**'
+          - 'capacitor.config.*'
+          - 'codemagic.yaml'
     scripts:
       - name: Install dependencies
         script: npm ci
