@@ -715,10 +715,12 @@ function StoryCreateInner() {
   // waehrend der Aufnahme mitbekommt
   const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
   const brightRef  = useRef(1);     useEffect(() => { brightRef.current = brightness }, [brightness])
+  const filterRef  = useRef('none')
   const facingRef  = useRef<'user' | 'environment'>('environment')
   useEffect(() => { facingRef.current = facingMode }, [facingMode])
 
   const filterCss = FILTERS.find(f => f.id === filter)?.css ?? 'none'
+  useEffect(() => { filterRef.current = filterCss }, [filterCss])
 
   // ── Auth-Guard: ohne Login zur Registrierung (verhindert Unauthorized am Flow-Ende) ──
   useEffect(() => {
@@ -841,11 +843,10 @@ function StoryCreateInner() {
     if (facingMode === 'user') { ctx.translate(1080, 0); ctx.scale(-1, 1) }
     ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, 1080, 1920)
     ctx.resetTransform()
-    // Belichtungs-Anpassung (Tap auf die Flaeche) wird ins Foto eingebacken —
-    // ueber den Pixel-Pfad, weil WebKit ctx.filter ignoriert
+    // Nur die Belichtung einbacken - der gewaehlte Filter bleibt Vorschau
+    // und wird erst beim Export EINMAL eingebrannt (sonst doppelt)
     const bFilter = brightness !== 1 ? `brightness(${brightness})` : ''
-    const combined = [filterCss === 'none' ? '' : filterCss, bFilter].filter(Boolean).join(' ')
-    if (combined) burnFilter(ctx, 1080, 1920, combined)
+    if (bFilter) burnFilter(ctx, 1080, 1920, bFilter)
 
     stream?.getTracks().forEach(t => t.stop()); setStream(null)
     setCapturedSrc(canvas.toDataURL('image/jpeg', 0.95))
@@ -974,18 +975,10 @@ function StoryCreateInner() {
     setRecPaused(false); recPausedRef.current = false
   }, [])
 
-  // Video-Modus: Aufnahme pausieren/fortsetzen (bis Stopp oder 15s gesamt)
-  const pauseResumeRecording = useCallback(() => {
-    const rec = recorderRef.current
-    if (!rec || rec.state === 'inactive') return
-    if (rec.state === 'recording') {
-      rec.pause()
-      setRecPaused(true); recPausedRef.current = true
-    } else if (rec.state === 'paused') {
-      rec.resume()
-      setRecPaused(false); recPausedRef.current = false
-    }
-  }, [])
+  // HINWEIS: Die Pause-Funktion wurde entfernt. MediaRecorder.pause()
+  // schreibt auf iOS beim Fortsetzen kaputte Zeitstempel ins MP4 - dabei
+  // entstanden Videos mit Minuten-langer Geisterdauer und Instagram hat
+  // sie zu Matsch komprimiert. Qualitaet geht vor.
 
   const startRecording = useCallback(() => {
     const video = videoRef.current
@@ -1007,6 +1000,11 @@ function StoryCreateInner() {
     const wcx = work.getContext('2d')!
     wcx.imageSmoothingEnabled = true
     wcx.imageSmoothingQuality = 'high'
+    // Gewaehlter Filter wird LIVE per GPU in den einzigen Encode gebrannt -
+    // kein zweites Encoden mehr noetig, Qualitaet bleibt beim Original
+    const recFilter = filterRef.current
+    const recOp = recFilter !== 'none' ? cssFilterToOp(recFilter) : null
+    const recGl = recOp ? makeGlColorFilter(W, H, recOp) : null
     const drawFrame = () => {
       if (!recPausedRef.current) {
         const vW = video.videoWidth || W, vH = video.videoHeight || H
@@ -1030,6 +1028,10 @@ function StoryCreateInner() {
           wcx.fillStyle = `rgba(255,255,255,${Math.min(0.6, (b - 1) * 0.55)})`
           wcx.fillRect(0, 0, W, H)
           wcx.globalCompositeOperation = 'source-over'
+        }
+        if (recOp) {
+          if (recGl) wcx.drawImage(recGl.apply(work), 0, 0)
+          else applyOpPixels(wcx, W, H, recOp)
         }
         cx.drawImage(work, 0, 0)
       }
@@ -1174,9 +1176,9 @@ function StoryCreateInner() {
   // ── Sticker + Filter fest ins Video einbrennen (Vorschau = geteiltes Video).
   //    Das Video wird dazu einmal durch ein 9:16-Canvas abgespielt und neu
   //    aufgenommen; Ton bleibt ueber WebAudio erhalten. ──
-  const burnVideoOverlay = async (): Promise<{ blob: Blob; mime: string }> => {
+  const burnVideoOverlay = async (opts: { withFilter: boolean; withSticker: boolean }): Promise<{ blob: Blob; mime: string }> => {
     const src = capturedVideo!
-    const key = `${src.url}|${filter}|${stickerColor}|${stickerPos.x.toFixed(3)},${stickerPos.y.toFixed(3)},${stickerPos.scale.toFixed(2)}`
+    const key = `${src.url}|${opts.withFilter ? filter : '-'}|${opts.withSticker ? `${stickerColor}|${stickerPos.x.toFixed(3)},${stickerPos.y.toFixed(3)},${stickerPos.scale.toFixed(2)}` : '-'}`
     if (burnedVideoRef.current?.key === key) return burnedVideoRef.current
 
     const W = 1080, H = 1920
@@ -1190,7 +1192,7 @@ function StoryCreateInner() {
     // melden es als unterstuetzt, wenden es beim Zeichnen von Videos aber
     // stillschweigend nicht an. Die Filterkette laeuft deshalb immer als
     // Farbmatrix: auf der GPU (schnell), zur Not auf der CPU.
-    const op = filterCss !== 'none' ? cssFilterToOp(filterCss) : null
+    const op = opts.withFilter && filterCss !== 'none' ? cssFilterToOp(filterCss) : null
     const glf = op ? makeGlColorFilter(W, H, op) : null
 
     // Jeder Frame wird KOMPLETT auf einem Arbeits-Canvas gebaut (Bild +
@@ -1206,7 +1208,7 @@ function StoryCreateInner() {
         if (glf) wctx.drawImage(glf.apply(work), 0, 0)
         else applyOpPixels(wctx, W, H, op)
       }
-      drawSticker(wctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
+      if (opts.withSticker) drawSticker(wctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)
       bctx.drawImage(work, 0, 0)
     }
 
@@ -1300,13 +1302,18 @@ function StoryCreateInner() {
     return c.toDataURL('image/png').split(',')[1]
   }
 
-  // ── Schritt 1 → 2: Sticker + Filter einbrennen, dann finale Vorschau ─────
+  // ── Schritt 1 → 2 ─────────────────────────────────────────────────────
+  // Ziel: so wenig Encodes wie moeglich.
+  // VIDEO: Filter steckt schon im einzigen Aufnahme-Encode. Ab Build 10
+  //   geht das Original unangetastet raus, Sticker als natives IG-Element.
+  // BOOMERANG: wird hier EINMAL aus den Rohframes encodiert (mit Filter);
+  //   Sticker nativ (Build 10) oder mit eingebrannt (aeltere Builds).
   const handleVideoNext = async () => {
     if (!capturedVideo || videoBusy) return
     if (videoShareRef.current) videoBoxDims.current = { w: videoShareRef.current.offsetWidth, h: videoShareRef.current.offsetHeight }
-    // Ohne Filter + faehige App: NICHTS neu encodieren - Original bleibt
-    // Original, der Sticker geht separat an Instagram
-    if (hasNativeIG && appBuild >= 10 && filter === 'original') {
+    const isBoom = !!boomFramesRef.current?.length
+    const canNative = hasNativeIG && appBuild >= 10
+    if (!isBoom && canNative) {
       setStickerNative(true)
       setBurnedVideo(prev => {
         if (prev && prev.url !== capturedVideo.url) URL.revokeObjectURL(prev.url)
@@ -1315,10 +1322,10 @@ function StoryCreateInner() {
       setStep('video-share')
       return
     }
-    setStickerNative(false)
+    setStickerNative(canNative)
     setVideoBusy(true)
     try {
-      const b = await burnVideoOverlay()
+      const b = await burnVideoOverlay({ withFilter: isBoom, withSticker: !canNative })
       setBurnedVideo(prev => {
         // capturedVideo.url nie revoken - die Original-Vorschau braucht sie noch
         if (prev && prev.url !== capturedVideo.url) URL.revokeObjectURL(prev.url)
@@ -1338,7 +1345,7 @@ function StoryCreateInner() {
     let share: { blob: Blob; mime: string } | null = burnedVideo
     if (!share && capturedVideo) {
       setVideoBusy(true)
-      try { share = await burnVideoOverlay() } catch { share = capturedVideo }
+      try { share = await burnVideoOverlay({ withFilter: !!boomFramesRef.current?.length, withSticker: !stickerNative }) } catch { share = capturedVideo }
       setVideoBusy(false)
     }
     if (!share) return
@@ -1619,6 +1626,9 @@ function StoryCreateInner() {
   // Render: Video/Boomerang Schritt 1 - Bearbeiten (Sticker + Filter, Vollbild)
   // ─────────────────────────────────────────────────────────────────────────
   if (step === 'video-edit' && capturedVideo) {
+    // VIDEO: Filter steckt schon in der Aufnahme (Live-GPU-Burn) - Vorschau
+    // pur. BOOMERANG: Rohframes, Filter erst beim Encode - Vorschau per CSS.
+    const isBoomEdit = !!boomFramesRef.current?.length
     return (
       <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
         <div ref={videoShareRef} className="flex-1 relative overflow-hidden">
@@ -1630,7 +1640,7 @@ function StoryCreateInner() {
             ref={el => { if (el) { el.muted = true; el.play().catch(() => {}) } }}
             onLoadedData={e => { e.currentTarget.play().catch(() => {}) }}
             className="absolute inset-0 w-full h-full object-contain"
-            style={{ filter: filterCss === 'none' ? undefined : filterCss }}
+            style={{ filter: isBoomEdit && filterCss !== 'none' ? filterCss : undefined }}
           />
           {/* Sticker: verschiebbar, rastet mittig ein, wird beim Weiter eingebrannt */}
           <StickerOverlay
@@ -1657,7 +1667,7 @@ function StoryCreateInner() {
           className="bg-black pt-1"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 10px)' }}
         >
-          <FilterStrip selected={filter} onChange={setFilter} />
+          {isBoomEdit && <FilterStrip selected={filter} onChange={setFilter} />}
           <div className="px-5 pt-1">
             <button
               onClick={handleVideoNext}
@@ -1833,7 +1843,9 @@ function StoryCreateInner() {
             className="absolute inset-0 w-full h-full object-cover"
             style={{
               transform: `scale(${facingMode === 'user' ? -cssZoom : cssZoom}, ${cssZoom})`,
-              filter: brightness !== 1 ? `brightness(${brightness})` : undefined,
+              // Filter wird schon in der Kamera gewaehlt (wie bei Instagram) -
+              // Vorschau per CSS, in die Aufnahme brennt ihn der GPU-Shader live
+              filter: [filterCss === 'none' ? '' : filterCss, brightness !== 1 ? `brightness(${brightness})` : ''].filter(Boolean).join(' ') || undefined,
               pointerEvents: 'none',
             }}
           />
@@ -1876,12 +1888,6 @@ function StoryCreateInner() {
             {zoom > 1.05 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/50 text-white text-xs font-semibold pointer-events-none">
                 {zoom.toFixed(1)}×
-              </div>
-            )}
-            {/* Pause-Hinweis */}
-            {recording && recPaused && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold pointer-events-none">
-                ⏸ Pausiert
               </div>
             )}
             {/* Boomerang-Status: klar sichtbar, was gerade passiert */}
@@ -2028,27 +2034,12 @@ function StoryCreateInner() {
           /* ── CAPTURE: gradient bg so camera shows through, no filter strip ── */
           <div className="bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-6">
             <div className="flex items-center justify-between px-10 pt-2 pb-3">
-              {captureMode === 'video' && recording ? (
-                /* Video: Pause/Weiter - Aufnahme laeuft nach Fortsetzen
-                   weiter, bis Stopp oder die 15s voll sind */
-                <button
-                  onClick={pauseResumeRecording}
-                  className={`w-14 h-14 rounded-2xl border flex items-center justify-center text-white transition-colors ${
-                    recPaused ? 'bg-[#8BB06A] border-[#8BB06A]' : 'bg-white/10 border-white/20'
-                  }`}
-                >
-                  {recPaused
-                    ? <span className="text-xl leading-none">▶</span>
-                    : <span className="text-xl leading-none">⏸</span>}
-                </button>
-              ) : (
-                <button
-                  onClick={() => galleryInput.current?.click()}
-                  className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white/70"
-                >
-                  <ImagePlus className="w-6 h-6" />
-                </button>
-              )}
+              <button
+                onClick={() => galleryInput.current?.click()}
+                className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white/70"
+              >
+                <ImagePlus className="w-6 h-6" />
+              </button>
 
               {/* Ausloeser: Tap = Foto (Story) / Start-Stopp (Video, freihaendig) /
                   Boomerang. Halten in STORY = Video aufnehmen wie bei Instagram.
@@ -2096,6 +2087,11 @@ function StoryCreateInner() {
 
               <div className="w-14 h-14" />
             </div>
+            {/* Filter schon in der Kamera waehlen (wie Instagram) - so wird er
+                direkt beim einzigen Encode mit aufgenommen, null Extra-Verlust */}
+            {!recording && !boomBusy && (
+              <FilterStrip selected={filter} onChange={setFilter} />
+            )}
             {/* Modus-Auswahl wie bei Instagram */}
             <div className="flex justify-center items-center gap-6 pb-3">
               {([['boomerang', 'Boomerang'], ['story', 'Story'], ['video', 'Video']] as const).map(([m, label]) => (

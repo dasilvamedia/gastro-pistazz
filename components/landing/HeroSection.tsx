@@ -113,18 +113,19 @@ export function HeroSection() {
             </span>
           </motion.div>
 
-          {/* Two-color headline */}
+          {/* Two-color headline — Typografie wie die V2-Vorlage: Instrument
+              Serif, normale Staerke, zweite Zeile kursiv */}
           <motion.h1
-            className="leading-[1.1] font-bold"
-            style={{ fontFamily: 'var(--font-display)' }}
+            className="leading-[1.02]"
+            style={{ fontFamily: "var(--font-instrument), 'DM Serif Display', Georgia, serif", fontWeight: 400 }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08 }}
           >
-            <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.4rem] text-[#1C1F1A]">
+            <span className="block text-[3rem] sm:text-6xl lg:text-[4rem] text-[#1C1F1A]">
               {copy.heroLine1}
             </span>
-            <span className="block text-[2.6rem] sm:text-5xl lg:text-[3.4rem] text-[var(--ind-primary)]">
+            <span className="block text-[3rem] sm:text-6xl lg:text-[4rem] text-[var(--ind-primary-dark)] italic">
               {copy.heroLine2}
             </span>
           </motion.h1>
