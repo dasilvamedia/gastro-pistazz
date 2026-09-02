@@ -684,7 +684,7 @@ function StoryCreateInner() {
     const w = window as unknown as { Capacitor?: { Plugins?: { InstagramStory?: unknown } } }
     setHasNativeIG(!!w.Capacitor?.Plugins?.InstagramStory)
   }, [])
-  const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.42, scale: 1.0 })
+  const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.5, scale: 1.0 })
   const [showSheet,    setShowSheet]   = useState(false) // kept for compatibility
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
@@ -1503,6 +1503,25 @@ function StoryCreateInner() {
     return out
   }
 
+  // Vorschau-Videos MUESSEN von selbst laufen: muted hart als Attribut
+  // setzen (React laesst es weg), play() mehrfach nachschieben (iOS
+  // blockiert sonst z.B. im Stromsparmodus und zeigt einen Play-Button)
+  const forcePlay = (el: HTMLVideoElement | null) => {
+    if (!el) return
+    el.muted = true
+    el.setAttribute('muted', '')
+    el.setAttribute('playsinline', '')
+    const tryPlay = () => { el.play().catch(() => {}) }
+    tryPlay()
+    let tries = 0
+    const iv = setInterval(() => {
+      tries++
+      if (!el.paused || tries > 12 || !el.isConnected) { clearInterval(iv); return }
+      tryPlay()
+    }, 400)
+    el.addEventListener('touchstart', tryPlay)
+  }
+
   // Transparentes Story-PNG mit dem Sticker an der gewaehlten Position -
   // Instagram legt es als eigenes Element ueber das Original-Video
   const stickerPngBase64 = () => {
@@ -1701,7 +1720,7 @@ function StoryCreateInner() {
   }
 
   const retake = () => {
-    setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.42, scale: 1.0 })
+    setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.5, scale: 1.0 })
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
     setExportedBlob(null)
     if (capturedVideo) { URL.revokeObjectURL(capturedVideo.url); setCapturedVideo(null) }
@@ -1854,9 +1873,7 @@ function StoryCreateInner() {
           <video
             src={capturedVideo.url}
             autoPlay loop muted playsInline preload="auto"
-            // React setzt das muted-Attribut nicht zuverlaessig - ohne echtes
-            // muted blockiert iOS das Autoplay und zeigt einen Play-Button
-            ref={el => { if (el) { el.muted = true; el.play().catch(() => {}) } }}
+            ref={forcePlay}
             onLoadedData={e => { e.currentTarget.play().catch(() => {}) }}
             onLoadedMetadata={e => {
               const d = e.currentTarget.duration
@@ -1925,7 +1942,7 @@ function StoryCreateInner() {
           <video
             src={burnedVideo.url}
             autoPlay loop muted playsInline preload="auto"
-            ref={el => { if (el) { el.muted = true; el.play().catch(() => {}) } }}
+            ref={forcePlay}
             onLoadedData={e => { e.currentTarget.play().catch(() => {}) }}
             className="absolute inset-0 w-full h-full object-contain"
           />

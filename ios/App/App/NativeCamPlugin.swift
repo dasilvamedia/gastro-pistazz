@@ -105,6 +105,14 @@ public class NativeCamPlugin: CAPPlugin, CAPBridgedPlugin, AVCaptureFileOutputRe
             session.commitConfiguration(); return
         }
         if session.canAddInput(vIn) { session.addInput(vIn); videoInput = vIn }
+        // Framerate fest auf 30fps: bei wenig Licht senkt iOS sonst
+        // automatisch auf 24fps oder weniger - das Video wirkt dann zaeh
+        do {
+            try cam.lockForConfiguration()
+            cam.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+            cam.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
+            cam.unlockForConfiguration()
+        } catch {}
         if let mic = AVCaptureDevice.default(for: .audio), let aIn = try? AVCaptureDeviceInput(device: mic),
            session.canAddInput(aIn) { session.addInput(aIn) }
 
