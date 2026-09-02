@@ -10,6 +10,7 @@
  *   pro Fingerbewegung)
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Heart, X, MapPin, Star, RotateCcw, AtSign, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -378,7 +379,10 @@ export default function FavoritenPage() {
 
       {/* ── Detail-Sheet: mehr Infos im Tinder-Kontext, Entscheidung geht
              sofort zurueck in den Stapel ── */}
-      {detail && (
+      {/* Portal auf Body-Ebene: die Seiten-Einblende-Animation erzeugt einen
+          Transform-Kontext, der 'fixed' einfaengt - im Portal liegt das Sheet
+          garantiert VOR der Taskleiste und buendig am unteren Rand */}
+      {detail && createPortal(
         <div className="fixed inset-0 z-50 flex items-end" onClick={() => setDetail(null)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
           <div
@@ -461,7 +465,8 @@ export default function FavoritenPage() {
             </div>
           </div>
           <style>{`@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

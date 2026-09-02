@@ -684,7 +684,7 @@ function StoryCreateInner() {
     const w = window as unknown as { Capacitor?: { Plugins?: { InstagramStory?: unknown } } }
     setHasNativeIG(!!w.Capacitor?.Plugins?.InstagramStory)
   }, [])
-  const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.5, scale: 1.0 })
+  const [stickerPos,   setStickerPos]  = useState({ x: 0.5, y: 0.7, scale: 1.0 })
   const [showSheet,    setShowSheet]   = useState(false) // kept for compatibility
   const [submitting,   setSubmitting]  = useState(false)
   const [pointsEarned, setPointsEarned]= useState(0)
@@ -1512,14 +1512,26 @@ function StoryCreateInner() {
     el.setAttribute('muted', '')
     el.setAttribute('playsinline', '')
     const tryPlay = () => { el.play().catch(() => {}) }
+    // Sofort + sobald Daten da sind
+    el.load()
     tryPlay()
+    el.addEventListener('loadedmetadata', tryPlay)
+    el.addEventListener('canplay', tryPlay)
+    // Stromsparmodus: iOS verlangt eine Beruehrung - die ERSTE Beruehrung
+    // irgendwo auf dem Bildschirm startet das Video dann sofort
+    const docPlay = () => { tryPlay() }
+    document.addEventListener('touchstart', docPlay, { passive: true })
+    // Nachschieben, bis es wirklich laeuft
     let tries = 0
     const iv = setInterval(() => {
       tries++
-      if (!el.paused || tries > 12 || !el.isConnected) { clearInterval(iv); return }
+      if ((!el.paused && !el.ended) || tries > 15 || !el.isConnected) {
+        clearInterval(iv)
+        document.removeEventListener('touchstart', docPlay)
+        return
+      }
       tryPlay()
-    }, 400)
-    el.addEventListener('touchstart', tryPlay)
+    }, 350)
   }
 
   // Transparentes Story-PNG mit dem Sticker an der gewaehlten Position -
@@ -1720,7 +1732,7 @@ function StoryCreateInner() {
   }
 
   const retake = () => {
-    setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.5, scale: 1.0 })
+    setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.7, scale: 1.0 })
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
     setExportedBlob(null)
     if (capturedVideo) { URL.revokeObjectURL(capturedVideo.url); setCapturedVideo(null) }
