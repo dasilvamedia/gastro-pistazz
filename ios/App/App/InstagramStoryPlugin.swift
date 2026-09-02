@@ -15,7 +15,10 @@ public class InstagramStoryPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     /// Uebergibt ein aufgenommenes Video (Story/Boomerang) direkt an
-    /// Instagram als Story-Hintergrundvideo.
+    /// Instagram als Story-Hintergrundvideo. Optional legt stickerBase64
+    /// (transparentes PNG in Story-Groesse) den powered-by-Sticker als
+    /// eigenes Instagram-Element darueber - das Video bleibt dann das
+    /// unangetastete Original ohne zweiten Encode.
     @objc func shareVideo(_ call: CAPPluginCall) {
         guard let base64 = call.getString("base64"),
               let videoData = Data(base64Encoded: base64) else {
@@ -23,6 +26,7 @@ public class InstagramStoryPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         let appId = call.getString("appId") ?? ""
+        let stickerData = call.getString("stickerBase64").flatMap { Data(base64Encoded: $0) }
 
         DispatchQueue.main.async {
             guard let url = URL(string: "instagram-stories://share?source_application=\(appId)"),
@@ -31,9 +35,13 @@ public class InstagramStoryPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
 
-            let items: [[String: Any]] = [[
+            var item: [String: Any] = [
                 "com.instagram.sharedSticker.backgroundVideo": videoData,
-            ]]
+            ]
+            if let stickerData = stickerData {
+                item["com.instagram.sharedSticker.stickerImage"] = stickerData
+            }
+            let items: [[String: Any]] = [item]
             let options: [UIPasteboard.OptionsKey: Any] = [
                 .expirationDate: Date().addingTimeInterval(60 * 5),
             ]

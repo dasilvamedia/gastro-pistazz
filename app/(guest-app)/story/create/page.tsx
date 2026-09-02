@@ -320,6 +320,7 @@ function StickerOverlay({
   color, onColorChange,
   x, y, scale, onUpdate,
   containerRef,
+  readOnly = false,
 }: {
   color: StickerColor
   onColorChange: (c: StickerColor) => void
@@ -328,6 +329,8 @@ function StickerOverlay({
   scale: number
   onUpdate: (x: number, y: number, scale: number) => void
   containerRef: React.RefObject<HTMLDivElement | null>
+  /** Nur anzeigen (finale Vorschau), keine Gesten */
+  readOnly?: boolean
 }) {
   const s = STICKER_STYLES[color]
   const COLORS: StickerColor[] = ['green', 'white', 'black', 'glass', 'sunset', 'beige']
@@ -443,16 +446,16 @@ function StickerOverlay({
         style={{ background: '#8BB06A', boxShadow: '0 0 6px rgba(139,176,106,0.9)' }} />
     )}
     <div
-      className="absolute pointer-events-auto cursor-move select-none z-20"
+      className={`absolute select-none z-20 ${readOnly ? 'pointer-events-none' : 'pointer-events-auto cursor-move'}`}
       style={{
         left: `${x * 100}%`,
         top:  `${y * 100}%`,
         transform: `translate(-50%, -50%) scale(${scale})`,
         transformOrigin: 'center center',
       }}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      onDoubleClick={() => { const i = COLORS.indexOf(color); onColorChange(COLORS[(i + 1) % COLORS.length]) }}
+      onMouseDown={readOnly ? undefined : handleMouseDown}
+      onTouchStart={readOnly ? undefined : handleTouchStart}
+      onDoubleClick={readOnly ? undefined : () => { const i = COLORS.indexOf(color); onColorChange(COLORS[(i + 1) % COLORS.length]) }}
     >
       <div
         className="flex flex-col items-center justify-center border shadow-xl"
@@ -466,9 +469,11 @@ function StickerOverlay({
         <span style={{ color: s.text, opacity: 0.7, fontSize: boxW * 0.0432, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.5 }}>Powered by</span>
         <span style={{ color: s.text, fontSize: boxW * 0.0908, fontFamily: "'DM Serif Display', Georgia, serif", fontWeight: 700, lineHeight: 1.2 }}>gastro.pistazz.io</span>
       </div>
-      <p className="text-center text-white/45 text-[9px] mt-1 leading-tight">
-        Ziehen · 2× Tippen = Stil
-      </p>
+      {!readOnly && (
+        <p className="text-center text-white/45 text-[9px] mt-1 leading-tight">
+          Ziehen · 2× Tippen = Stil
+        </p>
+      )}
     </div>
     </>
   )
@@ -592,6 +597,13 @@ function StoryCreateInner() {
   const [stickerColor, setStickerColor]= useState<StickerColor>('green')
   // Kann die native App das Bild direkt an Instagram uebergeben? (Build >= 6)
   const [hasNativeIG, setHasNativeIG] = useState(false)
+  // App-Build-Nummer: ab Build 10 kann das native Plugin den Sticker als
+  // eigenes Instagram-Element uebergeben (Video bleibt Original)
+  const [appBuild, setAppBuild] = useState(0)
+  useEffect(() => {
+    const cap = (window as unknown as { Capacitor?: { Plugins?: { App?: { getInfo: () => Promise<{ build: string }> } } } }).Capacitor
+    cap?.Plugins?.App?.getInfo().then(i => setAppBuild(parseInt(i.build, 10) || 0)).catch(() => {})
+  }, [])
   useEffect(() => {
     const w = window as unknown as { Capacitor?: { Plugins?: { InstagramStory?: unknown } } }
     setHasNativeIG(!!w.Capacitor?.Plugins?.InstagramStory)
@@ -642,6 +654,12 @@ function StoryCreateInner() {
   // Boomerang-Rohframes: das geteilte Video wird direkt daraus encodiert
   // (nur EIN Encode statt Aufnahme+Einbrennen = keine Doppel-Kompression)
   const boomFramesRef = useRef<HTMLCanvasElement[] | null>(null)
+  // Ohne Filter + Build >= 10: Original-Video unangetastet teilen, Sticker
+  // geht als transparentes PNG an Instagram und wird dort als eigenes
+  // Element darueber gelegt (null Qualitaetsverlust)
+  const [stickerNative, setStickerNative] = useState(false)
+  const videoFinalRef = useRef<HTMLDivElement>(null)
+  const videoBoxDims = useRef({ w: 390, h: 844 })
   // Live-Refs, damit die Video-Zeichenschleife Zoom/Helligkeit/Kamera
   // waehrend der Aufnahme mitbekommt
   const cssZoomRef = useRef(1);     useEffect(() => { cssZoomRef.current = cssZoom }, [cssZoom])
@@ -802,22 +820,37 @@ function StoryCreateInner() {
   // ── Tap = AE/AF + Belichtungsregler, Doppel-Tap = Kamera wechseln,
   //    Pinch = Zoom ─────────────────────────────────────────────────────────
   const exposureDragRef = useRef<{ y: number; b: number; moved: boolean } | null>(null)
+  // Horizontales Wischen wechselt den Modus (Boomerang | Story | Video),
+  // wie man es von Instagram kennt - Tippen auf die Labels geht weiterhin
+  const swipeRef = useRef<{ x: number; y: number; dx: number; valid: boolean } | null>(null)
   const handleViewTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length >= 2) {
+      swipeRef.current = null
       pinchRef.current = {
         d: Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY),
         z: zoom,
       }
-    } else if (focusPt) {
-      // Apple-Style: nach dem Fokus-Tap regelt vertikales Ziehen die Belichtung
-      exposureDragRef.current = { y: e.touches[0].clientY, b: brightness, moved: false }
+    } else {
+      swipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, valid: true }
+      if (focusPt) {
+        // Apple-Style: nach dem Fokus-Tap regelt vertikales Ziehen die Belichtung
+        exposureDragRef.current = { y: e.touches[0].clientY, b: brightness, moved: false }
+      }
     }
   }
   const handleViewTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length >= 2 && pinchRef.current.d > 0) {
+      swipeRef.current = null
       const d = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY)
       applyZoom(pinchRef.current.z * (d / pinchRef.current.d))
       return
+    }
+    const sw = swipeRef.current
+    if (sw && e.touches.length === 1) {
+      sw.dx = e.touches[0].clientX - sw.x
+      const dy = Math.abs(e.touches[0].clientY - sw.y)
+      // Deutlich vertikaler als horizontal = Belichtungs-Geste, kein Swipe
+      if (dy > 30 && dy > Math.abs(sw.dx)) sw.valid = false
     }
     const drag = exposureDragRef.current
     if (drag && focusPt && e.touches.length === 1) {
@@ -826,6 +859,22 @@ function StoryCreateInner() {
       setBrightness(Math.min(1.6, Math.max(0.4, drag.b + (dy / 220) * 1.2)))
       if (focusHideRef.current) clearTimeout(focusHideRef.current)
       focusHideRef.current = setTimeout(() => setFocusPt(null), 2500)
+    }
+  }
+  const handleViewTouchEnd = (e: React.TouchEvent) => {
+    const sw = swipeRef.current
+    swipeRef.current = null
+    if (!sw || !sw.valid || e.touches.length > 0) return
+    if (Math.abs(sw.dx) < 60 || recording || boomBusy) return
+    const modes: Array<'boomerang' | 'story' | 'video'> = ['boomerang', 'story', 'video']
+    const i = modes.indexOf(captureMode)
+    // Nach links wischen = Modus rechts davon, nach rechts = links davon
+    const next = sw.dx < 0 ? Math.min(modes.length - 1, i + 1) : Math.max(0, i - 1)
+    if (next !== i) {
+      setCaptureMode(modes[next])
+      // ein Swipe soll keinen Fokus-Tap ausloesen
+      if (singleTapRef.current) { clearTimeout(singleTapRef.current); singleTapRef.current = null }
+      lastTapRef.current = 0
     }
   }
   const handleViewTap = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1076,9 +1125,8 @@ function StoryCreateInner() {
     const bctx = c.getContext('2d')!
     bctx.imageSmoothingEnabled = true
     bctx.imageSmoothingQuality = 'high'
-    const cont = videoShareRef.current
-    const cW = cont?.offsetWidth ?? 390, cH = cont?.offsetHeight ?? 844
-    const { cx: sCx, cy: sCy } = remapToStoryCanvas(stickerPos.x, stickerPos.y, cW, cH, W, H)
+    if (videoShareRef.current) videoBoxDims.current = { w: videoShareRef.current.offsetWidth, h: videoShareRef.current.offsetHeight }
+    const { cx: sCx, cy: sCy } = remapToStoryCanvas(stickerPos.x, stickerPos.y, videoBoxDims.current.w, videoBoxDims.current.h, W, H)
     const filterOk = ctxFilterSupported()
     const op = !filterOk && filterCss !== 'none' ? cssFilterToOp(filterCss) : null
 
@@ -1178,14 +1226,39 @@ function StoryCreateInner() {
     return out
   }
 
+  // Transparentes Story-PNG mit dem Sticker an der gewaehlten Position -
+  // Instagram legt es als eigenes Element ueber das Original-Video
+  const stickerPngBase64 = () => {
+    const W = 1080, H = 1920
+    const c = document.createElement('canvas'); c.width = W; c.height = H
+    const ctx = c.getContext('2d')!
+    const { cx, cy } = remapToStoryCanvas(stickerPos.x, stickerPos.y, videoBoxDims.current.w, videoBoxDims.current.h, W, H)
+    drawSticker(ctx, W, H, stickerColor, cx, cy, stickerPos.scale)
+    return c.toDataURL('image/png').split(',')[1]
+  }
+
   // ── Schritt 1 → 2: Sticker + Filter einbrennen, dann finale Vorschau ─────
   const handleVideoNext = async () => {
     if (!capturedVideo || videoBusy) return
+    if (videoShareRef.current) videoBoxDims.current = { w: videoShareRef.current.offsetWidth, h: videoShareRef.current.offsetHeight }
+    // Ohne Filter + faehige App: NICHTS neu encodieren - Original bleibt
+    // Original, der Sticker geht separat an Instagram
+    if (hasNativeIG && appBuild >= 10 && filter === 'original') {
+      setStickerNative(true)
+      setBurnedVideo(prev => {
+        if (prev && prev.url !== capturedVideo.url) URL.revokeObjectURL(prev.url)
+        return { url: capturedVideo.url, blob: capturedVideo.blob, mime: capturedVideo.mime }
+      })
+      setStep('video-share')
+      return
+    }
+    setStickerNative(false)
     setVideoBusy(true)
     try {
       const b = await burnVideoOverlay()
       setBurnedVideo(prev => {
-        if (prev) URL.revokeObjectURL(prev.url)
+        // capturedVideo.url nie revoken - die Original-Vorschau braucht sie noch
+        if (prev && prev.url !== capturedVideo.url) URL.revokeObjectURL(prev.url)
         return { url: URL.createObjectURL(b.blob), blob: b.blob, mime: b.mime }
       })
       setStep('video-share')
@@ -1208,7 +1281,7 @@ function StoryCreateInner() {
     if (!share) return
 
     const native = (window as unknown as {
-      Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string }) => Promise<{ shared: boolean }> } } }
+      Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string; stickerBase64?: string }) => Promise<{ shared: boolean }> } } }
     }).Capacitor?.Plugins?.InstagramStory
     if (native?.shareVideo) {
       try {
@@ -1218,7 +1291,12 @@ function StoryCreateInner() {
           r.onerror = rej
           r.readAsDataURL(share.blob)
         })
-        const out = await native.shareVideo({ base64, appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097' })
+        const out = await native.shareVideo({
+          base64,
+          appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097',
+          // Original-Modus: Sticker als eigenes Instagram-Element obendrauf
+          ...(stickerNative ? { stickerBase64: stickerPngBase64() } : {}),
+        })
         if (out?.shared) return
       } catch { /* Fallback unten */ }
     }
@@ -1534,13 +1612,24 @@ function StoryCreateInner() {
   if (step === 'video-share' && burnedVideo) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
-        <div className="flex-1 relative overflow-hidden">
+        <div ref={videoFinalRef} className="flex-1 relative overflow-hidden">
           {/* Finale Vorschau: exakt das Video, das an Instagram geht */}
           <video
             src={burnedVideo.url}
             autoPlay loop muted playsInline
             className="absolute inset-0 w-full h-full object-contain"
           />
+          {/* Original-Modus: Sticker ist nicht eingebrannt, sondern geht als
+              eigenes Element an Instagram - hier nur zur Ansicht */}
+          {stickerNative && (
+            <StickerOverlay
+              readOnly
+              color={stickerColor} onColorChange={() => {}}
+              x={stickerPos.x} y={stickerPos.y} scale={stickerPos.scale}
+              onUpdate={() => {}}
+              containerRef={videoFinalRef}
+            />
+          )}
           <button
             onClick={() => setStep('video-edit')}
             className="absolute left-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white z-10"
@@ -1687,6 +1776,7 @@ function StoryCreateInner() {
             className="absolute inset-0 z-10"
             onTouchStart={handleViewTouchStart}
             onTouchMove={handleViewTouchMove}
+            onTouchEnd={handleViewTouchEnd}
             onClick={handleViewTap}
           >
             {/* AE/AF im Apple-Stil: Rahmen mit Sonne rechts daneben -
