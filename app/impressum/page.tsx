@@ -1,3 +1,4 @@
+import ExtLink from '@/components/ExtLink'
 import Link from 'next/link'
 
 export const metadata = {
@@ -45,9 +46,9 @@ export default function ImpressumPage() {
             <h2 className="text-lg font-bold text-[#1C1F1A] mb-3">Streitbeilegung</h2>
             <p>
               Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
-              <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-[#6D9450] underline">
+              <ExtLink href="https://ec.europa.eu/consumers/odr/" className="text-[#6D9450] underline">
                 https://ec.europa.eu/consumers/odr/
-              </a><br />
+              </ExtLink><br />
               Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
               Verbraucherschlichtungsstelle teilzunehmen.
             </p>

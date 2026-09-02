@@ -15,6 +15,7 @@
 		B21A2B3C4D5E6F7080910114 /* NfcStampPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21A2B3C4D5E6F7080910113 /* NfcStampPlugin.swift */; };
 		C31A2B3C4D5E6F7080910117 /* NativeAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31A2B3C4D5E6F7080910116 /* NativeAuthPlugin.swift */; };
 		AA10CAFE0001000000000002 /* NativeCamPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10CAFE0001000000000001 /* NativeCamPlugin.swift */; };
+		AA10CAFE0001000000000004 /* InAppBrowserPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10CAFE0001000000000003 /* InAppBrowserPlugin.swift */; };
 		D41A2B3C4D5E6F708091011C /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D41A2B3C4D5E6F708091011B /* MainViewController.swift */; };
 		C31A2B3C4D5E6F7080910119 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C31A2B3C4D5E6F7080910118 /* GoogleSignIn */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
@@ -32,6 +33,7 @@
 		B21A2B3C4D5E6F7080910113 /* NfcStampPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NfcStampPlugin.swift; sourceTree = "<group>"; };
 		C31A2B3C4D5E6F7080910116 /* NativeAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAuthPlugin.swift; sourceTree = "<group>"; };
 		AA10CAFE0001000000000001 /* NativeCamPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeCamPlugin.swift; sourceTree = "<group>"; };
+		AA10CAFE0001000000000003 /* InAppBrowserPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppBrowserPlugin.swift; sourceTree = "<group>"; };
 		D41A2B3C4D5E6F708091011B /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		B21A2B3C4D5E6F7080910115 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				B21A2B3C4D5E6F7080910113 /* NfcStampPlugin.swift */,
 				C31A2B3C4D5E6F7080910116 /* NativeAuthPlugin.swift */,
 				AA10CAFE0001000000000001 /* NativeCamPlugin.swift */,
+				AA10CAFE0001000000000003 /* InAppBrowserPlugin.swift */,
 				D41A2B3C4D5E6F708091011B /* MainViewController.swift */,
 				B21A2B3C4D5E6F7080910115 /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -181,6 +184,7 @@
 				B21A2B3C4D5E6F7080910114 /* NfcStampPlugin.swift in Sources */,
 				C31A2B3C4D5E6F7080910117 /* NativeAuthPlugin.swift in Sources */,
 				AA10CAFE0001000000000002 /* NativeCamPlugin.swift in Sources */,
+				AA10CAFE0001000000000004 /* InAppBrowserPlugin.swift in Sources */,
 				D41A2B3C4D5E6F708091011C /* MainViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -323,7 +327,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -346,7 +350,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

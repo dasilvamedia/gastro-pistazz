@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { isNativeApp, openMaps, openWebsite, openInstagram } from '@/lib/nativeLinks'
 import {
   MapPin, Phone, Globe, Clock, Star,
   ChevronRight, Navigation, QrCode,
@@ -240,7 +241,7 @@ export default function RestaurantLandingPage() {
             </span>
           )}
           {restaurant.website && (
-            <a href={restaurant.website} target="_blank" rel="noopener noreferrer"
+            <a href={restaurant.website} target="_blank" rel="noopener noreferrer" onClick={e => { if (isNativeApp() && restaurant.website) { e.preventDefault(); openWebsite(restaurant.website) } }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 text-white/60 hover:text-white transition-colors">
               <Globe className="w-3 h-3" />Speisekarte
             </a>
@@ -399,6 +400,7 @@ export default function RestaurantLandingPage() {
               {restaurant.address && (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address} ${restaurant.city}`)}`}
                   target="_blank" rel="noopener noreferrer"
+                  onClick={e => { if (isNativeApp()) { e.preventDefault(); openMaps(`${restaurant.name} ${restaurant.address} ${restaurant.city}`) } }}
                   className="flex items-center gap-3 group">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: primaryColor + '22' }}>
@@ -421,7 +423,7 @@ export default function RestaurantLandingPage() {
                 </a>
               )}
               {restaurant.website && (
-                <a href={restaurant.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                <a href={restaurant.website} target="_blank" rel="noopener noreferrer" onClick={e => { if (isNativeApp() && restaurant.website) { e.preventDefault(); openWebsite(restaurant.website) } }} className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: primaryColor + '22' }}>
                     <Globe className="w-4 h-4" style={{ color: primaryColor }} />
@@ -431,7 +433,8 @@ export default function RestaurantLandingPage() {
               )}
               {restaurant.instagram_handle && (
                 <a href={`https://instagram.com/${restaurant.instagram_handle.replace('@', '')}`}
-                  target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={e => { if (isNativeApp() && restaurant.instagram_handle) { e.preventDefault(); openInstagram(restaurant.instagram_handle) } }} className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-sm font-bold"
                     style={{ background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }}>
                     IG

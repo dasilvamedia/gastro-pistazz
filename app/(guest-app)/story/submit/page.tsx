@@ -7,6 +7,7 @@ import { Search, Check, Upload, CheckCircle, ExternalLink, AlertTriangle, Copy, 
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant, SubmissionType } from '@/types'
+import { isNativeApp, openWebsite } from '@/lib/nativeLinks'
 
 const INSTAGRAM_TYPES: SubmissionType[] = ['instagram_story', 'instagram_reel', 'instagram_post']
 
@@ -468,6 +469,7 @@ function StorySubmitInner() {
                     href="https://www.instagram.com/"
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={e => { if (isNativeApp()) { e.preventDefault(); window.location.href = 'instagram://app' } }}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm"
                     style={{ background: 'linear-gradient(135deg, #f9a825, #e91e8c, #9c27b0)' }}
                   >
@@ -496,6 +498,7 @@ function StorySubmitInner() {
                     href={buildGoogleMapsUrl(selectedRestaurant)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={e => { if (isNativeApp()) { e.preventDefault(); openWebsite(buildGoogleMapsUrl(selectedRestaurant)) } }}
                     className="w-full flex items-center justify-center gap-2 bg-[#4285F4] text-white font-semibold py-3 rounded-xl text-sm"
                   >
                     <ExternalLink size={16} />

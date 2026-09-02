@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Phone, Globe, MapPin, Navigation } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
+import { isNativeApp, openMaps, openWebsite } from '@/lib/nativeLinks'
 import type { Restaurant, Deal, StampCard } from '@/types'
 import { RESTAURANT_TYPE_LABELS, TRIGGER_CONFIG } from '@/types'
 import { MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
@@ -328,6 +329,7 @@ export default function RestaurantDetailPage() {
                   }
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={e => { if (isNativeApp()) { e.preventDefault(); openMaps(restaurant.latitude && restaurant.longitude ? `${restaurant.latitude},${restaurant.longitude}` : `${restaurant.address}, ${restaurant.zip} ${restaurant.city}`) } }}
                   className="flex items-start gap-3 group"
                 >
                   <MapPin size={18} className="text-[#8BB06A] flex-shrink-0 mt-0.5" />
@@ -345,7 +347,7 @@ export default function RestaurantDetailPage() {
               {restaurant.website && (
                 <div className="flex items-center gap-3">
                   <Globe size={18} className="text-[#8BB06A]" />
-                  <a href={restaurant.website} target="_blank" rel="noopener noreferrer" className="text-[#6D9450] text-sm underline truncate">
+                  <a href={restaurant.website} target="_blank" rel="noopener noreferrer" onClick={e => { if (isNativeApp() && restaurant.website) { e.preventDefault(); openWebsite(restaurant.website) } }} className="text-[#6D9450] text-sm underline truncate">
                     {restaurant.website.replace(/^https?:\/\//, '')}
                   </a>
                 </div>
@@ -366,6 +368,7 @@ export default function RestaurantDetailPage() {
                   href={`https://www.google.com/maps/search/?api=1&query=${restaurant.latitude},${restaurant.longitude}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={e => { if (isNativeApp()) { e.preventDefault(); openMaps(`${restaurant.latitude},${restaurant.longitude}`) } }}
                   className="flex items-center gap-2 px-4 py-3 text-[#6D9450] text-sm font-medium hover:bg-[#EEF5E6] transition-colors"
                 >
                   <Navigation size={14} />
@@ -377,6 +380,7 @@ export default function RestaurantDetailPage() {
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address} ${restaurant.city}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={e => { if (isNativeApp()) { e.preventDefault(); openMaps(`${restaurant.name} ${restaurant.address} ${restaurant.city}`) } }}
                 className="flex items-center gap-3 bg-white rounded-2xl p-4 border border-[#EEF5E6]"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#EEF5E6] flex items-center justify-center">
