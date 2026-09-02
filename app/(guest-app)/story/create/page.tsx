@@ -741,6 +741,7 @@ function StoryCreateInner() {
   // Boomerang-Rohframes: das geteilte Video wird direkt daraus encodiert
   // (nur EIN Encode statt Aufnahme+Einbrennen = keine Doppel-Kompression)
   const boomFramesRef = useRef<HTMLCanvasElement[] | null>(null)
+  const boomFpsRef = useRef(25) // Wiedergabe-fps, an die Aufnahmedauer gekoppelt
   // Ohne Filter + Build >= 10: Original-Video unangetastet teilen, Sticker
   // geht als transparentes PNG an Instagram und wird dort als eigenes
   // Element darueber gelegt (null Qualitaetsverlust)
@@ -1289,7 +1290,7 @@ function StoryCreateInner() {
         const ncam = getNativeCam()!
         await ncam.startRecord()
         nativeRecActiveRef.current = true
-        await new Promise(r => setTimeout(r, 1300))
+        await new Promise(r => setTimeout(r, 1800))
         nativeRecActiveRef.current = false
         const { base64 } = await ncam.stopRecord()
         setBoomPhase('enc')
@@ -1298,10 +1299,14 @@ function StoryCreateInner() {
         const v = document.createElement('video')
         v.src = srcUrl; v.muted = true; v.playsInline = true
         await new Promise<void>((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('load')) })
-        const dur = isFinite(v.duration) && v.duration > 0.2 ? v.duration : 1.4
+        const dur = isFinite(v.duration) && v.duration > 0.4 ? v.duration : 1.8
         const W = 1080, H = 1920
-        // 30 gleichmaessige Frames = smooth genug, ohne den Seek endlos zu machen
-        const N = 30
+        // Frame-Anzahl an die Dauer koppeln: ~26 Frames/Sekunde. Wiedergabe
+        // mit derselben fps => exakt Aufnahmegeschwindigkeit (nicht zu schnell)
+        // und smooth. Vorher fix 30 Frames @ 30fps -> lief ~1.4x zu schnell.
+        const fps = 26
+        const N = Math.max(20, Math.round(dur * fps))
+        boomFpsRef.current = fps
         const frames: HTMLCanvasElement[] = []
         for (let i = 0; i < N; i++) {
           await new Promise<void>(res => { v.onseeked = () => res(); v.currentTime = Math.min(dur - 0.03, (i / N) * dur) })
@@ -1319,7 +1324,7 @@ function StoryCreateInner() {
         // timing-korrekten Encoder. Bei Teilen ohne Filter ist genau DAS
         // schon das geteilte Video (Sticker geht nativ obendrauf).
         const seq = [...frames, ...frames.slice(1, -1).reverse()]
-        const { blob } = await encodeFrameSeq(seq, 30, (ctx, f) => ctx.drawImage(f, 0, 0, W, H))
+        const { blob } = await encodeFrameSeq(seq, boomFpsRef.current, (ctx, f) => ctx.drawImage(f, 0, 0, W, H))
         setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime: MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm' } })
         ncam.stop().catch(() => {})
         nativeCamRef.current = false; setNativeCam(false)
@@ -1490,7 +1495,7 @@ function StoryCreateInner() {
     if (boomFramesRef.current?.length) {
       const frames = boomFramesRef.current
       const seq = [...frames, ...frames.slice(1, -1).reverse()]
-      const { blob } = await encodeFrameSeq(seq, 30, (ctx, f) => {
+      const { blob } = await encodeFrameSeq(seq, boomFpsRef.current, (ctx, f) => {
         ctx.drawImage(f, 0, 0, W, H)
         if (op) { if (glf) ctx.drawImage(glf.apply(ctx.canvas), 0, 0); else applyOpPixels(ctx, W, H, op) }
         if (opts.withSticker) drawSticker(ctx, W, H, stickerColor, sCx, sCy, stickerPos.scale)

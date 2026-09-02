@@ -44,9 +44,13 @@ export async function POST(req: NextRequest) {
 
   const { data: restaurant } = await admin
     .from('restaurants')
-    .select('stamp_card_total, stamp_card_reward, name')
+    .select('stamp_card_total, stamp_card_reward, name, stamp_card_enabled')
     .eq('id', tag.restaurant_id)
     .single()
+  // Nur stempeln, wenn die Stempelkarte im Dashboard aktiviert ist
+  if (restaurant && restaurant.stamp_card_enabled === false) {
+    return NextResponse.json({ error: 'stamp_card_disabled' }, { status: 403 })
+  }
   const totalRequired = restaurant?.stamp_card_total ?? 8
 
   const { data: existingCard } = await admin

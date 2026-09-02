@@ -13,7 +13,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Heart, X, MapPin, Star, RotateCcw, ChevronRight } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
 
@@ -107,23 +106,8 @@ export default function FavoritenPage() {
     } else {
       saveIds(LOCAL_FAV_KEY, [...loadIds(LOCAL_FAV_KEY), r.id])
     }
-    // Huebsche Pistazz-Pille UNTEN (ueber der Taskleiste), gut lesbar -
-    // der Standard-Toast sass oben unter der Notch
-    toast(`${r.name} ist jetzt ein Favorit`, {
-      duration: 1400,
-      position: 'top-center',
-      icon: '💚',
-      style: {
-        background: 'linear-gradient(135deg, #8BB06A 0%, #6D9450 100%)',
-        color: '#fff',
-        fontWeight: 700,
-        fontSize: '14px',
-        borderRadius: '9999px',
-        padding: '10px 18px',
-        boxShadow: '0 8px 24px rgba(139,176,106,0.45)',
-        marginTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-      },
-    })
+    // Kein Toast: der gruene FAVORIT-Stempel auf der wegfliegenden Karte
+    // ist das Feedback (wie bei Tinder) - so wird nirgends Text verdeckt.
   }, [dbOk, userId, supabase])
 
   const removeFavorite = useCallback(async (r: Restaurant) => {

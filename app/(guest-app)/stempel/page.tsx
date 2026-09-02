@@ -70,9 +70,13 @@ function StempelInner() {
         if (data.error === 'cooldown') {
           toast.error(`Schon gestempelt! Nächster Stempel in bis zu ${data.cooldownHours}h möglich.`)
         } else if (data.error === 'unknown_tag') {
-          toast.error('Dieser Tag ist nicht registriert.')
+          toast.error('Dieser Tag ist noch nicht registriert. Das Restaurant muss ihn im Dashboard hinzufügen.')
+        } else if (data.error === 'stamp_card_disabled') {
+          toast.error('Die Stempelkarte ist bei diesem Restaurant gerade nicht aktiv.')
         } else if (data.error === 'card_already_complete') {
           toast.error('Deine Karte ist schon voll. Löse deine Belohnung ein!')
+        } else if (data.error === 'unauthorized') {
+          toast.error('Bitte zuerst anmelden.')
         } else {
           toast.error('Fehler beim Stempeln')
         }
