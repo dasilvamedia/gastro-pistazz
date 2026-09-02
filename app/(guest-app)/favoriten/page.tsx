@@ -386,7 +386,7 @@ export default function FavoritenPage() {
             style={{ animation: 'sheetUp 0.28s cubic-bezier(0.22, 0.9, 0.36, 1)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="relative h-52 shrink-0">
+            <div className="relative h-44 shrink-0">
               {detail.cover_url || detail.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={detail.cover_url ?? detail.logo_url ?? ''} alt={detail.name} className="w-full h-full object-cover" />
@@ -401,7 +401,9 @@ export default function FavoritenPage() {
               </button>
             </div>
 
-            <div className="px-5 pt-4 pb-2 overflow-y-auto">
+            {/* flex-1 + min-h-0: der Textbereich scrollt intern und kann die
+                Entscheidungs-Buttons NIE aus dem Bild schieben */}
+            <div className="px-5 pt-4 pb-2 overflow-y-auto flex-1 min-h-0">
               <p className="text-[24px] font-bold text-[#1C1F1A] leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
                 {detail.name}
               </p>

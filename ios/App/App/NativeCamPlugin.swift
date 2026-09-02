@@ -145,6 +145,10 @@ public class NativeCamPlugin: CAPPlugin, CAPBridgedPlugin, AVCaptureFileOutputRe
                 self?.previewView = nil
                 self?.previewLayer = nil
                 self?.segments.removeAll()
+                // WebView wieder deckend machen - sonst schimmern nach der
+                // Kamera an unbemalten Stellen Systemflaechen durch
+                self?.webView?.isOpaque = true
+                self?.webView?.backgroundColor = .white
                 call.resolve(["ok": true])
             }
         }

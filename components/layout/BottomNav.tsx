@@ -26,9 +26,13 @@ export function BottomNav() {
     >
       {/* Blur backdrop - Farben via CSS-Variablen, damit der Dark Mode greift */}
       <div
-        className="absolute inset-0 backdrop-blur-2xl"
+        className="absolute inset-x-0 top-0 backdrop-blur-2xl"
         style={{
-          background: 'linear-gradient(to top, var(--nav-bg-a) 0%, var(--nav-bg-b) 100%)',
+          // Bis 60px UNTER die Leiste ziehen: deckt auf jedem Geraet die
+          // Safe-Area/Gesten-Zone ab, nie wieder ein durchsichtiger Streifen.
+          // Doppelter Verlauf = praktisch deckend, auch ohne Blur-Support.
+          bottom: -60,
+          background: 'linear-gradient(to top, var(--nav-bg-a) 0%, var(--nav-bg-b) 100%), linear-gradient(var(--nav-bg-a), var(--nav-bg-a))',
           borderTop: '1px solid var(--nav-border)',
           boxShadow: '0 -12px 40px rgba(0,0,0,0.08)',
         }}

@@ -12,5 +12,8 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NfcStampPlugin())
         bridge?.registerPluginInstance(InstagramStoryPlugin())
         bridge?.registerPluginInstance(NativeCamPlugin())
+        // Vom linken Rand wischen = zurueck, wie in jeder nativen iOS-App
+        // (inkl. Slide-Animation der WebView-History)
+        bridge?.webView?.allowsBackForwardNavigationGestures = true
     }
 }
