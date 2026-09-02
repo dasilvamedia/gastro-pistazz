@@ -11,5 +11,6 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NativeAuthPlugin())
         bridge?.registerPluginInstance(NfcStampPlugin())
         bridge?.registerPluginInstance(InstagramStoryPlugin())
+        bridge?.registerPluginInstance(NativeCamPlugin())
     }
 }

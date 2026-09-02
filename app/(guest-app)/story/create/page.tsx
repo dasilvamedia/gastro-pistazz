@@ -209,6 +209,31 @@ function drawSticker(
   ctx.fillText('gastro.pistazz.io', sCx, sY + sH * 0.68)
 }
 
+// Native Kamera (ab Build 11): Apples Kamera-Stack hinter der WebView -
+// Bildstabilisierung, Hardware-Encoding, echte Geraetequalitaet
+type NativeCamAPI = {
+  start: (o: { x: number; y: number; width: number; height: number; position: string }) => Promise<unknown>
+  stop: () => Promise<unknown>
+  flip: () => Promise<unknown>
+  setZoom: (o: { zoom: number }) => Promise<unknown>
+  focus: (o: { x: number; y: number }) => Promise<unknown>
+  setExposure: (o: { bias: number }) => Promise<unknown>
+  capturePhoto: () => Promise<{ base64: string }>
+  startRecord: () => Promise<unknown>
+  pauseRecord: () => Promise<unknown>
+  resumeRecord: () => Promise<unknown>
+  stopRecord: () => Promise<{ base64: string; mime?: string }>
+}
+function getNativeCam(): NativeCamAPI | null {
+  return (window as unknown as { Capacitor?: { Plugins?: { NativeCam?: NativeCamAPI } } }).Capacitor?.Plugins?.NativeCam ?? null
+}
+function base64ToBlob(base64: string, mime: string): Blob {
+  const bin = atob(base64)
+  const buf = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i)
+  return new Blob([buf], { type: mime })
+}
+
 // Normalisierte Container-Position (0-1) → Position auf dem 9:16-Canvas
 function remapToStoryCanvas(nx: number, ny: number, containerW: number, containerH: number, W: number, H: number) {
   const safeW_c = Math.min(containerW, containerH * (9 / 16))
@@ -701,6 +726,12 @@ function StoryCreateInner() {
   const [videoBusy, setVideoBusy] = useState(false)
   // Temporaere Diagnose: was encodiert iOS WIRKLICH (Dauer + Bitrate)?
   const [vidDiag, setVidDiag] = useState('')
+  // Native Kamera aktiv? (Build 11+, echte Stabilisierung + Hardware-Encode)
+  const [nativeCam, setNativeCam] = useState(false)
+  const nativeCamRef = useRef(false)
+  const nativeRecActiveRef = useRef(false)
+  // Wurde das aktuelle Video nativ aufgenommen? (Filter dann erst beim Teilen)
+  const capturedNativeRef = useRef(false)
   const burnedVideoRef = useRef<{ key: string; blob: Blob; mime: string } | null>(null)
   // Fertiges Video (Sticker + Filter eingebrannt) fuer die finale Vorschau
   const [burnedVideo, setBurnedVideo] = useState<{ url: string; blob: Blob; mime: string } | null>(null)
@@ -743,6 +774,25 @@ function StoryCreateInner() {
   // ── Camera ───────────────────────────────────────────────────────────────
   const startCamera = useCallback(async (facing: 'user' | 'environment') => {
     setCamError(false)
+    // Native Kamera (Build 11+): stabilisiert, Hardware-Encode, 1:1-Qualitaet
+    const ncam = getNativeCam()
+    if (ncam) {
+      try {
+        await new Promise(r => requestAnimationFrame(() => r(null)))
+        const box = cameraContainerRef.current?.getBoundingClientRect()
+        await ncam.start({
+          x: box?.x ?? 0, y: box?.y ?? 0,
+          width: box?.width ?? window.innerWidth,
+          height: box?.height ?? window.innerHeight,
+          position: facing === 'user' ? 'front' : 'back',
+        })
+        nativeCamRef.current = true
+        setNativeCam(true)
+        setZoom(1); setCssZoom(1); setBrightness(1); setFocusPt(null)
+        setupPush()
+        return
+      } catch { /* Fallback: Web-Kamera unten */ }
+    }
     try {
       // 3:4-Vollsensor-Ideals (1440x1920): 9:16-Ideals zwingen iOS in einen
       // 16:9-Beschnitt des 4:3-Sensors - dadurch fehlt oben/unten massiv
@@ -793,11 +843,30 @@ function StoryCreateInner() {
 
   useEffect(() => {
     startCamera(facingMode)
-    return () => { stream?.getTracks().forEach(t => t.stop()) }
+    return () => {
+      stream?.getTracks().forEach(t => t.stop())
+      if (nativeCamRef.current) { getNativeCam()?.stop().catch(() => {}); nativeCamRef.current = false }
+    }
   }, [facingMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Belichtungs-Slider steuert bei nativer Kamera die echte Belichtung (EV)
+  useEffect(() => {
+    if (nativeCamRef.current) getNativeCam()?.setExposure({ bias: (brightness - 1) * 2.5 }).catch(() => {})
+  }, [brightness])
 
   // ── Capture ──────────────────────────────────────────────────────────────
   const capturePhoto = () => {
+    // Nativ: volles Geraete-Foto, Belichtung/Zoom sind echte Kamera-Werte
+    if (nativeCamRef.current) {
+      const ncam = getNativeCam()!
+      ncam.capturePhoto().then(({ base64 }) => {
+        setCapturedSrc('data:image/jpeg;base64,' + base64)
+        ncam.stop().catch(() => {})
+        nativeCamRef.current = false; setNativeCam(false)
+        setStep('edit')
+      }).catch(() => toast.error('Foto fehlgeschlagen, bitte nochmal versuchen'))
+      return
+    }
     const video     = videoRef.current
     const canvas    = captureCanvas.current
     const container = cameraContainerRef.current
@@ -859,6 +928,7 @@ function StoryCreateInner() {
   const applyZoom = useCallback((z: number) => {
     const clamped = Math.min(5, Math.max(1, z))
     setZoom(clamped)
+    if (nativeCamRef.current) { getNativeCam()?.setZoom({ zoom: clamped }).catch(() => {}); return }
     const track = stream?.getVideoTracks()[0]
     const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined
     if (track && caps?.zoom) {
@@ -949,7 +1019,14 @@ function StoryCreateInner() {
     const ny = (e.clientY - rect.top) / rect.height
     singleTapRef.current = setTimeout(() => {
       setFocusPt({ x: nx, y: ny, key: Date.now() })
-      // Nativer AE/AF-Versuch (wo unterstuetzt); Belichtungsregler erscheint immer
+      // Native Kamera: echter AF/AE-Punkt via AVFoundation
+      if (nativeCamRef.current) {
+        getNativeCam()?.focus({ x: nx, y: ny }).catch(() => {})
+        if (focusHideRef.current) clearTimeout(focusHideRef.current)
+        focusHideRef.current = setTimeout(() => setFocusPt(null), 3000)
+        return
+      }
+      // Web-Fallback: AE/AF-Versuch (wo unterstuetzt); Belichtungsregler erscheint immer
       const track = stream?.getVideoTracks()[0]
       const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[] }) | undefined
       if (track && caps?.focusMode?.length) {
@@ -970,6 +1047,24 @@ function StoryCreateInner() {
   // ── Video-Aufnahme (Halten in STORY, Freihand-Toggle in VIDEO) ───────────
   const stopRecording = useCallback(() => {
     if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null }
+    // Nativ: Aufnahme beenden, MP4 in Originalqualitaet uebernehmen
+    if (nativeCamRef.current) {
+      if (!nativeRecActiveRef.current) { setRecording(false); return }
+      nativeRecActiveRef.current = false
+      setRecording(false)
+      setRecPaused(false); recPausedRef.current = false
+      const ncam = getNativeCam()!
+      ncam.stopRecord().then(({ base64, mime }) => {
+        const blob = base64ToBlob(base64, mime || 'video/mp4')
+        boomFramesRef.current = null
+        capturedNativeRef.current = true
+        setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime: mime || 'video/mp4' } })
+        ncam.stop().catch(() => {})
+        nativeCamRef.current = false; setNativeCam(false)
+        setStep('video-edit')
+      }).catch(() => toast.error('Video konnte nicht gespeichert werden, bitte nochmal'))
+      return
+    }
     drawActiveRef.current = false
     if (recRafRef.current) { cancelAnimationFrame(recRafRef.current); recRafRef.current = null }
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
@@ -977,8 +1072,20 @@ function StoryCreateInner() {
     setRecPaused(false); recPausedRef.current = false
   }, [])
 
-  // Video-Modus: Aufnahme pausieren/fortsetzen (bis Stopp oder 15s gesamt)
+  // Video-Modus: Aufnahme pausieren/fortsetzen (bis Stopp oder 15s gesamt).
+  // Nativ: Segmente werden am Ende verlustfrei zusammengefuegt.
   const pauseResumeRecording = useCallback(() => {
+    if (nativeCamRef.current) {
+      const ncam = getNativeCam()!
+      if (recPausedRef.current) {
+        ncam.resumeRecord().catch(() => {})
+        setRecPaused(false); recPausedRef.current = false
+      } else {
+        ncam.pauseRecord().catch(() => {})
+        setRecPaused(true); recPausedRef.current = true
+      }
+      return
+    }
     const rec = recorderRef.current
     if (!rec || rec.state === 'inactive') return
     if (rec.state === 'recording') {
@@ -991,8 +1098,27 @@ function StoryCreateInner() {
   }, [])
 
   const startRecording = useCallback(() => {
+    if (recording) return
+    // Nativ: Apples Encoder nimmt auf - stabilisiert, volle Qualitaet
+    if (nativeCamRef.current) {
+      const ncam = getNativeCam()!
+      ncam.startRecord().then(() => {
+        nativeRecActiveRef.current = true
+        setRecording(true)
+        setRecSecs(0)
+        setRecPaused(false); recPausedRef.current = false
+        recTimerRef.current = setInterval(() => {
+          if (recPausedRef.current) return
+          setRecSecs(s => {
+            if (s + 1 >= 15) stopRecording()
+            return s + 1
+          })
+        }, 1000)
+      }).catch(() => toast.error('Aufnahme fehlgeschlagen, bitte nochmal'))
+      return
+    }
     const video = videoRef.current
-    if (!stream || recording || !video) return
+    if (!stream || !video) return
 
     // Hochformat-Pipeline in voller Story-Aufloesung (1080x1920): jeder
     // Frame wird mit Zoom, Belichtung und Spiegelung ins 9:16-Canvas
@@ -1119,8 +1245,69 @@ function StoryCreateInner() {
 
   // ── Boomerang: 1s Frames einfangen, vor+zurueck als kurzes Video encoden ─
   const captureBoomerang = async () => {
+    if (boomBusy || recording) return
+    // Nativ: kurzen stabilisierten Clip aufnehmen, Frames daraus ziehen
+    if (nativeCamRef.current) {
+      setBoomBusy(true)
+      setBoomPhase('rec')
+      try {
+        const ncam = getNativeCam()!
+        await ncam.startRecord()
+        nativeRecActiveRef.current = true
+        await new Promise(r => setTimeout(r, 1300))
+        nativeRecActiveRef.current = false
+        const { base64 } = await ncam.stopRecord()
+        setBoomPhase('enc')
+        const srcBlob = base64ToBlob(base64, 'video/mp4')
+        const srcUrl = URL.createObjectURL(srcBlob)
+        const v = document.createElement('video')
+        v.src = srcUrl; v.muted = true; v.playsInline = true
+        await new Promise<void>((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('load')) })
+        const dur = isFinite(v.duration) && v.duration > 0.2 ? v.duration : 1.2
+        const W = 1080, H = 1920
+        const frames: HTMLCanvasElement[] = []
+        for (let i = 0; i < 24; i++) {
+          await new Promise<void>(res => { v.onseeked = () => res(); v.currentTime = Math.min(dur - 0.05, (i / 24) * dur) })
+          const c = document.createElement('canvas'); c.width = W; c.height = H
+          const fx = c.getContext('2d')!
+          const vw = v.videoWidth || W, vh = v.videoHeight || H
+          const cover = Math.max(W / vw, H / vh)
+          fx.drawImage(v, (W - vw * cover) / 2, (H - vh * cover) / 2, vw * cover, vh * cover)
+          frames.push(c)
+        }
+        URL.revokeObjectURL(srcUrl)
+        boomFramesRef.current = frames
+        capturedNativeRef.current = true
+        // Vorschau-Video aus den Frames (nur Anzeige; geteilt wird der
+        // Single-Encode aus den Rohframes beim Weiter-Schritt)
+        const out = document.createElement('canvas'); out.width = W; out.height = H
+        const octx = out.getContext('2d')!
+        const st = (out as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(30)
+        const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm'
+        const rec = new MediaRecorder(st, { mimeType: mime, videoBitsPerSecond: 12_000_000 })
+        const chunks: Blob[] = []
+        rec.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data) }
+        const finished = new Promise<Blob>(res => { rec.onstop = () => res(new Blob(chunks, { type: mime })) })
+        rec.start(250)
+        const seq = [...frames, ...frames.slice(1, -1).reverse()]
+        for (let loop = 0; loop < 3; loop++) {
+          for (const f of seq) { octx.drawImage(f, 0, 0); await new Promise(r => setTimeout(r, 34)) }
+        }
+        rec.stop()
+        const blob = await finished
+        setCapturedVideo(prev => { if (prev) URL.revokeObjectURL(prev.url); return { url: URL.createObjectURL(blob), blob, mime } })
+        ncam.stop().catch(() => {})
+        nativeCamRef.current = false; setNativeCam(false)
+        setStep('video-edit')
+      } catch {
+        toast.error('Boomerang fehlgeschlagen, bitte nochmal versuchen')
+      }
+      setBoomPhase(null)
+      setBoomBusy(false)
+      return
+    }
     const video = videoRef.current
-    if (!video || boomBusy || recording) return
+    if (!video) return
     setBoomBusy(true)
     setBoomPhase('rec')
     try {
@@ -1326,7 +1513,10 @@ function StoryCreateInner() {
     if (videoShareRef.current) videoBoxDims.current = { w: videoShareRef.current.offsetWidth, h: videoShareRef.current.offsetHeight }
     const isBoom = !!boomFramesRef.current?.length
     const canNative = hasNativeIG && appBuild >= 10
-    if (!isBoom && canNative) {
+    // Filter muss nur dann eingebrannt werden, wenn er noch nicht im Video
+    // steckt: Boomerang (Rohframes) und native Aufnahmen mit gewaehltem Filter
+    const needsFilterBurn = isBoom || (capturedNativeRef.current && filter !== 'original')
+    if (!needsFilterBurn && canNative) {
       setStickerNative(true)
       setBurnedVideo(prev => {
         if (prev && prev.url !== capturedVideo.url) URL.revokeObjectURL(prev.url)
@@ -1338,7 +1528,7 @@ function StoryCreateInner() {
     setStickerNative(canNative)
     setVideoBusy(true)
     try {
-      const b = await burnVideoOverlay({ withFilter: isBoom, withSticker: !canNative })
+      const b = await burnVideoOverlay({ withFilter: needsFilterBurn, withSticker: !canNative })
       setBurnedVideo(prev => {
         // capturedVideo.url nie revoken - die Original-Vorschau braucht sie noch
         if (prev && prev.url !== capturedVideo.url) URL.revokeObjectURL(prev.url)
@@ -1358,7 +1548,7 @@ function StoryCreateInner() {
     let share: { blob: Blob; mime: string } | null = burnedVideo
     if (!share && capturedVideo) {
       setVideoBusy(true)
-      try { share = await burnVideoOverlay({ withFilter: !!boomFramesRef.current?.length, withSticker: !stickerNative }) } catch { share = capturedVideo }
+      try { share = await burnVideoOverlay({ withFilter: !!boomFramesRef.current?.length || (capturedNativeRef.current && filter !== 'original'), withSticker: !stickerNative }) } catch { share = capturedVideo }
       setVideoBusy(false)
     }
     if (!share) return
@@ -1506,6 +1696,8 @@ function StoryCreateInner() {
     if (burnedVideo) { URL.revokeObjectURL(burnedVideo.url); setBurnedVideo(null) }
     burnedVideoRef.current = null
     boomFramesRef.current = null
+    capturedNativeRef.current = false
+    setVidDiag('')
     stopRecording()
     setStep('capture')
     startCamera(facingMode)
@@ -1517,6 +1709,7 @@ function StoryCreateInner() {
     const reader = new FileReader()
     reader.onload = () => {
       stream?.getTracks().forEach(t => t.stop()); setStream(null)
+      if (nativeCamRef.current) { getNativeCam()?.stop().catch(() => {}); nativeCamRef.current = false; setNativeCam(false) }
       setCapturedSrc(reader.result as string)
       setStep('edit')
     }
@@ -1639,9 +1832,10 @@ function StoryCreateInner() {
   // Render: Video/Boomerang Schritt 1 - Bearbeiten (Sticker + Filter, Vollbild)
   // ─────────────────────────────────────────────────────────────────────────
   if (step === 'video-edit' && capturedVideo) {
-    // VIDEO: Filter steckt schon in der Aufnahme (Live-GPU-Burn) - Vorschau
-    // pur. BOOMERANG: Rohframes, Filter erst beim Encode - Vorschau per CSS.
-    const isBoomEdit = !!boomFramesRef.current?.length
+    // Web-VIDEO: Filter steckt schon in der Aufnahme (Live-GPU-Burn).
+    // BOOMERANG + NATIVE Aufnahmen: Filter erst beim Teilen - hier waehlbar,
+    // Vorschau per CSS.
+    const isBoomEdit = !!boomFramesRef.current?.length || capturedNativeRef.current
     return (
       <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
         <div ref={videoShareRef} className="flex-1 relative overflow-hidden">
@@ -1837,6 +2031,9 @@ function StoryCreateInner() {
         WebkitUserSelect: 'none',
         userSelect: 'none',
         WebkitTouchCallout: 'none',
+        // Native Kamera liegt HINTER der WebView: hier durchsichtig werden,
+        // damit die echte Vorschau durchscheint (Loch in der Seite)
+        ...(nativeCam && step === 'capture' ? { background: 'transparent' } : {}),
       } as React.CSSProperties}
     >
 
@@ -1858,11 +2055,15 @@ function StoryCreateInner() {
           width: 'min(100%, calc(100dvh * 9 / 16))',
           height: 'auto',
           maxHeight: '100%',
+          // Native Kamera: Box durchsichtig, Balken drumherum schwarz
+          ...(nativeCam && step === 'capture'
+            ? { background: 'transparent', boxShadow: '0 0 0 200vmax #000' }
+            : {}),
         }}
       >
 
-        {/* Live camera feed */}
-        {step === 'capture' && !camError && (
+        {/* Live camera feed (Web-Fallback; nativ rendert AVFoundation dahinter) */}
+        {step === 'capture' && !camError && !nativeCam && (
           <video ref={videoRef} playsInline muted autoPlay
             disablePictureInPicture
             className="absolute inset-0 w-full h-full object-cover"
@@ -2134,8 +2335,9 @@ function StoryCreateInner() {
               <div className="w-14 h-14" />
             </div>
             {/* Filter schon in der Kamera waehlen (wie Instagram) - so wird er
-                direkt beim einzigen Encode mit aufgenommen, null Extra-Verlust */}
-            {!recording && !boomBusy && (
+                direkt beim einzigen Encode mit aufgenommen, null Extra-Verlust.
+                Native Kamera: Filterwahl kommt im Bearbeiten-Schritt danach. */}
+            {!recording && !boomBusy && !nativeCam && (
               <FilterStrip selected={filter} onChange={setFilter} />
             )}
             {/* Modus-Auswahl wie bei Instagram */}
