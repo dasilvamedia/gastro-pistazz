@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveRestaurant } from '@/lib/dashboard/resolveRestaurant'
+import { sanitizeTags, CUISINE_OPTIONS, DIETARY_OPTIONS, MAX_CUISINE } from '@/lib/restaurantTags'
 
 // ─── GET ─────────────────────────────────────────────────────────────────────
 export async function GET() {
@@ -65,7 +66,11 @@ export async function PATCH(request: NextRequest) {
       'stamp_card_enabled', 'stamp_card_total', 'stamp_card_reward',
     ]
     // Optional columns — gracefully skipped if migration hasn't been run yet
-    const ALLOWED_OPTIONAL = ['google_rating', 'google_review_count', 'opening_hours_note']
+    const ALLOWED_OPTIONAL = ['google_rating', 'google_review_count', 'opening_hours_note', 'cuisine', 'dietary']
+
+    // Tags nur aus der Whitelist (Migration 028)
+    if ('cuisine' in body) body.cuisine = sanitizeTags(body.cuisine, CUISINE_OPTIONS, MAX_CUISINE)
+    if ('dietary' in body) body.dietary = sanitizeTags(body.dietary, DIETARY_OPTIONS)
 
     const buildPayload = (includeOptional: boolean) => {
       const keys = includeOptional ? [...ALLOWED_CORE, ...ALLOWED_OPTIONAL] : ALLOWED_CORE

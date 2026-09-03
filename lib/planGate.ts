@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { PLAN_LIMITS, type PlanKey, type PlanLimits } from '@/lib/plans'
+import { PLAN_LIMITS, DEFAULT_PLAN, type PlanKey, type PlanLimits } from '@/lib/plans'
 
 interface Subscription {
   plan: PlanKey
@@ -18,8 +18,9 @@ export async function getRestaurantSubscription(restaurantId: string): Promise<S
 
 export async function getPlanLimits(restaurantId: string): Promise<PlanLimits> {
   const sub = await getRestaurantSubscription(restaurantId)
-  if (!sub) return PLAN_LIMITS.starter // default to most restrictive
-  return PLAN_LIMITS[sub.plan] ?? PLAN_LIMITS.starter
+  // Ohne Abo-Zeile gilt das Einstiegspaket (gleicher Default wie im Client)
+  if (!sub) return PLAN_LIMITS[DEFAULT_PLAN]
+  return PLAN_LIMITS[sub.plan] ?? PLAN_LIMITS[DEFAULT_PLAN]
 }
 
 export async function checkActiveDealsLimit(

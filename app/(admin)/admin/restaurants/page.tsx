@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Search, Plus, RefreshCw, Eye, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { PLANS, STATUS_LABEL, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
+import { RESTAURANT_TYPE_LABELS } from '@/types'
 
 interface SubInfo {
   plan: PlanKey
@@ -31,14 +32,6 @@ interface RestaurantRow {
   sub: SubInfo | null
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  restaurant: 'Restaurant',
-  bar: 'Bar',
-  cafe: 'Café',
-  fine_dining: 'Fine Dining',
-  biergarten: 'Biergarten',
-  eisdiele: 'Eisdiele',
-}
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`h-12 bg-gray-100 rounded-lg animate-pulse ${className}`} />
@@ -300,7 +293,7 @@ export default function AdminRestaurantsPage() {
                       {r.is_verified && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">✓ verifiziert</span>}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-xs text-gray-500">{TYPE_LABELS[r.type] ?? r.type}</span>
+                      <span className="text-xs text-gray-500">{RESTAURANT_TYPE_LABELS[r.type as keyof typeof RESTAURANT_TYPE_LABELS] ?? r.type}</span>
                       {r.city && <span className="block text-xs text-gray-400">{r.city}</span>}
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 text-xs">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { PlanKey, SubscriptionStatus } from '@/lib/plans'
+import { DEFAULT_PLAN, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
 
 export interface Subscription {
   id: string
@@ -86,7 +86,7 @@ export function useSubscription(restaurantId?: string | null) {
   return {
     subscription,
     loading,
-    plan: subscription?.plan ?? 'professional',
+    plan: subscription?.plan ?? DEFAULT_PLAN,
     status: subscription?.status ?? 'trial',
     trialDaysRemaining,
     isTrialActive,

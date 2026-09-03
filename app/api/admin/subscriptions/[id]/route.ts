@@ -33,9 +33,6 @@ export async function PATCH(
       updates.plan = body.plan
       updates.monthly_fee = body.monthly_fee ?? plan.price_monthly
       updates.setup_fee   = body.setup_fee   ?? plan.setup_fee
-      if (body.restaurant_id) {
-        await admin.from('restaurants').update({ plan: body.plan }).eq('id', body.restaurant_id)
-      }
     }
 
     // ── Trial setzen / neu starten ────────────────────────────────────────────

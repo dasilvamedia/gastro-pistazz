@@ -306,6 +306,42 @@ html[data-theme='dark'] .skeleton {
 :root { --toggle-track-off: #D1D5DB; }
 html[data-theme='dark'] { --toggle-track-off: #3A4437; }
 
+/* ── Umkreis-Slider (Entdecken): gruene gefuellte Spur, grosser Daumen ──
+   --pz-range-pct kommt aus dem Component (Fuellstand links vom Daumen). */
+.pz-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 44px;              /* Hit-Area */
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.pz-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #8BB06A 0%, #8BB06A var(--pz-range-pct, 40%), #D4E8C2 var(--pz-range-pct, 40%), #D4E8C2 100%);
+}
+.pz-range::-moz-range-track { height: 6px; border-radius: 999px; background: #D4E8C2; }
+.pz-range::-moz-range-progress { height: 6px; border-radius: 999px; background: #8BB06A; }
+.pz-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px; height: 26px;
+  margin-top: -10px;         /* (26 - 6) / 2 */
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #8BB06A;
+  box-shadow: 0 2px 8px rgba(28,31,26,0.2);
+}
+.pz-range::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 3px solid #8BB06A;
+  box-shadow: 0 2px 8px rgba(28,31,26,0.2);
+}
+html[data-theme='dark'] .pz-range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #8BB06A 0%, #8BB06A var(--pz-range-pct, 40%), #2E362B var(--pz-range-pct, 40%), #2E362B 100%);
+}
+
 /* AE/AF-Rahmen (Kamera): kurzer Zoom-in wie bei der System-Kamera */
 @keyframes aeIn {
   from { transform: scale(1.4); opacity: 0.5; }

@@ -10,6 +10,7 @@ import { isNativeApp, openMaps, openWebsite } from '@/lib/nativeLinks'
 import type { Restaurant, Deal, StampCard } from '@/types'
 import { RESTAURANT_TYPE_LABELS, TRIGGER_CONFIG } from '@/types'
 import { MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
+import { TagPills } from '@/components/ui/TagPills'
 
 type Tab = 'ubersicht' | 'deals' | 'info'
 
@@ -204,10 +205,11 @@ export default function RestaurantDetailPage() {
             <h1 className="text-2xl font-bold text-[#1C1F1A]" style={{ fontFamily: 'DM Serif Display, serif' }}>
               {restaurant.name}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="bg-[#EEF5E6] text-[#6D9450] text-xs font-medium px-2 py-0.5 rounded-full">
-                {RESTAURANT_TYPE_LABELS[restaurant.type]}
+                {RESTAURANT_TYPE_LABELS[restaurant.type] ?? restaurant.type}
               </span>
+              <TagPills cuisine={restaurant.cuisine} dietary={restaurant.dietary} variant="light" />
               {restaurant.google_rating != null && restaurant.google_rating > 0 ? (
                 <span className="flex items-center gap-1 text-sm font-semibold text-[#1C1F1A]">
                   <svg width="12" height="12" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>

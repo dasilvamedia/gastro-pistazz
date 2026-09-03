@@ -1,6 +1,9 @@
 export type UserRole = 'guest' | 'restaurant_owner' | 'admin' | 'super_admin'
 export type UserTier = 'bronze' | 'silber' | 'gold' | 'platin'
-export type RestaurantType = 'restaurant' | 'bar' | 'bistro' | 'cafe' | 'imbiss' | 'food_truck' | 'hotel' | 'fine_dining' | 'biergarten' | 'eisdiele'
+// Muss exakt dem DB-Enum restaurant_type entsprechen (Migration 011: 6 Werte).
+// Frueher standen hier 4 Werte mehr, die das Owner-Formular anbot und die beim
+// Speichern einen DB-Fehler warfen.
+export type RestaurantType = 'restaurant' | 'bar' | 'cafe' | 'fine_dining' | 'biergarten' | 'eisdiele'
 export type DealTrigger = 'instagram_story' | 'instagram_reel' | 'instagram_post' | 'google_review' | 'receipt_upload' | 'stamp_card' | 'custom'
 export type DealStatus = 'active' | 'paused' | 'expired' | 'draft'
 export type RewardType = 'discount_percent' | 'discount_fixed' | 'free_item' | 'bogo' | 'custom'
@@ -62,6 +65,10 @@ export interface Restaurant {
   stamp_card_enabled: boolean
   stamp_card_total: number
   stamp_card_reward: string | null
+  /** Kueche, z.B. ['italienisch', 'mediterran'] (max. 3), siehe lib/restaurantTags */
+  cuisine?: string[]
+  /** Ernaehrung, z.B. ['vegan', 'glutenfrei'] */
+  dietary?: string[]
   primary_color: string
   is_active: boolean
   is_verified: boolean
@@ -234,11 +241,7 @@ export const TRIGGER_CONFIG: Record<DealTrigger, { label: string; emoji: string;
 export const RESTAURANT_TYPE_LABELS: Record<RestaurantType, string> = {
   restaurant: 'Restaurant',
   bar: 'Bar',
-  bistro: 'Bistro',
   cafe: 'Café',
-  imbiss: 'Imbiss',
-  food_truck: 'Food Truck',
-  hotel: 'Hotel',
   fine_dining: 'Fine Dining',
   biergarten: 'Biergarten',
   eisdiele: 'Eisdiele',

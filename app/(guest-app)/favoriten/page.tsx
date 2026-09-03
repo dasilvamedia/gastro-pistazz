@@ -15,6 +15,8 @@ import { useRouter } from 'next/navigation'
 import { Heart, X, MapPin, Star, RotateCcw, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant } from '@/types'
+import { RESTAURANT_TYPE_LABELS } from '@/types'
+import { TagPills } from '@/components/ui/TagPills'
 
 const DISMISS_KEY = 'fav-dismissed'
 const LOCAL_FAV_KEY = 'fav-local' // Fallback, falls die DB-Tabelle noch fehlt
@@ -33,12 +35,6 @@ function shuffle<T>(arr: T[]): T[] {
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
-}
-
-const TYPE_LABEL: Record<string, string> = {
-  restaurant: 'Restaurant', bar: 'Bar', bistro: 'Bistro', cafe: 'Café',
-  imbiss: 'Imbiss', food_truck: 'Foodtruck', hotel: 'Hotel',
-  fine_dining: 'Fine Dining', biergarten: 'Biergarten', eisdiele: 'Eisdiele',
 }
 
 export default function FavoritenPage() {
@@ -221,8 +217,9 @@ export default function FavoritenPage() {
               {r.name}
             </p>
             <p className="flex items-center gap-2.5 text-[13px] text-white/85 mt-1 flex-wrap">
-              <span>{TYPE_LABEL[r.type] ?? r.type}</span>
+              <span>{RESTAURANT_TYPE_LABELS[r.type] ?? r.type}</span>
               {r.city && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{r.city}</span>}
+              {r.cuisine && r.cuisine.length > 0 && <span>{r.cuisine.map(c => c.charAt(0).toUpperCase() + c.slice(1)).slice(0, 2).join(', ')}</span>}
               {r.google_rating != null && (
                 <span className="flex items-center gap-1">
                   <Star className="w-3.5 h-3.5 fill-[#E5B84C] text-[#E5B84C]" />{Number(r.google_rating).toFixed(1)}
@@ -415,7 +412,7 @@ export default function FavoritenPage() {
                 {detail.name}
               </p>
               <p className="flex items-center gap-2.5 text-[13px] text-[#6D7A6D] mt-1 flex-wrap">
-                <span>{TYPE_LABEL[detail.type] ?? detail.type}</span>
+                <span>{RESTAURANT_TYPE_LABELS[detail.type] ?? detail.type}</span>
                 {detail.city && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{[detail.address, detail.city].filter(Boolean).join(', ')}</span>}
               </p>
               <div className="flex items-center gap-3 mt-2 flex-wrap">

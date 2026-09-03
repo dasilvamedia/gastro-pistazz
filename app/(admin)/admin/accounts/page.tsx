@@ -12,7 +12,7 @@ import {
   CreateOwnerModal, EditOwnerModal, BanConfirmModal,
   type CreateForm, type EditForm,
 } from '@/components/admin/AccountModals'
-import { PLANS, STATUS_LABEL, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
+import { PLANS, PLAN_ORDER, STATUS_LABEL, DEFAULT_PLAN, TRIAL_DAYS, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -163,10 +163,11 @@ function TrialActions({
     <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
       {loading && <span className="text-[11px] text-gray-400 animate-pulse">…</span>}
 
+      {/* 30 Tage ist der Standard-Trial, 14 Tage nur als Ausnahme */}
+      <button disabled={loading} onClick={() => setTrial(TRIAL_DAYS)}
+        className={`${btn} bg-[#8BB06A] text-white hover:bg-[#6D9450]`}>{TRIAL_DAYS}T</button>
       <button disabled={loading} onClick={() => setTrial(14)}
-        className={`${btn} bg-[#EEF5E6] text-[#3D7A22] hover:bg-[#D4E8C2]`}>14T</button>
-      <button disabled={loading} onClick={() => setTrial(30)}
-        className={`${btn} bg-blue-50 text-blue-700 hover:bg-blue-100`}>30T</button>
+        className={`${btn} bg-gray-100 text-gray-600 hover:bg-gray-200`}>14T</button>
 
       {/* Verlängern */}
       <div className="relative">
@@ -233,7 +234,7 @@ function RestaurantPanel({ acc, sub, onClose, onImpersonate, onUpdate }: {
   const [isBanned, setIsBanned]   = useState(acc.is_banned)
   const [banLoading, setBanL]     = useState(false)
 
-  const [planVal, setPlanVal]     = useState<PlanKey>(sub?.plan ?? 'professional')
+  const [planVal, setPlanVal]     = useState<PlanKey>(sub?.plan ?? DEFAULT_PLAN)
   const [planSaving, setPlanSav]  = useState(false)
   const [noteVal, setNoteVal]     = useState(sub?.custom_note ?? '')
   const [noteSaving, setNoteSav]  = useState(false)
@@ -411,8 +412,8 @@ function RestaurantPanel({ acc, sub, onClose, onImpersonate, onUpdate }: {
               <span className="text-xs text-gray-500 w-12 shrink-0">Plan</span>
               <select value={planVal} onChange={e => savePlan(e.target.value as PlanKey)} disabled={planSaving}
                 className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8BB06A] bg-white disabled:opacity-50">
-                {Object.values(PLANS).map(p => (
-                  <option key={p.key} value={p.key}>{p.name} - {p.price_monthly}€/Mo</option>
+                {PLAN_ORDER.map(k => PLANS[k]).map(p => (
+                  <option key={p.key} value={p.key}>{p.name}, {p.price_monthly} €/Monat</option>
                 ))}
               </select>
               {planSaving && <span className="text-xs text-gray-400 animate-pulse">…</span>}

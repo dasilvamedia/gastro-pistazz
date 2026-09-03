@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { User, Settings, CreditCard, Camera, Euro, TrendingUp, Key, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { PLANS, STATUS_LABEL, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
 
 type Tab = 'profil' | 'system' | 'abrechnung'
 
@@ -14,12 +15,17 @@ interface ProfileData {
   avatar_url: string | null
 }
 
+// Umsatz kommt aus subscriptions (einzige Preisquelle), nicht mehr aus
+// restaurants.monthly_fee
 interface RestaurantBilling {
   id: string
   name: string
   city: string | null
-  contract_status: string
+  plan: PlanKey | null
+  status: SubscriptionStatus | null
   monthly_fee: number | null
+  setup_fee: number | null
+  setup_paid: boolean
 }
 
 const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#8BB06A] focus:ring-1 focus:ring-[#8BB06A]/20'
@@ -120,20 +126,32 @@ export default function SuperAdminEinstellungenPage() {
 
   async function loadBilling() {
     setBillingLoading(true)
-    const { data, error } = await supabase
-      .from('restaurants')
-      .select('id, name, city, contract_status, monthly_fee')
-      .order('name')
+    const [{ data: restaurants, error }, { data: subs }] = await Promise.all([
+      supabase.from('restaurants').select('id, name, city').order('name'),
+      supabase.from('subscriptions').select('restaurant_id, plan, status, monthly_fee, setup_fee, setup_paid'),
+    ])
     if (error) { toast.error('Fehler beim Laden'); setBillingLoading(false); return }
-    setBillingRestaurants(data ?? [])
+    const byRestaurant = new Map((subs ?? []).map(s => [s.restaurant_id, s]))
+    setBillingRestaurants((restaurants ?? []).map(r => {
+      const s = byRestaurant.get(r.id)
+      return {
+        id: r.id, name: r.name, city: r.city,
+        plan: (s?.plan as PlanKey | undefined) ?? null,
+        status: (s?.status as SubscriptionStatus | undefined) ?? null,
+        monthly_fee: s?.monthly_fee ?? null,
+        setup_fee: s?.setup_fee ?? null,
+        setup_paid: !!s?.setup_paid,
+      }
+    }))
     setBillingLoading(false)
   }
 
   const totalMonthlyRevenue = billingRestaurants.reduce(
-    (sum, r) => sum + (r.contract_status === 'active' ? (r.monthly_fee ?? 0) : 0),
+    (sum, r) => sum + (r.status === 'active' ? (r.monthly_fee ?? 0) : 0),
     0
   )
-  const activeCount = billingRestaurants.filter(r => r.contract_status === 'active').length
+  const activeCount = billingRestaurants.filter(r => r.status === 'active').length
+  const openSetups = billingRestaurants.filter(r => r.status === 'active' && !r.setup_paid).length
 
   const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'profil',    label: 'Profil',      icon: User },
@@ -406,24 +424,31 @@ export default function SuperAdminEinstellungenPage() {
                     <tr className="bg-gray-50 text-left">
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Restaurant</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stadt</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Paket</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Monatspreis</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Jahreswert</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {billingRestaurants.map(r => (
+                    {billingRestaurants.map(r => {
+                      const st = r.status ? STATUS_LABEL[r.status] : null
+                      return (
                       <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
                         <td className="px-6 py-3.5 font-medium text-[#1C1F1A]">{r.name}</td>
                         <td className="px-6 py-3.5 text-gray-500">{r.city ?? '-'}</td>
+                        <td className="px-6 py-3.5 text-gray-600">{r.plan ? PLANS[r.plan]?.name ?? r.plan : '-'}</td>
                         <td className="px-6 py-3.5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            r.contract_status === 'active'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {r.contract_status === 'active' ? 'Aktiv' : r.contract_status}
-                          </span>
+                          {st ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: st.bg, color: st.color }}>
+                              {st.label}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Kein Abo</span>
+                          )}
+                          {r.status === 'active' && !r.setup_paid && (
+                            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Setup offen</span>
+                          )}
                         </td>
                         <td className="px-6 py-3.5">
                           {r.monthly_fee != null ? (
@@ -435,17 +460,18 @@ export default function SuperAdminEinstellungenPage() {
                           )}
                         </td>
                         <td className="px-6 py-3.5 text-gray-600">
-                          {r.monthly_fee != null && r.contract_status === 'active'
+                          {r.monthly_fee != null && r.status === 'active'
                             ? `€${(r.monthly_fee * 12).toLocaleString('de-DE', { minimumFractionDigits: 2 })}`
                             : '-'}
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-50 border-t-2 border-gray-200">
-                      <td colSpan={3} className="px-6 py-3.5 text-sm font-semibold text-[#1C1F1A]">
-                        Gesamt ({activeCount} aktiv)
+                      <td colSpan={4} className="px-6 py-3.5 text-sm font-semibold text-[#1C1F1A]">
+                        Gesamt ({activeCount} aktiv{openSetups > 0 ? `, ${openSetups} Setup offen` : ''})
                       </td>
                       <td className="px-6 py-3.5">
                         <span className="font-bold text-[#8BB06A] text-base">

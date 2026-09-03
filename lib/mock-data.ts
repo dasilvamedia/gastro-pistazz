@@ -131,7 +131,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
     owner_id: 'mock-owner-002',
     name: 'Green Garden Bistro',
     slug: 'green-garden-bistro',
-    type: 'bistro',
+    type: 'cafe',
     description: '🥗 Frische saisonale Küche & vegane Optionen. Gemütlich & nachhaltig.',
     logo_url: null,
     cover_url: null,

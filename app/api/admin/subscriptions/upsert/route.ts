@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { PLANS, type PlanKey } from '@/lib/plans'
+import { PLANS, DEFAULT_PLAN, TRIAL_DAYS, isPlanKey, type PlanKey } from '@/lib/plans'
 
 async function assertSuperAdmin() {
   const supabase = await createClient()
@@ -40,16 +40,20 @@ export async function PATCH(request: NextRequest) {
     if (existing?.id) {
       subId = existing.id
     } else {
-      // Create a minimal subscription row
-      const plan = (body.plan && PLANS[body.plan as PlanKey]) ? body.plan : 'professional'
+      // Neue Zeile = echte Testphase (30 Tage), nicht nur ein Status-Label
+      const plan: PlanKey = isPlanKey(body.plan) ? body.plan : DEFAULT_PLAN
+      const trialDays = body.trial_duration_days !== undefined ? Number(body.trial_duration_days) : TRIAL_DAYS
       const { data: created, error: createErr } = await admin
         .from('subscriptions')
         .insert({
           restaurant_id,
           plan,
           status: 'trial',
-          monthly_fee: PLANS[plan as PlanKey].price_monthly,
-          setup_fee: PLANS[plan as PlanKey].setup_fee,
+          monthly_fee: PLANS[plan].price_monthly,
+          setup_fee: PLANS[plan].setup_fee,
+          trial_duration_days: trialDays,
+          trial_started_at: now,
+          trial_ends_at: new Date(Date.now() + trialDays * 86400000).toISOString(),
           created_at: now,
           updated_at: now,
         })
@@ -63,12 +67,12 @@ export async function PATCH(request: NextRequest) {
     // Now delegate to the same logic as the PATCH [id] route
     const updates: Record<string, unknown> = { updated_at: now }
 
-    if (body.plan && PLANS[body.plan as PlanKey]) {
-      const plan = PLANS[body.plan as PlanKey]
-      updates.plan = body.plan
+    const requestedPlan: unknown = body.plan
+    if (isPlanKey(requestedPlan)) {
+      const plan = PLANS[requestedPlan]
+      updates.plan = requestedPlan
       updates.monthly_fee = body.monthly_fee ?? plan.price_monthly
       updates.setup_fee   = body.setup_fee   ?? plan.setup_fee
-      await admin.from('restaurants').update({ plan: body.plan }).eq('id', restaurant_id)
     }
 
     if (body.trial_duration_days !== undefined) {
@@ -127,12 +131,19 @@ export async function PATCH(request: NextRequest) {
 
     // Notify owner
     if (body.notify_owner !== false) {
-      const { data: owner } = await admin
+      // profiles.restaurant_id ist bei aelteren Konten oft leer, deshalb
+      // Fallback ueber restaurants.owner_id
+      const { data: ownerByProfile } = await admin
         .from('profiles')
         .select('id')
         .eq('restaurant_id', restaurant_id)
         .eq('role', 'restaurant_owner')
-        .single()
+        .maybeSingle()
+      let owner = ownerByProfile
+      if (!owner) {
+        const { data: rest } = await admin.from('restaurants').select('owner_id').eq('id', restaurant_id).maybeSingle()
+        if (rest?.owner_id) owner = { id: rest.owner_id }
+      }
 
       if (owner) {
         let title = 'Account aktualisiert'

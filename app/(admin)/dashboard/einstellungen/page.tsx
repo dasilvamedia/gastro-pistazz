@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { QRCode } from '@/types'
 import { QRCodeCanvas } from 'qrcode.react'
 import { useSubscription } from '@/lib/hooks/useSubscription'
-import { PLANS, STATUS_LABEL, type PlanKey } from '@/lib/plans'
+import { PLANS, PLAN_ORDER, STATUS_LABEL } from '@/lib/plans'
 
 interface NotifPrefs {
   new_story: boolean
@@ -170,7 +170,7 @@ export default function EinstellungenPage() {
               <>
                 <p className="text-xs text-gray-400">Wähle dein Paket, Buchung folgt in Kürze.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {(Object.keys(PLANS) as PlanKey[]).map(key => {
+                  {PLAN_ORDER.map(key => {
                     const p = PLANS[key]
                     const isCurrent = subscription?.plan === key
                     return (
@@ -215,12 +215,18 @@ export default function EinstellungenPage() {
                         {/* Features */}
                         <div className="px-4 pb-3">
                           <ul className="space-y-1">
-                            {p.features.map(f => (
+                            {p.includes && (
+                              <li className="text-[9px] uppercase tracking-wider opacity-50">{p.includes}</li>
+                            )}
+                            {p.features.slice(0, 6).map(f => (
                               <li key={f} className="flex items-center gap-1.5 text-[10px] opacity-70">
                                 <span className="opacity-50 shrink-0">✓</span>
                                 <span>{f}</span>
                               </li>
                             ))}
+                            {p.features.length > 6 && (
+                              <li className="text-[10px] opacity-50">+ {p.features.length - 6} weitere</li>
+                            )}
                           </ul>
                         </div>
 

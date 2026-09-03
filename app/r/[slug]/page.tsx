@@ -11,6 +11,7 @@ import {
 import type { Restaurant, Deal } from '@/types'
 import { TRIGGER_CONFIG } from '@/types'
 import Link from 'next/link'
+import { TagPills } from '@/components/ui/TagPills'
 
 /* ─── Wetter-Widget ────────────────────────────────────────────────────────── */
 const WMO_ICON: Record<number, string> = {
@@ -404,6 +405,7 @@ export default function RestaurantLandingPage() {
         {tab === 'info' && (
           <div className="space-y-3">
             {/* Description */}
+            <TagPills cuisine={restaurant.cuisine} dietary={restaurant.dietary} variant="dark" className="mb-3" />
             {restaurant.description && (
               <div className="rounded-2xl border border-white/8 p-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
                 <p className="text-white/70 text-sm leading-relaxed">{restaurant.description}</p>

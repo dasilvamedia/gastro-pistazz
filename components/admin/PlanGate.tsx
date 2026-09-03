@@ -2,16 +2,17 @@
 
 import Link from 'next/link'
 import { useSubscription } from '@/lib/hooks/useSubscription'
-import { PLAN_LIMITS, type PlanKey } from '@/lib/plans'
+import { PLAN_LIMITS, PLANS, DEFAULT_PLAN, minPlanFor, type PlanKey, type BooleanLimitKey } from '@/lib/plans'
 
 interface Props {
-  feature: 'has_analytics' | 'has_stempelkarte'
+  feature: BooleanLimitKey
   children: React.ReactNode
 }
 
-const FEATURE_LABEL: Record<Props['feature'], string> = {
+const FEATURE_LABEL: Record<BooleanLimitKey, string> = {
   has_analytics: 'Analytics Dashboard',
   has_stempelkarte: 'Digitale Stempelkarten',
+  has_messaging: 'Gaeste-Nachrichten',
 }
 
 export function PlanGate({ feature, children }: Props) {
@@ -25,10 +26,11 @@ export function PlanGate({ feature, children }: Props) {
     )
   }
 
-  const limits = PLAN_LIMITS[plan as PlanKey] ?? PLAN_LIMITS.starter
+  const limits = PLAN_LIMITS[plan as PlanKey] ?? PLAN_LIMITS[DEFAULT_PLAN]
   if (limits[feature]) return <>{children}</>
 
   const featureLabel = FEATURE_LABEL[feature]
+  const requiredPlan = PLANS[minPlanFor(feature)].name
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
@@ -38,7 +40,7 @@ export function PlanGate({ feature, children }: Props) {
         </div>
         <h2 className="text-xl font-bold text-[#1C1F1A]">{featureLabel}</h2>
         <p className="text-sm text-gray-500">
-          {featureLabel} ist ab dem <strong>Professional-Paket</strong> verfügbar.
+          {featureLabel} ist ab dem <strong>{requiredPlan}-Paket</strong> verfuegbar.
           {subscription?.trial_ends_at && (
             <> Du kannst es jetzt in der Testphase ausprobieren, nach Ablauf ist ein Upgrade notwendig.</>
           )}
@@ -47,7 +49,7 @@ export function PlanGate({ feature, children }: Props) {
           href="/dashboard/einstellungen?tab=plan"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#8BB06A] text-white text-sm font-semibold hover:bg-[#6D9450] transition-all"
         >
-          Pakete ansehen →
+          Pakete ansehen
         </Link>
       </div>
     </div>

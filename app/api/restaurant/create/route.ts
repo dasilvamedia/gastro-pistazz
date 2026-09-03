@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { startTrial } from '@/lib/subscriptions'
 
 async function geocode(address: string, zip: string, city: string, name: string): Promise<{ lat: number; lon: number } | null> {
   try {
@@ -126,7 +127,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: restaurantError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, owner_id: ownerId, login_name: slug, geocoded: !!coords })
+    // Profil ans Restaurant binden (Owner-RLS auf subscriptions braucht das)
+    // und die 30-Tage-Testphase anlegen. Beides nicht fatal.
+    let trialStarted = false
+    const { data: createdRestaurant } = await admin.from('restaurants').select('id').eq('slug', slug).single()
+    if (createdRestaurant?.id) {
+      await admin.from('profiles').update({ restaurant_id: createdRestaurant.id }).eq('id', ownerId)
+      try {
+        await startTrial(admin, createdRestaurant.id)
+        trialStarted = true
+      } catch (e) {
+        console.error('startTrial failed:', e)
+      }
+    }
+
+    return NextResponse.json({ ok: true, owner_id: ownerId, login_name: slug, geocoded: !!coords, trial_started: trialStarted })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
     return NextResponse.json({ error: message }, { status: 500 })

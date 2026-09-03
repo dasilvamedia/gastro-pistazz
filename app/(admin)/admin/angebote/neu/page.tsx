@@ -9,13 +9,11 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { ArrowLeft, Save, ChevronDown } from 'lucide-react'
-import { PLANS, type PlanKey } from '@/lib/plans'
+import { PLANS, PLAN_ORDER, DEFAULT_PLAN, type PlanKey } from '@/lib/plans'
 
 const ALL_FEATURES = [
   ...new Set([
-    ...PLANS.starter.features,
-    ...PLANS.professional.features,
-    ...PLANS.enterprise.features,
+    ...PLAN_ORDER.flatMap(k => PLANS[k].features),
     'Social-Media Loyalty System',
     'In-App Messaging',
   ]),
@@ -64,8 +62,8 @@ function NeuesAngebotForm() {
     resolver: zodResolver(schema),
     defaultValues: {
       recipient_type: 'lead',
-      monthly_fee: 129,
-      setup_fee: 0,
+      monthly_fee: PLANS[DEFAULT_PLAN].price_monthly,
+      setup_fee: PLANS[DEFAULT_PLAN].setup_fee,
       features: [],
     },
   })

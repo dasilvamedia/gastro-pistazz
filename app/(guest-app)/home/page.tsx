@@ -10,20 +10,16 @@ import type { Profile, Restaurant, Deal } from '@/types'
 import { TRIGGER_CONFIG, RESTAURANT_TYPE_LABELS } from '@/types'
 import { MOCK_USER, MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
 import { DemoBanner } from '@/components/DemoBanner'
+import { attachDistance, formatDistance, getGeoPermissionState, requestPosition, type WithDistance } from '@/lib/geo'
 
 function SkeletonCard({ className }: { className?: string }) {
   return <div className={`skeleton rounded-2xl ${className}`} />
 }
 
-// ── "In deiner Nähe": echte Entfernung wenn Standort erlaubt, sonst Featured zuerst ──
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+// Wie viele Restaurants die Startseite zeigt (nach Distanz-Ranking)
+const HOME_LIMIT = 10
+// Wie viele geladen werden, damit die 10 naechsten wirklich die naechsten sind
+const HOME_FETCH_LIMIT = 60
 
 function sortByFeatured(list: Restaurant[]) {
   return [...list].sort((a, b) => {
@@ -32,28 +28,23 @@ function sortByFeatured(list: Restaurant[]) {
   })
 }
 
-async function sortNearby(list: Restaurant[]): Promise<Restaurant[]> {
-  // Standort nur nutzen wenn Erlaubnis bereits erteilt wurde — kein aufdringlicher Prompt beim App-Start
+// "In deiner Naehe": echte Entfernung, wenn der Standort bereits erlaubt ist
+// (kein aufdringlicher Prompt beim App-Start), sonst Featured zuerst.
+// Wichtig: erst ranken, DANN auf 10 kuerzen, nicht umgekehrt.
+async function rankNearby(list: Restaurant[]): Promise<WithDistance<Restaurant>[]> {
   try {
-    if (typeof navigator !== 'undefined' && navigator.permissions && navigator.geolocation) {
-      const perm = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
-      if (perm.state === 'granted') {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000, maximumAge: 300000 })
-        )
-        const { latitude, longitude } = pos.coords
-        return [...list].sort((a, b) => {
-          const da = a.latitude && a.longitude ? haversineKm(latitude, longitude, a.latitude, a.longitude) : Infinity
-          const db = b.latitude && b.longitude ? haversineKm(latitude, longitude, b.latitude, b.longitude) : Infinity
-          return da - db
-        })
-      }
+    const perm = await getGeoPermissionState()
+    if (perm === 'granted') {
+      const pos = await requestPosition({ timeout: 4000, maximumAge: 300_000 })
+      return attachDistance(list, pos)
+        .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+        .slice(0, HOME_LIMIT)
     }
   } catch { /* Fallback unten */ }
-  return sortByFeatured(list)
+  return sortByFeatured(list).slice(0, HOME_LIMIT)
 }
 
-function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
+function RestaurantCard({ restaurant }: { restaurant: WithDistance<Restaurant> }) {
   const router = useRouter()
   const hasGoogle = restaurant.google_rating != null && restaurant.google_rating > 0
   const hasCover = !!restaurant.cover_url
@@ -104,7 +95,7 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
             {restaurant.name}
           </p>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem', fontWeight: 500, marginTop: 2 }}>
-            {RESTAURANT_TYPE_LABELS[restaurant.type]}{restaurant.city ? ` · ${restaurant.city}` : ''}
+            {restaurant.distanceKm != null ? `${formatDistance(restaurant.distanceKm)} · ` : ''}{RESTAURANT_TYPE_LABELS[restaurant.type] ?? restaurant.type}{restaurant.city && restaurant.distanceKm == null ? ` · ${restaurant.city}` : ''}
           </p>
         </div>
       </div>
@@ -156,7 +147,7 @@ export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [restaurants, setRestaurants] = useState<WithDistance<Restaurant>[]>([])
   const [deals, setDeals] = useState<Deal[]>([])
   const [isDemo, setIsDemo] = useState(false)
   const [loadingRestaurants, setLoadingRestaurants] = useState(true)
@@ -179,10 +170,10 @@ export default function HomePage() {
           // Demo-Modus: alles ansehen, mitmachen erst nach Anmeldung
           setIsDemo(true)
           const [{ data: rData }, { data: dData }] = await Promise.all([
-            supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(10),
+            supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(HOME_FETCH_LIMIT),
             supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5),
           ])
-          setRestaurants(await sortNearby(rData ?? []))
+          setRestaurants(await rankNearby(rData ?? []))
           setDeals(dData ?? [])
           setLoadingRestaurants(false)
           setLoadingDeals(false)
@@ -209,13 +200,13 @@ export default function HomePage() {
         }
 
         const [{ data: rData, error: rErr }, { data: dData, error: dErr }] = await Promise.all([
-          supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(10),
+          supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(HOME_FETCH_LIMIT),
           supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5),
         ])
 
         if (rErr) throw rErr
         if (dErr) throw dErr
-        setRestaurants(await sortNearby(rData ?? []))
+        setRestaurants(await rankNearby(rData ?? []))
         setDeals(dData ?? [])
       } catch {
         toast.error('Fehler beim Laden der Daten')
@@ -237,8 +228,8 @@ export default function HomePage() {
           })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' },
           async () => {
-            const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(10)
-            if (data) setRestaurants(await sortNearby(data))
+            const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(HOME_FETCH_LIMIT)
+            if (data) setRestaurants(await rankNearby(data))
           })
         .subscribe()
       return () => { supabase.removeChannel(channel) }
@@ -318,7 +309,7 @@ export default function HomePage() {
         <div>
           <div className="flex items-baseline justify-between mb-3.5">
             <h2 className="text-[#1C1F1A] font-bold text-lg" style={{ fontFamily: 'DM Serif Display, serif' }}>In deiner Nähe</h2>
-            <button onClick={() => router.push('/entdecken')} className="text-[#6D9450] text-sm font-semibold">Alle</button>
+            <button onClick={() => router.push('/entdecken?nah=1')} className="text-[#6D9450] text-sm font-semibold">Alle</button>
           </div>
           <div className="flex gap-3.5 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5 snap-x snap-mandatory">
             {loadingRestaurants

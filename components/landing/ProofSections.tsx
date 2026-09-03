@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Kicker, Headline, INK, CREAM, HAIR, SERIF, MONO } from './StorySections'
+import { PLANS, PLAN_ORDER, TRIAL_DAYS, formatEuro } from '@/lib/plans'
 
 const fade = {
   initial: { opacity: 0, y: 24 },
@@ -17,25 +18,7 @@ const fade = {
   viewport: { once: true },
 }
 
-/* ── 05 / Pakete ──────────────────────────────────────────────────────── */
-const PLANS = [
-  {
-    name: 'Starter', monthly: 79, setup: 1200,
-    blurb: 'Für kleine Restaurants und Bars, die gerade anfangen.',
-    feat: ['Basis-Features der Plattform', 'Bis zu 500 Gäste / Monat', 'Einfaches Dashboard', 'E-Mail-Support', '200 Flyer + 2× A2-Plakate mit Druck', 'Onboarding-Session'],
-  },
-  {
-    name: 'Professional', monthly: 129, setup: 1899, badge: 'Bestseller',
-    blurb: 'Das meistgewählte Paket. Für etablierte Häuser.',
-    feat: ['Alle Plattform-Features', 'Bis zu 2.000 Gäste / Monat', 'Erweitertes Dashboard + Analytics', 'Prioritäts-Support', '200 Flyer + 2× A2-Plakate mit Druck', 'Onboarding + Team-Schulung', '30 Tage intensiver Support'],
-  },
-  {
-    name: 'Premium', monthly: 179, setup: 3999,
-    blurb: 'Für Häuser, die alles aus der Plattform herausholen.',
-    feat: ['Alle Features + Custom-Entwicklung', 'Unbegrenzte Gäste / Monat', 'KI-Insights & Predictive Analytics', 'Dedicated Account Manager', '24/7 Prioritäts-Support', '200 Flyer + 2× A2-Plakate mit Druck', '60 Tage Support + monatliche Calls'],
-  },
-]
-
+/* ── 05 / Pakete (Daten aus lib/plans.ts, einzige Wahrheit) ───────────── */
 export function PricingV2() {
   return (
     <section id="preise" className="px-4 md:px-6 py-20 md:py-28 bg-white">
@@ -46,47 +29,56 @@ export function PricingV2() {
         </motion.div>
 
         <div className="mt-12 grid md:grid-cols-3 gap-5 items-stretch">
-          {PLANS.map((p, i) => (
-            <motion.div
-              key={p.name}
-              className="relative flex flex-col rounded-2xl border p-7"
-              style={{
-                borderColor: p.badge ? INK : HAIR,
-                background: p.badge ? INK : CREAM,
-                color: p.badge ? '#fff' : INK,
-              }}
-              {...fade}
-              transition={{ duration: 0.45, delay: i * 0.1 }}
-            >
-              {p.badge && (
-                <span className="absolute -top-3 left-6 text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: '#8BB06A', color: '#fff' }}>
-                  {p.badge}
-                </span>
-              )}
-              <p className="text-lg" style={{ fontFamily: SERIF }}><em>{p.name}</em></p>
-              <p className="mt-1 text-[13px]" style={{ opacity: 0.6 }}>{p.blurb}</p>
-              <p className="mt-5">
-                <span className="text-4xl" style={{ fontFamily: SERIF }}>€ {p.monthly}</span>
-                <span className="text-sm" style={{ opacity: 0.55 }}> / Monat</span>
-              </p>
-              <p className="text-[12px] mt-1" style={{ fontFamily: MONO, opacity: 0.5 }}>+ € {p.setup.toLocaleString('de-DE')} Setup einmalig</p>
-              <ul className="mt-6 space-y-2.5 text-[13.5px] flex-1">
-                {p.feat.map(f => (
-                  <li key={f} className="flex gap-2">
-                    <span style={{ color: '#8BB06A' }}>✓</span>
-                    <span style={{ opacity: 0.85 }}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/anfrage"
-                className="mt-7 text-center font-bold text-sm py-3 rounded-full transition-opacity active:opacity-80"
-                style={p.badge ? { background: '#fff', color: INK } : { background: INK, color: '#fff' }}
+          {PLAN_ORDER.map((key, i) => {
+            const p = PLANS[key]
+            const dark = !!p.bestseller
+            return (
+              <motion.div
+                key={p.key}
+                className="relative flex flex-col rounded-2xl border p-7"
+                style={{
+                  borderColor: dark ? INK : HAIR,
+                  background: dark ? INK : CREAM,
+                  color: dark ? '#fff' : INK,
+                }}
+                {...fade}
+                transition={{ duration: 0.45, delay: i * 0.1 }}
               >
-                Beratung anfragen
-              </Link>
-            </motion.div>
-          ))}
+                {p.bestseller && (
+                  <span className="absolute -top-3 left-6 text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: '#8BB06A', color: '#fff' }}>
+                    Bestseller
+                  </span>
+                )}
+                <p className="text-lg" style={{ fontFamily: SERIF }}><em>{p.name}</em></p>
+                <p className="mt-1 text-[13px]" style={{ opacity: 0.6 }}>{p.tagline}</p>
+                <p className="mt-5">
+                  <span className="text-4xl" style={{ fontFamily: SERIF }}>{formatEuro(p.price_monthly)}</span>
+                  <span className="text-sm" style={{ opacity: 0.55 }}> / Monat</span>
+                </p>
+                <p className="text-[12px] mt-1" style={{ fontFamily: MONO, opacity: 0.5 }}>+ {formatEuro(p.setup_fee)} Setup einmalig</p>
+                <ul className="mt-6 space-y-2.5 text-[13.5px] flex-1">
+                  {p.includes && (
+                    <li className="text-[12px] font-semibold uppercase" style={{ fontFamily: MONO, letterSpacing: '0.1em', opacity: 0.55 }}>
+                      {p.includes}
+                    </li>
+                  )}
+                  {p.features.map(f => (
+                    <li key={f} className="flex gap-2">
+                      <span style={{ color: '#8BB06A' }}>✓</span>
+                      <span style={{ opacity: 0.85 }}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/anfrage"
+                  className="mt-7 text-center font-bold text-sm py-3 rounded-full transition-opacity active:opacity-80"
+                  style={dark ? { background: '#fff', color: INK } : { background: INK, color: '#fff' }}
+                >
+                  Beratung anfragen
+                </Link>
+              </motion.div>
+            )
+          })}
         </div>
 
         <motion.div
@@ -99,7 +91,7 @@ export function PricingV2() {
             <em>30-Tage-Garantie auf alle Pakete</em>
           </p>
           <p className="text-sm" style={{ color: 'rgba(28,31,26,0.6)' }}>
-            Erst 30 Tage kostenlos testen. Und wenn du danach nicht mindestens 10 neue Gäste gewinnst, bekommst du dein Geld zurück. Keine Fragen.
+            Erst {TRIAL_DAYS} Tage kostenlos testen. Und wenn du danach nicht mindestens 10 neue Gäste gewinnst, bekommst du dein Geld zurück. Keine Fragen.
           </p>
         </motion.div>
       </div>
@@ -160,7 +152,7 @@ export function LiveFeedSection() {
 
         <div className="mt-8">
           <Link href="/register" className="text-sm font-semibold" style={{ color: '#A7C48D' }}>
-            Selbst ausprobieren, 30 Tage kostenlos →
+            Selbst ausprobieren, {TRIAL_DAYS} Tage kostenlos →
           </Link>
         </div>
       </div>
@@ -169,12 +161,29 @@ export function LiveFeedSection() {
 }
 
 /* ── 07 / Pfad ────────────────────────────────────────────────────────── */
-const TIMELINE = [
-  { m: '01', invest: '€ 2.028', result: '5 bis 8 neue Gäste · € 500 bis 800 Umsatz', roi: '–75 %', tone: 'neg', note: 'Investitionsphase. Normal.' },
-  { m: '03', invest: '€ 2.286', result: '15 bis 20 neue Gäste · € 2.000 bis 2.500 Umsatz', roi: '0 %', tone: 'zero', note: 'Break-Even erreicht.' },
-  { m: '06', invest: '€ 2.673', result: '30 bis 40 neue Gäste · € 4.000 bis 5.000 Umsatz', roi: '+75 %', tone: 'pos', note: 'Profitabel. Wachstum.' },
-  { m: '12', invest: '€ 3.546', result: '60 bis 80 neue Gäste · € 8.000 bis 10.000 Umsatz', roi: '+200 %', tone: 'pos', note: 'Echtes Business.' },
+// Beispielrechnung mit dem Einstiegspaket: Investition = Setup + Monate x
+// Monatsbeitrag, ROI gegen die Mitte der Umsatzspanne. Rechnet sich aus
+// lib/plans.ts, damit die Zahlen nie wieder von den Preisen abweichen.
+const TIMELINE_BASE = [
+  { m: 1,  guests: '5 bis 8',   revenue: [500, 800],    note: 'Investitionsphase. Das Setup zahlt sich ein.' },
+  { m: 3,  guests: '15 bis 20', revenue: [2000, 2500],  note: 'Setup zurueckverdient. Ab hier Plus.' },
+  { m: 6,  guests: '30 bis 40', revenue: [4000, 5000],  note: 'Profitabel. Wachstum.' },
+  { m: 12, guests: '60 bis 80', revenue: [8000, 10000], note: 'Echtes Business.' },
 ]
+const ENTRY = PLANS[PLAN_ORDER[0]]
+const TIMELINE = TIMELINE_BASE.map(r => {
+  const invest = ENTRY.setup_fee + r.m * ENTRY.price_monthly
+  const mid = (r.revenue[0] + r.revenue[1]) / 2
+  const roi = Math.round(((mid - invest) / invest) * 100)
+  return {
+    m: String(r.m).padStart(2, '0'),
+    invest: formatEuro(invest),
+    result: `${r.guests} neue Gäste · ${formatEuro(r.revenue[0])} bis ${formatEuro(r.revenue[1])} Umsatz`,
+    roi: `${roi > 0 ? '+' : ''}${roi} %`,
+    tone: roi > 0 ? 'pos' : roi === 0 ? 'zero' : 'neg',
+    note: r.note,
+  }
+})
 
 export function TimelineSection() {
   return (
@@ -184,7 +193,7 @@ export function TimelineSection() {
           <Kicker>07 / Pfad</Kicker>
           <Headline line1="Der Pfad zum Plus." line2="Monat für Monat." />
           <p className="mt-3 text-sm" style={{ color: 'rgba(28,31,26,0.55)' }}>
-            Beispielrechnung mit dem Professional-Paket (Setup + Monatsbeitrag kumuliert).
+            Beispielrechnung mit dem {ENTRY.name}-Paket (Setup + Monatsbeitrag kumuliert).
           </p>
         </motion.div>
 
@@ -224,11 +233,15 @@ export function TimelineSection() {
 }
 
 /* ── 08 / Vergleich ───────────────────────────────────────────────────── */
+// Vergleich rechnet mit dem Bestseller-Paket und 25 neuen Gaesten im Monat
+const COMPARE_PLAN = PLANS[PLAN_ORDER.find(k => PLANS[k].bestseller) ?? PLAN_ORDER[0]]
+const COMPARE_GUESTS = 25
+const perGuest = (COMPARE_PLAN.price_monthly / COMPARE_GUESTS).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const COMPARE = [
   { name: 'Google Ads', cost: '€ 1.500', guests: '8', per: '€ 187,50', own: false },
   { name: 'Klassische Plakate', cost: '€ 800', guests: '4', per: '€ 200,00', own: false },
   { name: 'Influencer (lokal)', cost: '€ 600', guests: '12', per: '€ 50,00', own: false },
-  { name: 'gastro.pistazz.io', cost: '€ 129', guests: '25', per: '€ 5,16', own: true },
+  { name: 'gastro.pistazz.io', cost: formatEuro(COMPARE_PLAN.price_monthly), guests: String(COMPARE_GUESTS), per: `€ ${perGuest}`, own: true },
 ]
 
 export function CompareSection() {
@@ -237,7 +250,7 @@ export function CompareSection() {
       <div className="max-w-6xl mx-auto">
         <motion.div {...fade} transition={{ duration: 0.5 }}>
           <Kicker>08 / Vergleich</Kicker>
-          <Headline line1="€ 187,50 vs. € 5,16." line2="Pro neuem Gast." />
+          <Headline line1={`€ 187,50 vs. € ${perGuest}.`} line2="Pro neuem Gast." />
         </motion.div>
 
         <div className="mt-10 overflow-x-auto">
@@ -266,7 +279,7 @@ export function CompareSection() {
           </div>
         </div>
         <p className="mt-4 text-[12px]" style={{ color: 'rgba(28,31,26,0.45)' }}>
-          Vergleichswerte: typische Budgets und Ergebnisse kleiner Gastro-Betriebe im DACH-Raum, Professional-Paket ohne Setup.
+          Vergleichswerte: typische Budgets und Ergebnisse kleiner Gastro-Betriebe im DACH-Raum, {COMPARE_PLAN.name}-Paket ohne Setup.
         </p>
       </div>
     </section>
@@ -322,14 +335,14 @@ export function FinalCTA() {
           Deine Gäste sitzen<br /><em>schon an den Tischen.</em>
         </h2>
         <p className="mt-5 text-base" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          Mach aus jedem Besuch Reichweite. 30 Tage kostenlos testen, danach greift die 30-Tage-Garantie.
+          Mach aus jedem Besuch Reichweite. {TRIAL_DAYS} Tage kostenlos testen, danach greift die 30-Tage-Garantie.
         </p>
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link href="/anfrage" className="px-8 py-4 rounded-full font-bold text-[15px]" style={{ background: '#8BB06A', color: '#fff' }}>
             Kostenfreies Beratungsgespräch buchen →
           </Link>
           <Link href="/register" className="px-7 py-4 rounded-full font-semibold text-[14px] border" style={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff' }}>
-            30 Tage kostenlos testen
+            {TRIAL_DAYS} Tage kostenlos testen
           </Link>
         </div>
         <p className="mt-8" style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.35)' }}>
