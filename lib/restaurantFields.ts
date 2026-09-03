@@ -16,6 +16,7 @@ export const RESTAURANT_ALLOWED_CORE = [
 // Spalten aus spaeteren Migrationen (graceful retry, falls noch nicht migriert)
 export const RESTAURANT_ALLOWED_OPTIONAL = [
   'google_rating', 'google_review_count', 'opening_hours_note', 'cuisine', 'dietary',
+  'accept_foreign_points',
 ] as const
 
 // Nur der Super-Admin darf diese setzen

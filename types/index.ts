@@ -68,6 +68,8 @@ export interface Restaurant {
   stamp_card_enabled: boolean
   stamp_card_total: number
   stamp_card_reward: string | null
+  /** Duerfen Gaeste hier auch Punkte von anderen Restaurants einloesen? Standard true */
+  accept_foreign_points?: boolean
   /** Kueche, z.B. ['italienisch', 'mediterran'] (max. 3), siehe lib/restaurantTags */
   cuisine?: string[]
   /** Ernaehrung, z.B. ['vegan', 'glutenfrei'] */

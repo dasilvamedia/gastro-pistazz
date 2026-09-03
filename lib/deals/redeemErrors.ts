@@ -12,6 +12,7 @@ export const REDEEM_ERRORS: Record<string, { status: number; message: string }> 
   user_limit_reached: { status: 400, message: 'Du hast diesen Deal bereits eingeloest.' },
   deal_sold_out:      { status: 400, message: 'Dieser Deal ist leider ausgeschoepft.' },
   insufficient_points:{ status: 400, message: 'Du hast noch nicht genug Punkte fuer diesen Deal.' },
+  insufficient_own_points: { status: 400, message: 'Dieses Restaurant akzeptiert nur hier gesammelte Punkte, und dafuer reicht dein Guthaben hier noch nicht.' },
   code_not_found:     { status: 404, message: 'Code nicht gefunden. Bitte pruefe die Eingabe.' },
   wrong_restaurant:   { status: 403, message: 'Dieser Code gehoert zu einem anderen Restaurant.' },
   already_used:       { status: 409, message: 'Dieser Code wurde bereits eingeloest.' },

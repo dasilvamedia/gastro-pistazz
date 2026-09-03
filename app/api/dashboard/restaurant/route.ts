@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
       'stamp_card_enabled', 'stamp_card_total', 'stamp_card_reward',
     ]
     // Optional columns — gracefully skipped if migration hasn't been run yet
-    const ALLOWED_OPTIONAL = ['google_rating', 'google_review_count', 'opening_hours_note', 'cuisine', 'dietary']
+    const ALLOWED_OPTIONAL = ['google_rating', 'google_review_count', 'opening_hours_note', 'cuisine', 'dietary', 'accept_foreign_points']
 
     // Tags nur aus der Whitelist (Migration 028)
     if ('cuisine' in body) body.cuisine = sanitizeTags(body.cuisine, CUISINE_OPTIONS, MAX_CUISINE)

@@ -24,6 +24,8 @@ export default function DealDetailPage() {
   // mit "bereits eingeloest" scheitern und wie ein Fehler wirken)
   const [existing, setExisting] = useState<ActiveCode | null>(null)
   const [modal, setModal] = useState<ActiveCode | null>(null)
+  // Punkte-Guthaben des Gastes bei DIESEM Restaurant (fuer restriktive Restaurants)
+  const [ownPoints, setOwnPoints] = useState<number | null>(null)
 
   const loadExisting = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -56,6 +58,15 @@ export default function DealDetailPage() {
           .single()
         if (error) throw error
         setDeal(data)
+        // Guthaben bei diesem Restaurant laden (fuer die Anzeige, wenn nur
+        // eigene Punkte akzeptiert werden)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && data?.restaurant_id) {
+          const { data: wallet } = await supabase
+            .from('guest_points').select('balance')
+            .eq('user_id', user.id).eq('restaurant_id', data.restaurant_id).maybeSingle()
+          setOwnPoints(wallet?.balance ?? 0)
+        }
         await loadExisting()
       } catch {
         toast.error('Deal nicht gefunden')
@@ -124,6 +135,8 @@ export default function DealDetailPage() {
   if (!deal) return null
 
   const trigger = TRIGGER_CONFIG[deal.trigger]
+  const restrictsPoints = (deal.restaurant as any)?.accept_foreign_points === false
+  const notEnoughOwn = restrictsPoints && deal.points_required > 0 && ownPoints != null && ownPoints < deal.points_required
 
   return (
     <>
@@ -203,12 +216,25 @@ export default function DealDetailPage() {
             )}
           </div>
 
+          {restrictsPoints && deal.points_required > 0 && (
+            <div className="bg-white rounded-2xl p-3 border border-[#EEF5E6] text-sm">
+              <p className="text-[#1C1F1A]">
+                Dieses Restaurant akzeptiert nur hier gesammelte Punkte.
+              </p>
+              {ownPoints != null && (
+                <p className="text-[#6D9450] mt-0.5">
+                  Dein Guthaben hier: <span className="font-bold">{ownPoints}</span> von {deal.points_required} Punkten
+                </p>
+              )}
+            </div>
+          )}
+
           <button
             onClick={handleRedeem}
-            disabled={redeeming}
+            disabled={redeeming || notEnoughOwn}
             className="w-full gradient-primary text-white font-bold py-4 rounded-2xl text-lg shadow-lg disabled:opacity-60"
           >
-            {redeeming ? 'Wird eingeloest...' : existing ? 'Code anzeigen' : 'Deal einloesen'}
+            {redeeming ? 'Wird eingeloest...' : existing ? 'Code anzeigen' : notEnoughOwn ? 'Noch nicht genug Punkte hier' : 'Deal einloesen'}
           </button>
           {existing && (
             <p className="text-center text-[#6D9450] text-xs">

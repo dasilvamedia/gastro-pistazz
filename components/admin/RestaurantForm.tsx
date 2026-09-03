@@ -65,6 +65,8 @@ export function RestaurantForm({ restaurant, onSave, onPatch, extraSections, tit
   const [googleReviewCount, setGoogleReviewCount] = useState('')
   const [openingHours, setOpeningHours] = useState<OpeningHours>({})
   const [tags, setTags] = useState<{ cuisine: string[]; dietary: string[] }>({ cuisine: [], dietary: [] })
+  // Standard true: Gaeste duerfen ihr ganzes Guthaben einloesen (bisheriges Verhalten)
+  const [acceptForeign, setAcceptForeign] = useState(true)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<RestaurantFormValues>({
     resolver: zodResolver(schema),
@@ -100,6 +102,7 @@ export function RestaurantForm({ restaurant, onSave, onPatch, extraSections, tit
     setLogoPreview(rest.logo_url)
     setCoverPreview(rest.cover_url)
     setTags({ cuisine: rest.cuisine ?? [], dietary: rest.dietary ?? [] })
+    setAcceptForeign((rest.accept_foreign_points as boolean | undefined) ?? true)
 
     const hours: OpeningHours = {}
     DAY_KEYS.forEach(key => {
@@ -132,6 +135,7 @@ export function RestaurantForm({ restaurant, onSave, onPatch, extraSections, tit
         opening_hours: openingHours,
         cuisine: tags.cuisine,
         dietary: tags.dietary,
+        accept_foreign_points: acceptForeign,
         google_rating:       isNaN(parsedRating) || parsedRating <= 0 ? null : Math.min(5, parsedRating),
         google_review_count: isNaN(parsedCount)  ? null : parsedCount,
       })
@@ -310,6 +314,27 @@ export function RestaurantForm({ restaurant, onSave, onPatch, extraSections, tit
               <input type="number" {...register(field, { valueAsNumber: true })} className={inputCls} />
             </div>
           ))}
+        </div>
+
+        {/* Punkte von anderen Restaurants akzeptieren */}
+        <div className="border-t border-[#EEF5E6] pt-4">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <button
+              type="button" role="switch" aria-checked={acceptForeign}
+              onClick={() => setAcceptForeign(v => !v)}
+              className={`relative mt-0.5 w-12 h-6 rounded-full transition-colors shrink-0 ${acceptForeign ? 'bg-[#8BB06A]' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${acceptForeign ? 'translate-x-6' : ''}`} />
+            </button>
+            <span>
+              <span className="text-sm font-medium text-[#1C1F1A] block">Punkte von anderen Restaurants akzeptieren</span>
+              <span className="text-xs text-gray-400">
+                {acceptForeign
+                  ? 'An: Gaeste koennen hier ihr gesamtes Punkte-Guthaben einloesen, auch von anderen Restaurants.'
+                  : 'Aus: Gaeste koennen hier nur Punkte einloesen, die sie bei DIR gesammelt haben.'}
+              </span>
+            </span>
+          </label>
         </div>
       </div>
 
