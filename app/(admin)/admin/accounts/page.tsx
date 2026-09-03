@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
   Users, Plus, Pencil, Shield, Store, UserX, Database,
@@ -12,6 +12,7 @@ import {
   CreateOwnerModal, EditOwnerModal, BanConfirmModal,
   type CreateForm, type EditForm,
 } from '@/components/admin/AccountModals'
+import { isNativeApp } from '@/lib/nativeLinks'
 import { PLANS, PLAN_ORDER, STATUS_LABEL, DEFAULT_PLAN, TRIAL_DAYS, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -558,8 +559,9 @@ function RestaurantPanel({ acc, sub, onClose, onImpersonate, onUpdate }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function AccountsPage() {
+function AccountsPageInner() {
   const router = useRouter()
+  const restaurantFilter = useSearchParams().get('restaurant')
   const [accounts, setAccounts]     = useState<AccountRow[]>([])
   const [subs, setSubs]             = useState<SubRow[]>([])
   const [restaurants, setRests]     = useState<RestaurantOption[]>([])
@@ -600,6 +602,8 @@ export default function AccountsPage() {
   useEffect(() => { loadData() }, [loadData])
 
   const filtered = accounts.filter(acc => {
+    // Deeplink aus der Restaurant-Liste: nur das Konto dieses Restaurants
+    if (restaurantFilter && acc.restaurant_id !== restaurantFilter) return false
     if (acc.role === 'super_admin') return filterStatus === 'all'
     if (filterStatus === 'all') return true
     const sub = acc.restaurant_id ? subByRestaurant[acc.restaurant_id] : null
@@ -682,8 +686,15 @@ export default function AccountsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      toast.success(`Als ${data.restaurant_name} einloggen…`)
-      window.open(data.link, '_blank', 'noopener')
+      if (isNativeApp()) {
+        // Ein Magic-Link im In-App-Browser haette einen eigenen Cookie-Jar;
+        // in der App daher kopieren und die Kundenansicht nutzen
+        try { await navigator.clipboard.writeText(data.link) } catch { /* egal */ }
+        toast.success('Login-Link kopiert. Nutze in der App die Kundenansicht.')
+      } else {
+        toast.success(`Als ${data.restaurant_name} einloggen…`)
+        window.open(data.link, '_blank', 'noopener')
+      }
     } catch (err: unknown) { toast.error((err as Error).message) }
   }
 
@@ -828,5 +839,13 @@ export default function AccountsPage() {
       {editTarget && <EditOwnerModal restaurants={restaurants} initial={{ user_id: editTarget.id, full_name: editTarget.full_name ?? '', password: '', restaurant_slug: editTarget.restaurant_slug ?? '' }} onClose={() => setEdit(null)} onSubmit={handleEdit} submitting={submitting} />}
       {confirmBan && <BanConfirmModal name={confirmBan.full_name} onClose={() => setBan(null)} onConfirm={handleBan} />}
     </div>
+  )
+}
+
+export default function AccountsPage() {
+  return (
+    <Suspense fallback={<div className="p-8"><div className="skeleton h-64 rounded-xl" /></div>}>
+      <AccountsPageInner />
+    </Suspense>
   )
 }

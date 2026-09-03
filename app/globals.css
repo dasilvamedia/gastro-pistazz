@@ -223,20 +223,30 @@ input, select, textarea {
   font-size: max(16px, 1rem); /* <16px loest iOS-Zoom beim Fokussieren aus */
 }
 
-/* ── Kein Text markieren/kopieren in der ganzen App (App-Feeling) ──
-   Ausgenommen: echte Eingabefelder und bewusst als kopierbar markierte
-   Elemente (z.B. die Restaurant-Tags per data-copyable). Kopieren der
-   Tags laeuft ohnehin ueber den Kopier-Button (Clipboard-API), nicht ueber
-   manuelles Markieren. */
-* {
+/* ── Kein Text markieren/kopieren in der Gaeste-App (App-Feeling) ──
+   Nur innerhalb der Gast-Shell (.app-shell). Admin und Dashboard bleiben
+   kopierbar (IDs, Codes, E-Mails). Ausgenommen sind Eingabefelder und
+   bewusst kopierbare Elemente (data-copyable). */
+.app-shell, .app-shell * {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
-input, textarea, [contenteditable="true"], [data-copyable="true"] {
+.app-shell input, .app-shell textarea, .app-shell [contenteditable="true"], .app-shell [data-copyable="true"] {
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: default;
+}
+
+/* ── Admin-Layout: Rand links fuer die Sidebar, ohne Inline-JS ──
+   Handy: 0 (Sidebar ist ein Drawer). Ab lg: 250px, eingeklappt 64px. */
+.admin-main {
+  margin-left: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (min-width: 1024px) {
+  .admin-main { margin-left: 250px; }
+  html[data-sidebar='collapsed'] .admin-main { margin-left: 64px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

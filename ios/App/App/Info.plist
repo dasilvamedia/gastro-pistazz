@@ -87,5 +87,9 @@
 	<string>Für den Ton bei deinen Video-Storys.</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>Zum automatischen Stempeln deiner Treuekarte per Antippen eines NFC-Tags im Restaurant.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

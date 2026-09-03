@@ -22,6 +22,12 @@ const config: CapacitorConfig = {
       '*.apple.com',
     ],
   },
+  plugins: {
+    // Push im Vordergrund auch als Banner zeigen (APNs, Build 20+)
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+  },
   ios: {
     // 'never' statt 'automatic': WKWebView darf keinen eigenen Safe-Area-
     // Abstand einfuegen, sonst entsteht zusaetzlich zu unserem CSS-Padding
@@ -32,6 +38,9 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: '#F5F5F0',
+    // Push braucht auf Android Firebase (google-services.json). Bis das
+    // eingerichtet ist, bleibt das Plugin dort aussen vor, sonst bricht Gradle.
+    includePlugins: ['@capacitor/app'],
   },
 };
 

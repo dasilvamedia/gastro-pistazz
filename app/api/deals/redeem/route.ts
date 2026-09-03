@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapRedeemError } from '@/lib/deals/redeemErrors'
+import { notifyRestaurantOwner } from '@/lib/notifyUser'
 
 const redeemSchema = z.object({
   deal_id: z.string().uuid('Invalid deal_id'),
@@ -45,6 +46,16 @@ export async function POST(request: Request) {
       expires_at: string
       points_spent: number
       available_points: number
+    }
+
+    // Inhaber informieren (Gast sieht den Code bereits auf dem Screen)
+    const { data: deal } = await admin.from('deals').select('title, restaurant_id').eq('id', parsed.data.deal_id).maybeSingle()
+    if (deal) {
+      notifyRestaurantOwner(deal.restaurant_id, {
+        title: `Deal angefordert: ${deal.title}`,
+        body: `Code ${result.redemption_code}. Bestaetigen unter Einloesen, sobald der Gast ihn zeigt.`,
+        url: '/dashboard/einloesen',
+      }).catch(() => {})
     }
 
     return NextResponse.json(result)

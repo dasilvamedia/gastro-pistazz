@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyRestaurantOwner } from '@/lib/notifyUser'
 
 export async function POST(request: Request) {
   try {
@@ -211,6 +212,13 @@ export async function POST(request: Request) {
         body: JSON.stringify({ submission_id: submission.id }),
       }).catch(err => console.error('AI analyze trigger error:', err))
     }
+
+    // Inhaber informieren: neue Einreichung wartet auf Pruefung
+    notifyRestaurantOwner(restaurant_id, {
+      title: 'Neue Einreichung zur Pruefung',
+      body: 'Ein Gast hat einen Beitrag eingereicht. Freigeben oder ablehnen im Dashboard.',
+      url: '/dashboard/stories',
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, submission_id: submission.id }, { status: 201 })
   } catch (err) {

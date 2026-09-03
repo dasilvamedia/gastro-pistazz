@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyUser } from '@/lib/notifyUser'
+
+const TYPE_LABEL: Record<string, string> = {
+  instagram_story: 'Story', instagram_reel: 'Reel', instagram_post: 'Post', google_review: 'Google-Bewertung', receipt: 'Kassenbon',
+}
 
 const verifySchema = z.object({
   submission_id: z.string().uuid('Invalid submission_id'),
@@ -101,6 +106,37 @@ export async function POST(request: Request) {
     if (updateError) {
       console.error('Story verify update error:', updateError)
       return NextResponse.json({ error: 'Failed to update submission' }, { status: 500 })
+    }
+
+    // Gast benachrichtigen (Inbox + Push). Punkte kommen aus dem DB-Trigger,
+    // deshalb die Zeile nach dem Update noch einmal lesen.
+    try {
+      const { data: after } = await admin
+        .from('story_submissions')
+        .select('user_id, type, points_awarded, restaurant:restaurants(name)')
+        .eq('id', submission_id)
+        .single()
+      if (after) {
+        const rest = after.restaurant as unknown as { name: string } | null
+        const label = TYPE_LABEL[after.type as string] ?? 'Beitrag'
+        if (action === 'approve') {
+          await notifyUser(after.user_id, {
+            title: `${label} freigegeben: +${after.points_awarded ?? 0} Punkte`,
+            body: `${rest?.name ?? 'Das Restaurant'} hat deinen Beitrag geprueft. Die Punkte sind auf deinem Konto.`,
+            url: '/profil/punkte',
+            restaurant_id: submission.restaurant_id,
+          })
+        } else {
+          await notifyUser(after.user_id, {
+            title: `${label} nicht freigegeben`,
+            body: rejection_reason ? `Grund: ${rejection_reason}` : `${rest?.name ?? 'Das Restaurant'} konnte deinen Beitrag nicht bestaetigen. Du kannst es erneut versuchen.`,
+            url: '/home',
+            restaurant_id: submission.restaurant_id,
+          })
+        }
+      }
+    } catch (e) {
+      console.error('verify notify failed:', e)
     }
 
     return NextResponse.json({ success: true, action, submission_id })

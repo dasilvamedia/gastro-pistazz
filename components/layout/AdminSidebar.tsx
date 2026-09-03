@@ -34,7 +34,8 @@ const superAdminNavItems = [
   { href: '/admin/accounts',      label: 'Accounts',      icon: UserCog },
   { href: '/admin/stories',       label: 'Story-Pruefung', icon: ImageIcon },
   { href: '/admin/stempelkarte',  label: 'Stempelkarten', icon: Star },
-  { href: '/admin/analytics',     label: 'Analytics',     icon: BarChart3 },
+  { href: '/admin/nachrichten',   label: 'Push & Nachrichten', icon: MessageSquare },
+  { href: '/admin/global-analytics', label: 'Analytics',  icon: BarChart3 },
   { href: '/admin/einstellungen', label: 'Einstellungen', icon: Settings },
 ]
 
@@ -86,15 +87,12 @@ export function AdminSidebar({ role: initialRole, impersonatingName: serverName 
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync main margin (desktop only)
-  const w = isMobile ? 0 : (collapsed ? 64 : 250)
+  // Sidebar-Zustand ans <html> haengen; die Randbreite von <main> regelt CSS
+  // (.admin-main), damit es auf dem Handy keinen Layout-Sprung beim Laden gibt
   useEffect(() => {
-    const main = document.querySelector('main')
-    if (main) {
-      main.style.marginLeft = `${w}px`
-      main.style.transition = 'margin-left 0.3s cubic-bezier(0.4,0,0.2,1)'
-    }
-  }, [w])
+    document.documentElement.dataset.sidebar = collapsed ? 'collapsed' : 'open'
+    return () => { delete document.documentElement.dataset.sidebar }
+  }, [collapsed])
 
   const isSuperAdmin    = initialRole === 'super_admin' || initialRole === 'admin'
   const isImpersonating = !!impersonatingName
@@ -200,6 +198,17 @@ export function AdminSidebar({ role: initialRole, impersonatingName: serverName 
 
       {/* ── Footer ── */}
       <div className="px-2 py-4 border-t border-white/8 shrink-0 space-y-1">
+        <Link
+          href="/home"
+          title={collapsed && !isMobile ? 'Zur Gäste-App' : undefined}
+          className={[
+            'flex items-center gap-3 px-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all w-full min-h-[44px]',
+            collapsed && !isMobile ? 'justify-center' : '',
+          ].join(' ')}
+        >
+          <Store className="w-4 h-4 shrink-0" />
+          {(!collapsed || isMobile) && <span className="truncate">Zur Gäste-App</span>}
+        </Link>
         {isOwner && (isTrialActive || isTrialExpired) && (
           <Link
             href="/dashboard/einstellungen?tab=plan"
@@ -243,7 +252,8 @@ export function AdminSidebar({ role: initialRole, impersonatingName: serverName 
       {isMobile && !mobileOpen && (
         <button
           onClick={() => setMobileOpen(true)}
-          className="fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-charcoal text-white shadow-lg active:scale-95 transition-transform"
+          className="fixed left-3 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-charcoal text-white shadow-lg active:scale-95 transition-transform"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
           aria-label="Menü öffnen"
         >
           <Menu className="w-5 h-5" />
@@ -263,6 +273,7 @@ export function AdminSidebar({ role: initialRole, impersonatingName: serverName 
       <aside
         className="fixed top-0 left-0 h-full bg-charcoal flex flex-col z-50 overflow-hidden"
         style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           width: sidebarVisible || !isMobile ? sidebarW : 0,
           transform: `translateX(${translateX}px)`,
           transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1)',

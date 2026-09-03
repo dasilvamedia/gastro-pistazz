@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyUser, notifyRestaurantOwner } from '@/lib/notifyUser'
 
 // Nutzer haelt Handy an einen registrierten NFC-Tag im Restaurant -> ein
 // Stempel wird automatisch vergeben. Kein Foto/Standort noetig: wer den
@@ -133,6 +134,22 @@ export async function POST(req: NextRequest) {
 
   if (card?.is_completed && !card.reward_code) {
     card.reward_code = await assignRewardCode(admin, card.id)
+  }
+
+  // Karte voll: Gast (Inbox, kein Push, er steht gerade davor) und Inhaber informieren
+  if (card?.is_completed) {
+    notifyUser(user.id, {
+      title: 'Stempelkarte voll! Gratulation',
+      body: `Deine Belohnung bei ${restaurant?.name ?? 'dem Restaurant'}: ${restaurant?.stamp_card_reward ?? 'frag im Restaurant nach'}. Zeige den Code dem Personal.`,
+      url: `/stempel/belohnung?restaurant=${encodeURIComponent(restaurant?.slug ?? '')}`,
+      restaurant_id: tag.restaurant_id,
+      push: false,
+    }).catch(() => {})
+    notifyRestaurantOwner(tag.restaurant_id, {
+      title: 'Stempelkarte voll',
+      body: 'Ein Gast hat seine Karte vollgestempelt und holt gleich seine Belohnung ab.',
+      url: '/dashboard/einloesen',
+    }).catch(() => {})
   }
 
   await admin.from('nfc_stamp_taps').insert({

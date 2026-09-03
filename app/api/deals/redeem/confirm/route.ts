@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveRestaurant } from '@/lib/dashboard/resolveRestaurant'
 import { mapRedeemError } from '@/lib/deals/redeemErrors'
+import { notifyUser } from '@/lib/notifyUser'
 
 // Restaurant-Seite der Einloesung. Ein Code ist entweder ein Deal-Code
 // (deal_redemptions.redemption_code) oder ein Stempel-Belohnungscode
@@ -145,6 +146,15 @@ export async function POST(req: NextRequest) {
     const mapped = mapRedeemError(error.message)
     if (mapped.status === 500) console.error(`${fn} rpc error:`, error)
     return NextResponse.json({ error: mapped.message, code: error.message }, { status: mapped.status })
+  }
+
+  // Gast informieren: Bestaetigung ist durch (der Live-Screen springt sowieso um)
+  const r = data as { user_id?: string; title?: string; reward?: string | null } | null
+  if (r?.user_id) {
+    notifyUser(r.user_id, preview.kind === 'deal'
+      ? { title: 'Deal eingeloest', body: `${r.title ?? preview.title} bei ${preview.restaurant_name ?? 'deinem Restaurant'}. Viel Spass!`, url: '/deals', restaurant_id: preview.restaurant_id, push: false }
+      : { title: 'Belohnung eingeloest', body: `${r.reward ?? preview.reward ?? 'Deine Belohnung'} bei ${preview.restaurant_name ?? 'deinem Restaurant'}. Deine neue Stempelkarte hat begonnen.`, url: '/profil', restaurant_id: preview.restaurant_id, push: false },
+    ).catch(() => {})
   }
 
   return NextResponse.json({ ok: true, result: data, preview })

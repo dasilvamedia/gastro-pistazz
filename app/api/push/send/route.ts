@@ -1,74 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import webpush from 'web-push'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyUsers } from '@/lib/notifyUser'
 
-let vapidConfigured = false
-function ensureVapid() {
-  if (vapidConfigured) return
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  const priv = process.env.VAPID_PRIVATE_KEY
-  if (!pub || !priv) throw new Error('VAPID keys not configured')
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT ?? 'mailto:info@pistazz.io',
-    pub,
-    priv,
-  )
-  vapidConfigured = true
-}
-
+// Interner Sende-Endpunkt (Server -> Server, x-internal-secret). Wird von
+// Cron-Jobs oder externen Automationen genutzt; die App-Routen rufen
+// lib/notifyUser direkt.
 export async function POST(request: NextRequest) {
-  try {
-    ensureVapid()
-    const { user_id, title, body, url } = await request.json()
-    if (!user_id) return NextResponse.json({ error: 'user_id required' }, { status: 400 })
-
-    // Nur interne Aufrufe erlaubt (Server-Side)
-    const internalSecret = process.env.INTERNAL_NOTIFY_SECRET
-    const callerSecret = request.headers.get('x-internal-secret')
-    if (!internalSecret || callerSecret !== internalSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const admin = createAdminClient()
-    const { data: subs } = await admin
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('user_id', user_id)
-
-    if (!subs || subs.length === 0) {
-      return NextResponse.json({ ok: true, sent: 0 })
-    }
-
-    const payload = JSON.stringify({
-      title: title ?? '📸 pistazz',
-      body:  body  ?? 'Deine Story wird geprüft.',
-      url:   url   ?? '/home',
-      tag:   'pistazz-story',
-    })
-
-    const results = await Promise.allSettled(
-      subs.map(sub =>
-        webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-        )
-      )
-    )
-
-    // Clean up expired subscriptions (410 Gone)
-    const expired = results
-      .map((r, i) => ({ r, sub: subs[i] }))
-      .filter(({ r }) => r.status === 'rejected' && (r as PromiseRejectedResult).reason?.statusCode === 410)
-      .map(({ sub }) => sub.endpoint)
-
-    if (expired.length) {
-      await admin.from('push_subscriptions').delete().in('endpoint', expired)
-    }
-
-    const sent = results.filter(r => r.status === 'fulfilled').length
-    return NextResponse.json({ ok: true, sent })
-  } catch (err) {
-    console.error('POST /api/push/send error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  const internalSecret = process.env.INTERNAL_NOTIFY_SECRET
+  if (!internalSecret || request.headers.get('x-internal-secret') !== internalSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const body = await request.json().catch(() => ({})) as {
+    user_id?: string; user_ids?: string[]; title?: string; body?: string; url?: string; restaurant_id?: string
+  }
+  const ids = body.user_ids ?? (body.user_id ? [body.user_id] : [])
+  if (ids.length === 0 || !body.title) return NextResponse.json({ error: 'user_id(s) und title erforderlich' }, { status: 400 })
+
+  const result = await notifyUsers(ids, {
+    title: body.title,
+    body: body.body ?? '',
+    url: body.url,
+    restaurant_id: body.restaurant_id ?? null,
+  })
+  return NextResponse.json({ ok: true, ...result })
 }

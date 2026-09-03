@@ -17,6 +17,9 @@ export type VisitSource = 'qr_scan' | 'story' | 'receipt' | 'manual'
 export interface Profile {
   id: string
   email: string
+  first_name?: string | null
+  last_name?: string | null
+  auth_provider?: string | null
   full_name: string | null
   avatar_url: string | null
   role: UserRole

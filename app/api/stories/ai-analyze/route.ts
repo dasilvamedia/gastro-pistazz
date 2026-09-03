@@ -143,9 +143,9 @@ Sei streng: lieber suspicious als approved wenn du unsicher bist.`
       }
 
       return {
-        verdict: result.verdict,
-        confidence: result.confidence,
-        notes: result.notes,
+        verdict: String(result.verdict ?? 'pending'),
+        confidence: Number(result.confidence ?? 0),
+        notes: String(result.notes ?? ''),
         ig_updates: igUpdates,
       }
     }

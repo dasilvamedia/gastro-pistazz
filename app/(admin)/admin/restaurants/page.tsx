@@ -142,10 +142,10 @@ export default function AdminRestaurantsPage() {
   const handleToggleActive = async (restaurantId: string, currentActive: boolean) => {
     setToggling(restaurantId)
     try {
-      const res = await fetch('/api/admin/restaurants', {
+      const res = await fetch(`/api/admin/restaurants/${restaurantId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: restaurantId, is_active: !currentActive }),
+        body: JSON.stringify({ is_active: !currentActive }),
       })
       if (!res.ok) throw new Error()
       setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, is_active: !currentActive } : r))
@@ -271,7 +271,33 @@ export default function AdminRestaurantsPage() {
             <p className="text-gray-300 text-xs mt-1">Versuche andere Suchbegriffe oder Filter</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobil: Karten statt Tabelle */}
+          <ul className="lg:hidden divide-y divide-gray-50">
+            {filtered.map((r) => (
+              <li key={r.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <Link href={`/admin/restaurants/${r.id}`} className="min-w-0">
+                    <p className="font-semibold text-charcoal truncate">{r.name} {r.is_verified && <span className="text-[10px] text-blue-500 font-semibold">✓</span>}</p>
+                    <p className="text-xs text-gray-500">{RESTAURANT_TYPE_LABELS[r.type as keyof typeof RESTAURANT_TYPE_LABELS] ?? r.type}{r.city ? `, ${r.city}` : ''}{r.owner_name ? `, ${r.owner_name}` : ''}</p>
+                  </Link>
+                  <StatusToggle active={r.is_active} onClick={() => !toggling && handleToggleActive(r.id, r.is_active)} />
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <TrialBadge sub={r.sub} />
+                  <div className="flex items-center gap-2">
+                    <Link href={`/admin/restaurants/${r.id}`} className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold rounded-lg bg-[#1C1F1A] text-white">
+                      <Pencil className="w-3 h-3" /> Bearbeiten
+                    </Link>
+                    <button onClick={() => handleKundenansicht(r.id, r.name)} className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold rounded-lg text-white" style={{ background: '#FF6B35' }}>
+                      <Eye className="w-3 h-3" /> Ansicht
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="overflow-x-auto hidden lg:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
@@ -289,7 +315,7 @@ export default function AdminRestaurantsPage() {
                 {filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-5 py-3.5">
-                      <span className="font-medium text-charcoal">{r.name}</span>
+                      <Link href={`/admin/restaurants/${r.id}`} className="font-medium text-charcoal hover:text-primary">{r.name}</Link>
                       {r.is_verified && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">✓ verifiziert</span>}
                     </td>
                     <td className="px-5 py-3.5">
@@ -312,6 +338,14 @@ export default function AdminRestaurantsPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
+                        <Link
+                          href={`/admin/restaurants/${r.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#1C1F1A] text-white hover:opacity-90"
+                          title="Restaurant bearbeiten"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Bearbeiten
+                        </Link>
                         <button
                           onClick={() => handleKundenansicht(r.id, r.name)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-all hover:opacity-90 active:scale-95"
@@ -337,6 +371,7 @@ export default function AdminRestaurantsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

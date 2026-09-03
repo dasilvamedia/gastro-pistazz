@@ -1,289 +1,250 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, Loader2, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, Loader2, ChevronDown, Copy, Check, MessageCircle, Pencil, Eye, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
+import { slugify } from '@/lib/slug'
+import { RESTAURANT_TYPE_LABELS, type RestaurantType } from '@/types'
+import { TRIAL_DAYS } from '@/lib/plans'
+import { openWebsite } from '@/lib/nativeLinks'
 
-const restaurantSchema = z.object({
-  name: z.string().min(2, 'Name mindestens 2 Zeichen'),
-  slug: z.string().min(2, 'Slug mindestens 2 Zeichen').regex(/^[a-z0-9-]+$/, 'Nur Kleinbuchstaben, Zahlen und Bindestriche'),
-  type: z.enum(['restaurant', 'bar', 'cafe', 'fine_dining', 'biergarten', 'eisdiele']),
-  city: z.string().min(2, 'Stadt angeben'),
-  address: z.string().optional(),
-  zip: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Ungültige E-Mail').optional().or(z.literal('')),
-  website: z.string().url('Ungültige URL').optional().or(z.literal('')),
-  instagram_handle: z.string().optional(),
-  description: z.string().optional(),
-  primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Ungültiger Farbcode'),
-  points_per_story: z.number().int().min(0),
-  // Owner login credentials
-  owner_name: z.string().min(1, 'Inhabername angeben'),
-  owner_password: z.string().min(6, 'Passwort mindestens 6 Zeichen'),
-})
+// 1-Klick-Anlage: Name + Stadt, Rest optional. Ergebnis: Login-Name,
+// einmalig sichtbares Passwort, Magic-Link, WhatsApp-Versand, direkt
+// bearbeiten oder in der Kundenansicht pruefen.
 
-type FormValues = z.infer<typeof restaurantSchema>
+type Result = {
+  restaurant_id: string; slug: string; login_name: string; login_url: string
+  password: string; magic_link: string | null; geocoded: boolean; geo_source: string | null
+  trial_started: boolean; published: boolean
+}
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[äöüß]/g, (c) =>
-      ({ ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' } as Record<string, string>)[c] ?? c
-    )
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
+const input = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white'
+const label = 'block text-sm font-medium text-gray-700 mb-1'
+
+function CopyButton({ value, label: l }: { value: string; label: string }) {
+  const [done, setDone] = useState(false)
+  return (
+    <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(value); setDone(true); setTimeout(() => setDone(false), 1500) } catch { toast.error('Kopieren nicht moeglich') } }}
+      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold" aria-label={`${l} kopieren`}>
+      {done ? <Check size={12} className="text-green-600" /> : <Copy size={12} />} {done ? 'Kopiert' : 'Kopieren'}
+    </button>
+  )
 }
 
 function NeuesRestaurantForm() {
-  const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [showPassword, setShowPassword] = useState(false)
+  const leadId = searchParams.get('lead_id')
+  const supabase = createClient()
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(restaurantSchema),
-    defaultValues: {
-      type: 'restaurant',
-      primary_color: '#8BB06A',
-      points_per_story: 500,
-    },
-  })
+  const [name, setName] = useState('')
+  const [city, setCity] = useState('')
+  const [slug, setSlug] = useState('')
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [type, setType] = useState<RestaurantType>('restaurant')
+  const [more, setMore] = useState(false)
+  const [address, setAddress] = useState(''); const [zip, setZip] = useState('')
+  const [phone, setPhone] = useState(''); const [instagram, setInstagram] = useState('')
+  const [website, setWebsite] = useState(''); const [description, setDescription] = useState('')
+  const [ownerName, setOwnerName] = useState('')
+  const [publish, setPublish] = useState(true)
+  const [trialDays, setTrialDays] = useState<number>(TRIAL_DAYS)
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState<Result | null>(null)
+  const [leadName, setLeadName] = useState<string | null>(null)
 
-  const nameValue = watch('name')
+  useEffect(() => { if (!slugTouched) setSlug(slugify(name)) }, [name, slugTouched])
 
+  // Lead vorbefuellen
   useEffect(() => {
-    if (nameValue) {
-      setValue('slug', slugify(nameValue), { shouldValidate: false })
-    }
-  }, [nameValue, setValue])
+    if (!leadId) return
+    supabase.from('leads').select('*').eq('id', leadId).maybeSingle().then(({ data }) => {
+      if (!data) return
+      const l = data as Record<string, string | null>
+      setLeadName(l.name ?? null)
+      if (l.name) setName(l.name)
+      if (l.stadt) setCity(l.stadt)
+      if (l.adresse) setAddress(l.adresse)
+      if (l.plz) setZip(l.plz)
+      if (l.telefon) setPhone(l.telefon)
+      if (l.website) setWebsite(l.website)
+      if (l.adresse || l.telefon || l.website) setMore(true)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadId])
 
-  const onSubmit = async (values: FormValues) => {
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (name.trim().length < 2 || city.trim().length < 2) { toast.error('Name und Stadt sind Pflicht'); return }
+    setSubmitting(true)
     try {
       const res = await fetch('/api/restaurant/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, city, slug: slugTouched ? slug : undefined, type,
+          address, zip, phone, website, instagram_handle: instagram, description,
+          owner_name: ownerName || undefined, publish, trial_days: trialDays,
+          lead_id: leadId ?? undefined,
+        }),
       })
-
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Erstellen')
-
-      toast.success(`Restaurant erstellt! Login: ${values.slug} / ${values.owner_password}`)
-      router.push('/admin/restaurants')
+      setResult(data as Result)
+      toast.success('Restaurant angelegt')
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Fehler beim Erstellen'
-      toast.error(message)
+      toast.error(err instanceof Error ? err.message : 'Fehler beim Erstellen')
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const leadId = searchParams.get('lead_id')
+  const kundenansicht = () => {
+    if (!result) return
+    document.cookie = `impersonate_restaurant_id=${result.restaurant_id}; path=/; max-age=3600`
+    document.cookie = `impersonate_restaurant_name=${encodeURIComponent(name)}; path=/; max-age=3600`
+    router.push('/dashboard')
+  }
+
+  if (result) {
+    const waText = encodeURIComponent(
+      `Willkommen bei Pistazz, ${name}!\n\nDein Restaurant-Dashboard:\n${result.login_url}\nLogin-Name: ${result.login_name}\nPasswort: ${result.password}\n\n${result.trial_started ? `Du hast ${trialDays} Tage alle Funktionen kostenlos. ` : ''}Bei Fragen einfach antworten.`
+    )
+    return (
+      <div className="p-6 md:p-8 max-w-2xl mx-auto space-y-5">
+        <div className="bg-white rounded-2xl border border-[#D4E8C2] p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-11 h-11 rounded-2xl bg-[#EEF5E6] flex items-center justify-center"><Sparkles className="text-[#6D9450]" /></div>
+            <div>
+              <h1 className="text-xl font-serif text-charcoal">{name} ist angelegt</h1>
+              <p className="text-xs text-gray-500">
+                {result.published ? 'Sofort in der App sichtbar.' : 'Noch nicht veröffentlicht.'}
+                {result.geocoded ? ` Standort gefunden (${result.geo_source === 'google' ? 'Google' : 'OpenStreetMap'}).` : ' Standort fehlt, bitte im Editor setzen.'}
+                {result.trial_started ? ` Testphase ${trialDays} Tage läuft.` : ''}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Row label="Login-Seite" value={result.login_url} />
+            <Row label="Login-Name" value={result.login_name} mono />
+            <Row label="Passwort (wird nicht erneut angezeigt)" value={result.password} mono highlight />
+            {result.magic_link && <Row label="Magic-Link (einmalig, 1 Stunde gültig)" value={result.magic_link} small />}
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-5">
+            <button onClick={() => openWebsite(`https://wa.me/?text=${waText}`)} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-sm font-semibold">
+              <MessageCircle size={16} /> Per WhatsApp senden
+            </button>
+            <Link href={`/admin/restaurants/${result.restaurant_id}`} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1C1F1A] text-white text-sm font-semibold">
+              <Pencil size={14} /> Restaurant bearbeiten
+            </Link>
+            <button onClick={kundenansicht} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold" style={{ background: '#FF6B35' }}>
+              <Eye size={14} /> Kundenansicht
+            </button>
+          </div>
+        </div>
+        <Link href="/admin/restaurants" className="inline-flex items-center gap-1 text-sm text-gray-500"><ChevronLeft size={16} /> Zur Liste</Link>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-6 md:p-8 max-w-2xl mx-auto">
       <div className="mb-6">
-        <Link
-          href="/admin/restaurants"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-charcoal transition-colors mb-4"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Zurück zur Liste
+        <Link href="/admin/restaurants" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-charcoal transition-colors mb-4">
+          <ChevronLeft className="w-4 h-4" /> Zurück zur Liste
         </Link>
-        <h1 className="text-2xl font-serif text-charcoal">Neues Restaurant anlegen</h1>
-        {leadId && (
-          <p className="text-sm text-primary mt-1">Wird aus Lead #{leadId.slice(0, 8)} erstellt</p>
-        )}
+        <h1 className="text-2xl font-serif text-charcoal">Neues Restaurant</h1>
+        <p className="text-sm text-gray-500 mt-1">Name und Stadt reichen. Login, Passwort, Standort und Testphase werden automatisch angelegt.</p>
+        {leadName && <p className="text-sm text-primary mt-1">Aus Lead: {leadName}</p>}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basis */}
+      <form onSubmit={submit} className="space-y-5">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
-          <h2 className="font-semibold text-charcoal text-sm uppercase tracking-wide">Basisdaten</h2>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-              <input {...register('name')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
+              <label className={label}>Name *</label>
+              <input value={name} onChange={e => setName(e.target.value)} className={input} placeholder="Pizza Mario" autoFocus />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL) *</label>
-              <input {...register('slug')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              {errors.slug && <p className="text-xs text-red-500 mt-1">{errors.slug.message}</p>}
+              <label className={label}>Stadt *</label>
+              <input value={city} onChange={e => setCity(e.target.value)} className={input} placeholder="Stuttgart" />
             </div>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Typ *</label>
-              <select {...register('type')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <option value="restaurant">Restaurant</option>
-                <option value="bar">Bar</option>
-                <option value="cafe">Café</option>
-                <option value="fine_dining">Fine Dining</option>
-                <option value="biergarten">Biergarten</option>
-                <option value="eisdiele">Eisdiele</option>
+              <label className={label}>Typ</label>
+              <select value={type} onChange={e => setType(e.target.value as RestaurantType)} className={input}>
+                {(Object.keys(RESTAURANT_TYPE_LABELS) as RestaurantType[]).map(t => <option key={t} value={t}>{RESTAURANT_TYPE_LABELS[t]}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stadt *</label>
-              <input {...register('city')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city.message}</p>}
+              <label className={label}>Login-Name</label>
+              <input value={slug} onChange={e => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()) }} className={`${input} font-mono`} />
+              <p className="text-xs text-gray-400 mt-1">{slug ? `${slug}@gastro.pistazz.io` : 'wird aus dem Namen gebildet'}{slugTouched ? '' : ' (automatisch, bei Kollision mit Zahl)'}</p>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
-            <textarea
-              {...register('description')}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-            />
+          <div className="flex flex-wrap gap-4 pt-1">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={publish} onChange={e => setPublish(e.target.checked)} className="w-4 h-4 accent-[#8BB06A]" />
+              Sofort veröffentlichen
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              Testphase
+              <select value={trialDays} onChange={e => setTrialDays(Number(e.target.value))} className="px-2 py-1 border border-gray-200 rounded-lg text-sm bg-white">
+                <option value={TRIAL_DAYS}>{TRIAL_DAYS} Tage</option>
+                <option value={14}>14 Tage</option>
+                <option value={0}>keine</option>
+              </select>
+            </label>
           </div>
         </div>
 
-        {/* Adresse */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
-          <h2 className="font-semibold text-charcoal text-sm uppercase tracking-wide">Adresse & Kontakt</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-              <input {...register('address')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Musterstraße 1" />
+        <button type="button" onClick={() => setMore(v => !v)} className="w-full flex items-center justify-between px-5 py-3 bg-white rounded-2xl border border-gray-100 text-sm font-medium text-gray-600">
+          Weitere Angaben (optional)
+          <ChevronDown size={16} className={`transition-transform ${more ? 'rotate-180' : ''}`} />
+        </button>
+        {more && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2"><label className={label}>Adresse</label><input value={address} onChange={e => setAddress(e.target.value)} className={input} placeholder="Musterstraße 1" /></div>
+              <div><label className={label}>PLZ</label><input value={zip} onChange={e => setZip(e.target.value)} className={input} /></div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">PLZ</label>
-              <input {...register('zip')} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="12345" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><label className={label}>Telefon</label><input value={phone} onChange={e => setPhone(e.target.value)} className={input} /></div>
+              <div><label className={label}>Instagram</label><input value={instagram} onChange={e => setInstagram(e.target.value)} className={input} placeholder="pizzamario" /></div>
+              <div><label className={label}>Website</label><input value={website} onChange={e => setWebsite(e.target.value)} className={input} placeholder="https://" /></div>
+              <div><label className={label}>Inhaber-Name</label><input value={ownerName} onChange={e => setOwnerName(e.target.value)} className={input} placeholder="Marco Rossi" /></div>
             </div>
+            <div><label className={label}>Beschreibung</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className={`${input} resize-none`} /></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-              <input {...register('phone')} type="tel" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
-              <input {...register('email')} type="email" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-              <input {...register('website')} type="url" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="https://" />
-              {errors.website && <p className="text-xs text-red-500 mt-1">{errors.website.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Handle</label>
-              <div className="flex items-center">
-                <span className="px-3 py-2 border border-r-0 border-gray-200 rounded-l-xl text-sm text-gray-400 bg-gray-50">@</span>
-                <input {...register('instagram_handle')} className="flex-1 px-3 py-2 border border-gray-200 rounded-r-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* Einstellungen */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
-          <h2 className="font-semibold text-charcoal text-sm uppercase tracking-wide">Punkte & Darstellung</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Punkte pro Story</label>
-              <input
-                {...register('points_per_story')}
-                type="number"
-                min="0"
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Primärfarbe</label>
-              <div className="flex items-center gap-2">
-                <input {...register('primary_color')} type="color" className="h-10 w-14 rounded-lg border border-gray-200 p-1 cursor-pointer" />
-                <input {...register('primary_color')} className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              {errors.primary_color && <p className="text-xs text-red-500 mt-1">{errors.primary_color.message}</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* Zugangsdaten für den Inhaber */}
-        <div className="bg-white rounded-2xl border border-primary/20 p-6 shadow-sm space-y-4" style={{ borderColor: '#8BB06A40' }}>
-          <div>
-            <h2 className="font-semibold text-charcoal text-sm uppercase tracking-wide">Inhaber-Zugangsdaten</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Login für das Restaurant-Dashboard (keine E-Mail nötig)</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Inhabername *</label>
-              <input
-                {...register('owner_name')}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="z.B. Marco Rossi"
-              />
-              {errors.owner_name && <p className="text-xs text-red-500 mt-1">{errors.owner_name.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Passwort *</label>
-              <div className="relative">
-                <input
-                  {...register('owner_password')}
-                  type={showPassword ? 'text' : 'password'}
-                  className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  placeholder="Mindestens 6 Zeichen"
-                  autoComplete="new-password"
-                  data-form-type="other"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.owner_password && <p className="text-xs text-red-500 mt-1">{errors.owner_password.message}</p>}
-            </div>
-          </div>
-          <div className="bg-primary/5 rounded-xl p-3 text-xs text-gray-500 space-y-1">
-            <p>🔑 <strong>Login-Name:</strong> der Slug-Wert oben (z.B. <code className="bg-gray-100 px-1 rounded">pizza-mario</code>)</p>
-            <p>🌐 <strong>Login-URL:</strong> gastro.pistazz.io/restaurant-login</p>
-          </div>
-        </div>
-
-        {/* Submit */}
         <div className="flex items-center justify-end gap-3 pb-8">
-          <Link
-            href="/admin/restaurants"
-            className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            Abbrechen
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-          >
-            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            Restaurant erstellen
+          <Link href="/admin/restaurants" className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">Abbrechen</Link>
+          <button type="submit" disabled={submitting || name.trim().length < 2 || city.trim().length < 2}
+            className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark disabled:opacity-50 shadow-sm">
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Restaurant anlegen
           </button>
         </div>
       </form>
+    </div>
+  )
+}
+
+function Row({ label: l, value, mono, highlight, small }: { label: string; value: string; mono?: boolean; highlight?: boolean; small?: boolean }) {
+  return (
+    <div className={`flex items-center gap-3 rounded-xl px-3 py-2 ${highlight ? 'bg-[#EEF5E6] border border-[#D4E8C2]' : 'bg-gray-50'}`}>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] text-gray-500">{l}</p>
+        <p className={`text-[#1C1F1A] ${mono ? 'font-mono tracking-wider' : ''} ${small ? 'text-xs break-all' : 'text-sm font-semibold'}`} data-copyable="true">{value}</p>
+      </div>
+      <CopyButton value={value} label={l} />
     </div>
   )
 }

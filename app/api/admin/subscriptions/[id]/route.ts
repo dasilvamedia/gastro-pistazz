@@ -125,7 +125,7 @@ export async function PATCH(
             restaurant_id: body.restaurant_id,
             title,
             body: msg,
-          }).then(() => {}).catch(() => {}) // non-blocking
+          }).then(() => {}, () => {}) // non-blocking
         }
       }
     }

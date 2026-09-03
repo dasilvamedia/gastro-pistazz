@@ -43,8 +43,7 @@ export async function GET(
       .from('qr_codes')
       .update({ scan_count: (qr.scan_count ?? 0) + 1 })
       .eq('id', qr.id)
-      .then(() => { /* ignoriert */ })
-      .catch(() => { /* ignoriert */ })
+      .then(() => { /* ignoriert */ }, () => { /* ignoriert */ })
 
     const target = qr.target_url.startsWith('http')
       ? qr.target_url

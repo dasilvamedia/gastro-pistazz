@@ -167,6 +167,12 @@ export default function ProfilPage() {
       </div>
 
       <div className="px-5 pt-5 space-y-3">
+        {(profile?.role === 'restaurant_owner') && (
+          <MenuCard emoji="🏪" label="Mein Restaurant" sub="Dashboard, Deals, Stories, Einloesen" onClick={() => router.push('/dashboard')} />
+        )}
+        {(profile?.role === 'super_admin' || profile?.role === 'admin') && (
+          <MenuCard emoji="🛡️" label="Admin" sub="Restaurants, Accounts, Push" onClick={() => router.push('/admin/dashboard')} />
+        )}
         <MenuCard emoji="💰" label="Meine Deals" onClick={() => router.push('/deals')} />
         <MenuCard
           emoji="🃏"

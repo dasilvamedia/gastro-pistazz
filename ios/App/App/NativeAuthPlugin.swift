@@ -48,15 +48,22 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
             pendingCall = nil
             return
         }
-        // Name kommt nur beim allerersten Sign-in mit - direkt mitliefern.
+        // Name kommt nur beim allerersten Sign-in mit - direkt mitliefern,
+        // getrennt nach Vor-/Nachname fuer die Anrede in der App.
         var fullName = ""
+        var givenName = ""
+        var familyName = ""
         if let n = cred.fullName {
+            givenName = n.givenName ?? ""
+            familyName = n.familyName ?? ""
             fullName = [n.givenName, n.familyName].compactMap { $0 }.joined(separator: " ")
         }
         pendingCall?.resolve([
             "identityToken": token,
             "nonce": nonce,
-            "fullName": fullName
+            "fullName": fullName,
+            "givenName": givenName,
+            "familyName": familyName
         ])
         pendingCall = nil
         currentNonce = nil
@@ -107,9 +114,16 @@ public class NativeAuthPlugin: CAPPlugin, CAPBridgedPlugin, ASAuthorizationContr
                     call.reject("google_no_token")
                     return
                 }
+                // Profilname mitgeben: Google liefert Vor-/Nachname getrennt
+                let profile = result?.user.profile
                 call.resolve([
                     "idToken": idToken,
-                    "accessToken": result?.user.accessToken.tokenString ?? ""
+                    "accessToken": result?.user.accessToken.tokenString ?? "",
+                    "givenName": profile?.givenName ?? "",
+                    "familyName": profile?.familyName ?? "",
+                    "fullName": profile?.name ?? "",
+                    "email": profile?.email ?? "",
+                    "picture": profile?.imageURL(withDimension: 200)?.absoluteString ?? ""
                 ])
             }
         }

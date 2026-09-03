@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { checkActiveDealsLimit } from '@/lib/planGate'
+import { broadcastLive } from '@/lib/liveBroadcast'
 
 const createDealSchema = z.object({
   restaurant_id: z.string().uuid('Invalid restaurant_id'),
@@ -142,6 +143,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create deal' }, { status: 500 })
     }
 
+    await broadcastLive('deal_updated', { id: deal?.id })
     return NextResponse.json({ deal }, { status: 201 })
   } catch (err) {
     console.error('POST /api/deals error:', err)
@@ -207,6 +209,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Failed to update deal' }, { status: 500 })
     }
 
+    await broadcastLive('deal_updated', { id: deal?.id })
     return NextResponse.json({ deal })
   } catch (err) {
     console.error('PATCH /api/deals error:', err)
@@ -255,6 +258,7 @@ export async function DELETE(request: Request) {
     }
 
     const { error: deleteError } = await admin.from('deals').delete().eq('id', id)
+    if (!deleteError) await broadcastLive('deal_updated', { id })
 
     if (deleteError) {
       console.error('DELETE /api/deals error:', deleteError)

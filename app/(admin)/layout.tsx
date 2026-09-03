@@ -42,11 +42,10 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-pale">
       <AdminSidebar role={role} impersonatingName={impersonatingName} />
-      {/* marginLeft is set dynamically by AdminSidebar via JS (desktop: 250px, mobile: 0) */}
-      <main
-        className="admin-main flex-1 min-h-screen"
-        style={{ marginLeft: 250 }}
-      >
+      {/* Rand links kommt aus CSS (.admin-main): 0 auf dem Handy, 250px ab lg,
+          64px bei eingeklappter Sidebar (html[data-sidebar=collapsed]).
+          Kein Inline-Style mehr, der auf dem Handy erst per JS korrigiert wurde. */}
+      <main className="admin-main flex-1 min-h-screen">
         {children}
       </main>
     </div>

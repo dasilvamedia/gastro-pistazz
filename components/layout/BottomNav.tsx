@@ -2,11 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, Gift, User, Heart } from 'lucide-react'
+import { Home, Search, Gift, User, Heart, Store, Shield } from 'lucide-react'
+import { useRole } from '@/lib/hooks/useRole'
 
 // Das Herz sitzt bewusst in der MITTE als erhabener Pistazz-Button
-// (Tinder-Style-Restaurant-Swipe unter /favoriten)
-const navItems = [
+// (Tinder-Style-Restaurant-Swipe unter /favoriten).
+// Inhaber bekommen zusaetzlich "Mein Restaurant", Admins "Admin": so laeuft
+// das komplette Dashboard in der App, ohne Computer.
+type Item = { href: string; label: string; icon: typeof Home; isHeart?: boolean }
+
+const baseItems: Item[] = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/entdecken', label: 'Entdecken', icon: Search },
   { href: '/favoriten', label: '', icon: Heart, isHeart: true },
@@ -16,8 +21,13 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const { isOwner, isAdmin } = useRole()
 
-  if (['/onboarding', '/story/submit', '/story/create'].some(p => pathname.startsWith(p))) return null
+  if (['/onboarding', '/story/submit', '/story/create', '/stempel'].some(p => pathname.startsWith(p))) return null
+
+  const navItems: Item[] = [...baseItems]
+  if (isAdmin) navItems.push({ href: '/admin/dashboard', label: 'Admin', icon: Shield })
+  else if (isOwner) navItems.push({ href: '/dashboard', label: 'Restaurant', icon: Store })
 
   return (
     <nav
@@ -30,7 +40,6 @@ export function BottomNav() {
         style={{
           // Bis 60px UNTER die Leiste ziehen: deckt auf jedem Geraet die
           // Safe-Area/Gesten-Zone ab, nie wieder ein durchsichtiger Streifen.
-          // Doppelter Verlauf = praktisch deckend, auch ohne Blur-Support.
           bottom: -60,
           background: 'linear-gradient(to top, var(--nav-bg-a) 0%, var(--nav-bg-b) 100%), linear-gradient(var(--nav-bg-a), var(--nav-bg-a))',
           borderTop: '1px solid var(--nav-border)',
@@ -38,7 +47,7 @@ export function BottomNav() {
         }}
       />
 
-      <div className="relative flex items-center justify-around px-3 h-[62px]">
+      <div className="relative flex items-center justify-around px-2 h-[62px]">
         {navItems.map(({ href, label, icon: Icon, isHeart }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
           if (isHeart) {
@@ -68,12 +77,11 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative min-w-0"
             >
-              {/* Active pill background */}
               {isActive && (
                 <span
-                  className="absolute inset-x-2 top-0.5 bottom-0.5 rounded-2xl"
+                  className="absolute inset-x-1 top-0.5 bottom-0.5 rounded-2xl"
                   style={{ background: 'rgba(139,176,106,0.12)' }}
                 />
               )}
@@ -88,7 +96,7 @@ export function BottomNav() {
                   }}
                 />
                 <span
-                  className="text-[10px] font-medium transition-all duration-200"
+                  className="text-[10px] font-medium transition-all duration-200 truncate max-w-[64px]"
                   style={{ color: isActive ? 'var(--nav-active)' : 'var(--nav-inactive)', fontWeight: isActive ? 600 : 400 }}
                 >
                   {label}

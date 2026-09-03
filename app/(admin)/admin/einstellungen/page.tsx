@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { User, Settings, CreditCard, Camera, Euro, TrendingUp, Key, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { User, Settings, CreditCard, Camera, Euro, TrendingUp } from 'lucide-react'
 import { PLANS, STATUS_LABEL, type PlanKey, type SubscriptionStatus } from '@/lib/plans'
 
 type Tab = 'profil' | 'system' | 'abrechnung'
@@ -42,32 +42,10 @@ export default function SuperAdminEinstellungenPage() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [billingRestaurants, setBillingRestaurants] = useState<RestaurantBilling[]>([])
   const [billingLoading, setBillingLoading] = useState(false)
-  const [serviceKey, setServiceKey] = useState('')
-  const [showKey, setShowKey] = useState(false)
-  const [savingKey, setSavingKey] = useState(false)
-  const [keySaved, setKeySaved] = useState(false)
-
-  async function saveServiceKey() {
-    if (!serviceKey.startsWith('eyJ')) { toast.error('Key muss mit eyJ... beginnen'); return }
-    setSavingKey(true)
-    try {
-      const res = await fetch('/api/admin/setup-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service_role_key: serviceKey }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setKeySaved(true)
-      setServiceKey('')
-      toast.success('Key gespeichert! Server startet neu…')
-      setTimeout(() => window.location.reload(), 5000)
-    } catch (e: unknown) {
-      toast.error((e as Error).message)
-    } finally {
-      setSavingKey(false)
-    }
-  }
+  const [envStatus, setEnvStatus] = useState<Record<string, boolean> | null>(null)
+  useEffect(() => {
+    fetch('/api/admin/env-status').then(r => r.ok ? r.json() : null).then(j => setEnvStatus(j?.status ?? null)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     loadProfile()
@@ -285,94 +263,33 @@ export default function SuperAdminEinstellungenPage() {
       {/* System Tab */}
       {activeTab === 'system' && (
         <div className="space-y-6">
-          {/* Service Role Key */}
-          <div className="bg-white rounded-2xl border-2 border-[#8BB06A]/30 shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Key className="w-4 h-4 text-[#8BB06A]" />
-              <h2 className="font-semibold text-[#1C1F1A]">Supabase Service Role Key</h2>
-            </div>
-            <p className="text-xs text-gray-400">
-              Supabase → <strong>Project Settings → API → service_role</strong> (secret, beginnt mit eyJ...)
-            </p>
-            {keySaved ? (
-              <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl text-green-700 text-sm">
-                <CheckCircle className="w-4 h-4" /> Key gespeichert! Seite lädt neu…
-              </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 className="font-semibold text-[#1C1F1A] mb-1">Systemstatus</h2>
+            <p className="text-xs text-gray-400 mb-4">Welche Dienste auf dem Server konfiguriert sind. Werte werden nie angezeigt, nur ob sie gesetzt sind.</p>
+            {!envStatus ? (
+              <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded-lg animate-pulse" />)}</div>
             ) : (
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    value={serviceKey}
-                    onChange={e => setServiceKey(e.target.value)}
-                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    className="w-full px-3 py-2.5 pr-10 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:border-[#8BB06A] focus:ring-1 focus:ring-[#8BB06A]/20"
-                    autoComplete="new-password"
-                    data-form-type="other"
-                  />
-                  <button type="button" onClick={() => setShowKey(!showKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <button
-                  onClick={saveServiceKey}
-                  disabled={savingKey || !serviceKey}
-                  className="px-4 py-2.5 rounded-xl bg-[#8BB06A] text-white text-sm font-medium hover:bg-[#7a9e5e] disabled:opacity-40 whitespace-nowrap"
-                >
-                  {savingKey ? 'Speichert…' : 'Speichern'}
-                </button>
+              <div className="divide-y divide-gray-100">
+                {[
+                  { key: 'supabase', label: 'Supabase (Datenbank, Auth, Storage)' },
+                  { key: 'service_role', label: 'Supabase Service-Role (Server-Schreibrechte)' },
+                  { key: 'apns', label: 'Apple Push (APNs, iOS-App)' },
+                  { key: 'web_push', label: 'Web-Push (VAPID, Browser)' },
+                  { key: 'anthropic', label: 'KI-Pruefung (Anthropic)' },
+                  { key: 'google_places', label: 'Google Places (Geokodierung, Ratings)' },
+                  { key: 'smtp', label: 'E-Mail-Versand (SMTP)' },
+                  { key: 'cron', label: 'Cron-Secret (Ablauf-Jobs)' },
+                  { key: 'internal_secret', label: 'Internes Secret (KI-Pipeline)' },
+                ].map(item => (
+                  <div key={item.key} className="flex items-center justify-between py-3">
+                    <span className="text-sm text-[#1C1F1A]">{item.label}</span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${envStatus[item.key] ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {envStatus[item.key] ? 'Konfiguriert' : 'Fehlt'}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-semibold text-[#1C1F1A] mb-4">Systemkonfiguration</h2>
-            <div className="space-y-4">
-              {[
-                { label: 'Plattform-Name', value: 'pistazz.io', editable: false },
-                { label: 'Umgebung', value: process.env.NODE_ENV ?? 'production', editable: false },
-                { label: 'Standard Monatspreis', value: '€149,00', editable: true },
-                { label: 'Onboarding Flow', value: 'Aktiviert', editable: true },
-                { label: 'Email-Provider', value: 'Supabase Auth (Magic Link)', editable: false },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-[#1C1F1A]">{item.label}</p>
-                    <p className="text-sm text-gray-500">{item.value}</p>
-                  </div>
-                  {item.editable && (
-                    <button
-                      onClick={() => toast('Systemeinstellungen demnächst verfügbar')}
-                      className="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-                    >
-                      Bearbeiten
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-semibold text-[#1C1F1A] mb-2">Feature Flags</h2>
-            <p className="text-sm text-gray-500 mb-4">Systemweite Funktionen aktivieren oder deaktivieren</p>
-            <div className="space-y-3">
-              {[
-                { label: 'Story-Verifizierung (KI)', enabled: true },
-                { label: 'Instagram OAuth', enabled: false },
-                { label: 'WhatsApp Notifications', enabled: false },
-                { label: 'Stripe Payments', enabled: false },
-              ].map(flag => (
-                <div key={flag.label} className="flex items-center justify-between">
-                  <span className="text-sm text-[#1C1F1A]">{flag.label}</span>
-                  <div className="relative opacity-60 cursor-not-allowed">
-                    <div className={`w-10 h-5 rounded-full transition-colors ${flag.enabled ? 'bg-[#8BB06A]' : 'bg-gray-300'}`} />
-                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${flag.enabled ? 'translate-x-5' : ''}`} />
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}

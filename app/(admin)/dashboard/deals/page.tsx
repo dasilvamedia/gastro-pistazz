@@ -51,6 +51,7 @@ export default function DealsPage() {
     if (error) { toast.error('Fehler beim Aktualisieren'); return }
     setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, status: newStatus } : d))
     toast.success(newStatus === 'active' ? 'Deal aktiviert' : 'Deal pausiert')
+    fetch('/api/live/broadcast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'deal_updated' }) }).catch(() => {})
   }
 
   const deleteDeal = async (id: string) => {
@@ -59,6 +60,7 @@ export default function DealsPage() {
     setDeals(prev => prev.filter(d => d.id !== id))
     setDeleteId(null)
     toast.success('Deal geloescht')
+    fetch('/api/live/broadcast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'deal_updated' }) }).catch(() => {})
   }
 
   const filtered = tab === 'alle' ? deals : deals.filter(d => d.status === tab)

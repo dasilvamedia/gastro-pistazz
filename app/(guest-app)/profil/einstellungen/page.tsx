@@ -10,9 +10,11 @@ import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import { getDisplayTheme, setDisplayTheme, type DisplayTheme } from '@/lib/displayTheme'
 import type { Profile } from '@/types'
+import { enablePush, disablePush, getPushStatus, pushLocallyEnabled, type PushStatus } from '@/lib/push/client'
 
 const profileSchema = z.object({
-  full_name: z.string().min(2, 'Name zu kurz').max(80),
+  first_name: z.string().min(1, 'Vorname fehlt').max(40),
+  last_name: z.string().max(60).optional(),
   city: z.string().max(80).optional().or(z.literal('')),
   phone: z.string().max(30).optional().or(z.literal('')),
 })
@@ -65,8 +67,20 @@ export default function EinstellungenPage() {
   const [instagramHandle, setInstagramHandle] = useState('')
   const [instagramConnected, setInstagramConnected] = useState(false)
   const [googleProfileUrl, setGoogleProfileUrl] = useState('')
-  const [notifInApp, setNotifInApp] = useState(true)
-  const [notifEmail, setNotifEmail] = useState(true)
+  const [pushStatus, setPushStatus] = useState<PushStatus>('unsupported')
+  useEffect(() => { getPushStatus().then(setPushStatus) }, [])
+  const togglePush = async (on: boolean) => {
+    if (on) {
+      const s = await enablePush({ onNavigate: url => router.push(url) })
+      setPushStatus(s)
+      if (s === 'granted') toast.success('Push ist an')
+      else if (s === 'denied') toast.error('Push ist in den Geraete-Einstellungen blockiert')
+    } else {
+      await disablePush()
+      setPushStatus(await getPushStatus())
+      toast.success('Push ist aus')
+    }
+  }
   const [signingOut, setSigningOut] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileForm>({
@@ -86,7 +100,8 @@ export default function EinstellungenPage() {
           setInstagramConnected(p.instagram_connected ?? false)
           setGoogleProfileUrl((p as unknown as { google_profile_url?: string }).google_profile_url ?? '')
           reset({
-            full_name: p.full_name ?? '',
+            first_name: p.first_name ?? p.full_name?.split(' ')[0] ?? '',
+            last_name: p.last_name ?? (p.full_name?.split(' ').slice(1).join(' ') || ''),
             city: p.city ?? '',
             phone: p.phone ?? '',
           })
@@ -105,8 +120,12 @@ export default function EinstellungenPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const first = values.first_name.trim()
+      const last = (values.last_name ?? '').trim()
       const { error } = await supabase.from('profiles').update({
-        full_name: values.full_name,
+        first_name: first,
+        last_name: last || null,
+        full_name: [first, last].filter(Boolean).join(' '),
         city: values.city || null,
         phone: values.phone || null,
         updated_at: new Date().toISOString(),
@@ -183,14 +202,24 @@ export default function EinstellungenPage() {
         <div>
           <SectionTitle>Profil bearbeiten</SectionTitle>
           <form onSubmit={handleSubmit(onSaveProfile)} className="bg-white rounded-2xl p-4 border border-[#EEF5E6] space-y-3">
-            <div>
-              <label className="text-[#1C1F1A] text-sm font-semibold block mb-1">Name</label>
-              <input
-                {...register('full_name')}
-                placeholder="Dein Name"
-                className="w-full border border-[#D4E8C2] rounded-xl px-3 py-2.5 text-sm text-[#1C1F1A] outline-none focus:border-[#8BB06A]"
-              />
-              {errors.full_name && <p className="text-[#E86B5A] text-xs mt-1">{errors.full_name.message}</p>}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[#1C1F1A] text-sm font-semibold block mb-1">Vorname</label>
+                <input
+                  {...register('first_name')}
+                  placeholder="Vorname"
+                  className="w-full border border-[#D4E8C2] rounded-xl px-3 py-2.5 text-sm text-[#1C1F1A] outline-none focus:border-[#8BB06A]"
+                />
+                {errors.first_name && <p className="text-[#E86B5A] text-xs mt-1">{errors.first_name.message}</p>}
+              </div>
+              <div>
+                <label className="text-[#1C1F1A] text-sm font-semibold block mb-1">Nachname</label>
+                <input
+                  {...register('last_name')}
+                  placeholder="Nachname"
+                  className="w-full border border-[#D4E8C2] rounded-xl px-3 py-2.5 text-sm text-[#1C1F1A] outline-none focus:border-[#8BB06A]"
+                />
+              </div>
             </div>
             <div>
               <label className="text-[#1C1F1A] text-sm font-semibold block mb-1">Stadt</label>
@@ -304,21 +333,25 @@ export default function EinstellungenPage() {
         {/* Notifications */}
         <div>
           <SectionTitle>Benachrichtigungen</SectionTitle>
-          <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6] space-y-4">
+          <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6] space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bell size={16} className="text-[#8BB06A]" />
-                <span className="text-[#1C1F1A] text-sm">In-App Benachrichtigungen</span>
+                <div>
+                  <span className="text-[#1C1F1A] text-sm block">Push-Benachrichtigungen</span>
+                  <span className="text-[#6D7A6D] text-xs">Story freigegeben, Karte voll, neue Deals</span>
+                </div>
               </div>
-              <Toggle checked={notifInApp} onChange={setNotifInApp} />
+              {pushStatus === 'unsupported' ? (
+                <span className="text-xs text-[#9AA795]">Nicht verfuegbar</span>
+              ) : (
+                <Toggle checked={pushStatus === 'granted' && pushLocallyEnabled()} onChange={togglePush} />
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-base">✉️</span>
-                <span className="text-[#1C1F1A] text-sm">E-Mail Benachrichtigungen</span>
-              </div>
-              <Toggle checked={notifEmail} onChange={setNotifEmail} />
-            </div>
+            {pushStatus === 'denied' && (
+              <p className="text-xs text-[#E86B5A]">In den iOS-Einstellungen unter Pistazz, Mitteilungen erlauben, dann hier einschalten.</p>
+            )}
+            <button onClick={() => router.push('/benachrichtigungen')} className="text-xs font-semibold text-[#577A3D]">Alle Benachrichtigungen ansehen</button>
           </div>
         </div>
 

@@ -43,7 +43,15 @@ if ! NODE_OPTIONS=--max-old-space-size=3072 npm run build; then rollback; exit 1
 if [ ! -f .next/BUILD_ID ]; then rollback; exit 1; fi
 
 echo "BUILD_ID: $(cat .next/BUILD_ID)"
-pm2 restart "$PM2_APP" --update-env
+# Cluster-Modus aus ecosystem.config.js; ein noch im Fork-Modus laufender
+# Prozess (alter start.sh) wird einmalig ersetzt, danach reicht reload.
+if pm2 describe "$PM2_APP" 2>/dev/null | grep -q "exec mode.*fork"; then
+  pm2 delete "$PM2_APP" >/dev/null 2>&1 || true
+  pm2 start ecosystem.config.js --only "$PM2_APP"
+else
+  pm2 startOrReload ecosystem.config.js --only "$PM2_APP" --update-env
+fi
+pm2 save >/dev/null 2>&1 || true
 for a in $SIDE_APPS_START; do pm2 start "$a" >/dev/null 2>&1 || true; done
 rm -rf .next.prev
 pm2 list

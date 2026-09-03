@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Search, Star } from 'lucide-react'
+import { Search, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -10,6 +10,8 @@ import type { Profile, Restaurant, Deal } from '@/types'
 import { TRIGGER_CONFIG, RESTAURANT_TYPE_LABELS } from '@/types'
 import { MOCK_USER, MOCK_RESTAURANTS, MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
 import { DemoBanner } from '@/components/DemoBanner'
+import { NotificationBell } from '@/components/guest/NotificationBell'
+import { syncNameFromAuth, greetingName } from '@/lib/profileName'
 import { attachDistance, formatDistance, getGeoPermissionState, requestPosition, type WithDistance } from '@/lib/geo'
 
 function SkeletonCard({ className }: { className?: string }) {
@@ -189,14 +191,10 @@ export default function HomePage() {
             router.push('/onboarding')
             return
           }
-          if (!p.full_name) {
-            const metaName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null
-            if (metaName) {
-              await supabase.from('profiles').update({ full_name: metaName }).eq('id', user.id)
-              p.full_name = metaName
-            }
-          }
-          setProfile(p)
+          // Leere Namensfelder aus den Auth-Metadaten nachfuellen (Google liefert
+          // given_name/family_name, Apple den Namen nur beim ersten Login)
+          const patched = await syncNameFromAuth(supabase, user, p)
+          setProfile(patched ? { ...p, ...patched } : p)
         }
 
         const [{ data: rData, error: rErr }, { data: dData, error: dErr }] = await Promise.all([
@@ -217,26 +215,30 @@ export default function HomePage() {
     }
     load()
 
-    // Realtime: update deals + restaurants live
+    // Live-Refresh ohne Realtime-Sturm: ein Broadcast-Kanal (Server sendet
+    // bei Restaurant-/Deal-Aenderungen) plus Refresh bei Rueckkehr in die App.
+    // Vorher lud JEDER verbundene Gast bei jedem Owner-Klick die Tabelle neu.
     if (!IS_MOCK_MODE) {
+      const refresh = async () => {
+        const [{ data: r }, { data: d }] = await Promise.all([
+          supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(HOME_FETCH_LIMIT),
+          supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5),
+        ])
+        if (r) setRestaurants(await rankNearby(r))
+        if (d) setDeals(d)
+      }
       const channel = supabase
-        .channel('home-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' },
-          async () => {
-            const { data } = await supabase.from('deals').select('*, restaurant:restaurants(name)').eq('status', 'active').limit(5)
-            if (data) setDeals(data)
-          })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' },
-          async () => {
-            const { data } = await supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(HOME_FETCH_LIMIT)
-            if (data) setRestaurants(await rankNearby(data))
-          })
+        .channel('app-live')
+        .on('broadcast', { event: 'restaurant_updated' }, refresh)
+        .on('broadcast', { event: 'deal_updated' }, refresh)
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
+      const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
+      document.addEventListener('visibilitychange', onVisible)
+      return () => { supabase.removeChannel(channel); document.removeEventListener('visibilitychange', onVisible) }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const firstName = profile?.full_name?.split(' ')[0] ?? 'Gast'
+  const firstName = greetingName(profile)
 
   return (
     <div className="min-h-screen bg-[#EEF5E6] pb-24">
@@ -251,16 +253,11 @@ export default function HomePage() {
             <img src="/logo-white.png" alt="" className="w-8 h-8" />
             <span className="text-white font-bold text-base tracking-tight">gastro.pistazz.io</span>
           </div>
-          <button
-            onClick={() => router.push('/profil')}
-            className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center active:bg-white/25 transition-colors"
-          >
-            <Bell size={18} className="text-white" />
-          </button>
+          <NotificationBell className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center active:bg-white/25 transition-colors" />
         </div>
 
         <h1 className="text-[1.75rem] font-bold text-white leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
-          {isDemo ? 'Willkommen!' : `Hey, ${firstName}!`}
+          {isDemo ? 'Willkommen!' : firstName ? `Hey, ${firstName}!` : 'Hey!'}
         </h1>
         <p className="text-white/70 text-sm mt-0.5 mb-4">{isDemo ? 'Entdecke, wie du bei deinen Lieblingsrestaurants Punkte sammelst.' : 'Schön, dass du da bist.'}</p>
 

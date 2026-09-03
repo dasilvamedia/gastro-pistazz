@@ -4,6 +4,7 @@ import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { notifyNewUser } from '@/lib/notify'
+import { namesFromMeta, syncNameFromAuth } from '@/lib/profileName'
 
 function AuthCallbackInner() {
   const router = useRouter()
@@ -50,18 +51,13 @@ function AuthCallbackInner() {
             // Also get profile for onboarding check + name sync
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
-              .select('role, onboarding_completed, full_name')
+              .select('role, onboarding_completed, full_name, first_name, last_name, avatar_url')
               .eq('id', user.id)
               .single()
 
-            // Update name/avatar if missing — nicht awaited, darf nie blockieren
-            if (profile && (!profile.full_name || profile.full_name === '') && fullName) {
-              supabase
-                .from('profiles')
-                .update({ full_name: fullName, avatar_url: avatarUrl })
-                .eq('id', user.id)
-                .then(undefined, () => {})
-            }
+            // Vor-/Nachname + Avatar aus den Auth-Metadaten nachfuellen (nur leere
+            // Felder), nicht awaited, darf nie blockieren
+            if (profile) syncNameFromAuth(supabase, user, profile).catch(() => {})
 
             // Determine effective role (RPC is more reliable than direct select)
             const effectiveRole = role ?? profile?.role ?? null
@@ -69,10 +65,13 @@ function AuthCallbackInner() {
 
             if (!effectiveRole && isNoRow) {
               // Genuinely new user
+              const names = namesFromMeta(user.user_metadata)
               await supabase.from('profiles').upsert({
                 id: user.id,
-                full_name: fullName,
-                avatar_url: avatarUrl,
+                full_name: names.full_name ?? fullName,
+                first_name: names.first_name,
+                last_name: names.last_name,
+                avatar_url: names.avatar_url ?? avatarUrl,
                 role: 'guest',
                 onboarding_completed: false,
               })

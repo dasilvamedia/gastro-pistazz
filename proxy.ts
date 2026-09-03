@@ -65,7 +65,7 @@ export async function proxy(request: NextRequest) {
 
   // /home, /entdecken, /deals und /restaurant sind oeffentlich erkundbar (Demo-Modus).
   // Mitmachen (Profil, Story, Onboarding) erfordert weiterhin ein Konto.
-  const guestRoutes = ['/profil', '/story', '/onboarding']
+  const guestRoutes = ['/profil', '/story', '/onboarding', '/benachrichtigungen', '/favoriten', '/stempel']
   if (guestRoutes.some(r => path.startsWith(r)) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
@@ -94,19 +94,6 @@ export async function proxy(request: NextRequest) {
     const isAdmin = role === 'super_admin' || role === 'admin'
     if (!isAdmin) {
       return NextResponse.redirect(new URL(role === 'restaurant_owner' ? '/dashboard' : '/home', request.url))
-    }
-    // Auto-set admin session cookie
-    const adminSession = request.cookies.get('admin_session')?.value
-    if (!adminSession || adminSession !== 'authenticated') {
-      const res = NextResponse.next({ request })
-      res.cookies.set('admin_session', 'authenticated', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
-        path: '/',
-      })
-      return res
     }
   }
 

@@ -160,13 +160,16 @@ export default function DealsPage() {
         const { data } = await supabase.from('deals').select('*, restaurant:restaurants(name, cover_url, logo_url)').eq('status', 'active')
         if (data) setDeals(data)
       }
+      // Broadcast statt postgres_changes auf der ganzen Tabelle (Realtime-Sturm)
       const channel = supabase
-        .channel('deals-list-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, refresh)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'restaurants' }, refresh)
+        .channel('app-live')
+        .on('broadcast', { event: 'deal_updated' }, refresh)
+        .on('broadcast', { event: 'restaurant_updated' }, refresh)
         .subscribe()
-      const poll = setInterval(refresh, 30_000)
-      return () => { supabase.removeChannel(channel); clearInterval(poll) }
+      const onVisible = () => { if (document.visibilityState === 'visible') { refresh(); loadRedemptions() } }
+      document.addEventListener('visibilitychange', onVisible)
+      const poll = setInterval(refresh, 120_000)
+      return () => { supabase.removeChannel(channel); clearInterval(poll); document.removeEventListener('visibilitychange', onVisible) }
     }
   }, [])
 

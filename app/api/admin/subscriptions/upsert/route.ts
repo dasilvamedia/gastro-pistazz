@@ -167,7 +167,7 @@ export async function PATCH(request: NextRequest) {
             restaurant_id,
             title,
             body: msg,
-          }).then(() => {}).catch(() => {})
+          }).then(() => {}, () => {})
         }
       }
     }

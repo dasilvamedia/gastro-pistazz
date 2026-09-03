@@ -106,8 +106,8 @@ function LoginInner() {
       Capacitor?: {
         Plugins?: {
           NativeAuth?: {
-            signInWithApple: () => Promise<{ identityToken: string; nonce: string; fullName: string }>
-            signInWithGoogle: () => Promise<{ idToken: string }>
+            signInWithApple: () => Promise<{ identityToken: string; nonce: string; fullName: string; givenName?: string; familyName?: string }>
+            signInWithGoogle: () => Promise<{ idToken: string; givenName?: string; familyName?: string; fullName?: string; picture?: string }>
           }
         }
       }
@@ -120,16 +120,28 @@ function LoginInner() {
     if (nativeAuth) {
       authBusyRef.current = true
       try {
+        // Namen aus dem nativen Sheet in die Auth-Metadaten schreiben; der
+        // DB-Trigger (030) fuellt daraus leere Profilfelder (Vorname fuer die Anrede)
+        const saveNames = (n: { givenName?: string; familyName?: string; fullName?: string; picture?: string }) => {
+          const data: Record<string, string> = {}
+          if (n.givenName) data.first_name = n.givenName
+          if (n.familyName) data.last_name = n.familyName
+          const full = n.fullName || [n.givenName, n.familyName].filter(Boolean).join(' ')
+          if (full) data.full_name = full
+          if (n.picture) data.avatar_url = n.picture
+          if (Object.keys(data).length) supabase.auth.updateUser({ data }).then(undefined, () => {})
+        }
         if (provider === 'google') {
-          const { idToken } = await nativeAuth.signInWithGoogle()
-          const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken })
+          const g = await nativeAuth.signInWithGoogle()
+          const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: g.idToken })
           if (error) throw error
+          saveNames(g)
         } else {
-          const { identityToken, nonce, fullName } = await nativeAuth.signInWithApple()
-          const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken, nonce })
+          const a = await nativeAuth.signInWithApple()
+          const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: a.identityToken, nonce: a.nonce })
           if (error) throw error
           // Der Name kommt nur beim allerersten Apple-Login mit
-          if (fullName) supabase.auth.updateUser({ data: { full_name: fullName } }).then(undefined, () => {})
+          saveNames(a)
         }
         // Callback-Seite uebernimmt Profil-Anlage + rollenbasierten Redirect.
         // Client-seitige Navigation statt Voll-Reload: die Seite wechselt

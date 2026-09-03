@@ -1,125 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { assertSuperAdmin } from '@/lib/adminAuth'
+
+// Nutzerliste fuer den Super-Admin. Vorher wurden pro Request ALLE Auth-User
+// (Kappung bei 1000), alle visits und alle profiles in den Speicher geladen.
+// Jetzt: eine paginierte profiles-Abfrage, Provider aus profiles.auth_provider
+// (Trigger 030, Backfill /api/admin/backfill-auth-provider), Restaurant nur
+// fuer die aktuelle Seite.
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const admin = createAdminClient()
-    const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'super_admin' && profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const auth = await assertSuperAdmin()
+    if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const { admin } = auth
 
     const { searchParams } = new URL(request.url)
-    const search      = searchParams.get('search') ?? ''
-    const restaurant  = searchParams.get('restaurant') ?? ''  // restaurant_id filter
-    const provider    = searchParams.get('provider') ?? ''    // google | apple | email
-    const page        = parseInt(searchParams.get('page') ?? '0', 10)
-    const pageSize    = 30
+    const search     = (searchParams.get('search') ?? '').trim()
+    const restaurant = searchParams.get('restaurant') ?? ''
+    const provider   = searchParams.get('provider') ?? ''
+    const page       = Math.max(0, parseInt(searchParams.get('page') ?? '0', 10) || 0)
+    const pageSize   = 30
 
-    // ── 1. Auth-Users holen (enthält provider info) ──
-    const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-
-    // ── 2. Alle visits holen (Herkunfts-Restaurant) ──
-    const { data: allVisits } = await admin
-      .from('visits')
-      .select('user_id, restaurant_id, source, visited_at')
-
-    // visit_map: user_id → [{ restaurant_id, source }]
-    const visitMap = new Map<string, { restaurant_id: string; source: string; visited_at: string }[]>()
-    for (const v of allVisits ?? []) {
-      if (!visitMap.has(v.user_id)) visitMap.set(v.user_id, [])
-      visitMap.get(v.user_id)!.push(v)
+    // Restaurant-Filter: Nutzer mit Besuch in diesem Restaurant
+    let userIdsForRestaurant: string[] | null = null
+    if (restaurant) {
+      const { data } = await admin.from('visits').select('user_id').eq('restaurant_id', restaurant).limit(5000)
+      userIdsForRestaurant = [...new Set((data ?? []).map(v => v.user_id as string))]
+      if (userIdsForRestaurant.length === 0) return NextResponse.json({ users: [], total: 0, page, pageSize })
     }
 
-    // ── 3. Alle Restaurants laden ──
-    const { data: restaurants } = await admin.from('restaurants').select('id, name, slug')
-    const restMap = new Map((restaurants ?? []).map(r => [r.id, r]))
+    let q = admin
+      .from('profiles')
+      .select('id, full_name, first_name, last_name, email, created_at, total_points, available_points, total_stories, total_visits, role, auth_provider, restaurant_id', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(page * pageSize, page * pageSize + pageSize - 1)
 
-    // ── 4. Profile laden ──
-    const { data: profiles } = await admin.from('profiles').select('id, full_name, email, created_at, total_points, available_points, total_stories, total_visits, role')
-    const profileMap = new Map((profiles ?? []).map(p => [p.id, p]))
+    if (search) {
+      const term = search.replace(/[,()%]/g, ' ').trim()
+      q = q.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,first_name.ilike.%${term}%`)
+    }
+    if (provider) q = q.eq('auth_provider', provider)
+    if (userIdsForRestaurant) q = q.in('id', userIdsForRestaurant.slice(0, 1000))
 
-    // ── 5. Zusammenführen — NUR Gäste (keine Restaurant-Owner/Admins) ──
-    // Alle angemeldeten Nutzer zeigen (Gaeste, Restaurant-Betreiber, Admins)
-    const guestIds = new Set((profiles ?? []).map(p => p.id))
+    const { data: profiles, count, error } = await q
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    let combined = authUsers.filter(u => guestIds.has(u.id)).map(u => {
-      const p = profileMap.get(u.id)
-      const visits = visitMap.get(u.id) ?? []
-      // Haupt-Restaurant = erstes onboarding-visit
-      const onboardingVisit = visits.find(v => v.source === 'onboarding' || v.source === 'qr_scan')
-      const restaurantInfo = onboardingVisit ? restMap.get(onboardingVisit.restaurant_id) : null
-      const authProvider = u.app_metadata?.provider ?? u.identities?.[0]?.provider ?? 'email'
+    // Herkunfts-Restaurant nur fuer die Seite bestimmen (erster Besuch)
+    const ids = (profiles ?? []).map(p => p.id)
+    const firstVisit = new Map<string, { restaurant_id: string; source: string; visited_at: string }>()
+    if (ids.length) {
+      const { data: visits } = await admin
+        .from('visits')
+        .select('user_id, restaurant_id, source, visited_at')
+        .in('user_id', ids)
+        .order('visited_at', { ascending: true })
+      for (const v of visits ?? []) if (!firstVisit.has(v.user_id)) firstVisit.set(v.user_id, v)
+    }
+    const restIds = [...new Set([...firstVisit.values()].map(v => v.restaurant_id))]
+    const restMap = new Map<string, { id: string; name: string; slug: string }>()
+    if (restIds.length) {
+      const { data: rests } = await admin.from('restaurants').select('id, name, slug').in('id', restIds)
+      for (const r of rests ?? []) restMap.set(r.id, r)
+    }
 
+    const users = (profiles ?? []).map(p => {
+      const v = firstVisit.get(p.id)
+      const r = v ? restMap.get(v.restaurant_id) : null
       return {
-        id: u.id,
-        email: u.email ?? p?.email ?? '',
-        name: p?.full_name ?? u.user_metadata?.full_name ?? u.user_metadata?.name ?? null,
-        provider: authProvider,
-        created_at: u.created_at,
-        restaurant_id: onboardingVisit?.restaurant_id ?? null,
-        restaurant_name: restaurantInfo?.name ?? null,
-        restaurant_slug: restaurantInfo?.slug ?? null,
-        total_points: p?.total_points ?? 0,
-        available_points: p?.available_points ?? 0,
-        total_stories: p?.total_stories ?? 0,
-        total_visits: p?.total_visits ?? 0,
-        role: p?.role ?? 'guest',
-        all_restaurants: visits.map(v => ({
-          restaurant_id: v.restaurant_id,
-          name: restMap.get(v.restaurant_id)?.name ?? v.restaurant_id,
-          source: v.source,
-        })),
+        id: p.id,
+        email: p.email,
+        full_name: p.full_name ?? ([p.first_name, p.last_name].filter(Boolean).join(' ') || null),
+        created_at: p.created_at,
+        last_sign_in_at: null,
+        provider: p.auth_provider ?? 'unbekannt',
+        role: p.role,
+        total_points: p.total_points,
+        available_points: p.available_points,
+        total_stories: p.total_stories,
+        total_visits: p.total_visits,
+        restaurant: r ? { id: r.id, name: r.name, slug: r.slug } : null,
+        visit_source: v?.source ?? null,
+        visit_count: p.total_visits ?? 0,
       }
     })
 
-    // ── 6. Filter anwenden ──
-    if (search) {
-      const q = search.toLowerCase()
-      combined = combined.filter(u =>
-        u.email.toLowerCase().includes(q) ||
-        (u.name ?? '').toLowerCase().includes(q)
-      )
-    }
-    if (restaurant) {
-      // match onboarding-restaurant OR any visit to that restaurant
-      combined = combined.filter(u =>
-        u.restaurant_id === restaurant ||
-        u.all_restaurants.some(r => r.restaurant_id === restaurant)
-      )
-    }
-    if (provider) {
-      combined = combined.filter(u => u.provider === provider)
-    }
-
-    // ── 7. Sortieren (neueste zuerst) ──
-    combined.sort((a, b) => b.created_at.localeCompare(a.created_at))
-
-    const total  = combined.length
-    const paged  = combined.slice(page * pageSize, (page + 1) * pageSize)
-
-    // ── 8. KPIs ──
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-    const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
-
-    const kpi = {
-      total,
-      today: combined.filter(u => u.created_at >= today).length,
-      this_week: combined.filter(u => u.created_at >= weekAgo).length,
-      google: combined.filter(u => u.provider === 'google').length,
-      apple: combined.filter(u => u.provider === 'apple').length,
-      email: combined.filter(u => !['google', 'apple'].includes(u.provider)).length,
-    }
-
-    return NextResponse.json({ users: paged, total, page, pageSize, kpi, restaurants: restaurants ?? [] })
+    return NextResponse.json({ users, total: count ?? users.length, page, pageSize })
   } catch (err) {
     console.error('GET /api/admin/all-users error:', err)
-    return NextResponse.json({ error: 'Interner Fehler' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
