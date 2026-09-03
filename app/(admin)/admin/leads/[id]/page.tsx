@@ -168,8 +168,11 @@ export default function LeadDetailPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
+      // Deutsche Spaltennamen auf die im UI verwendeten aliasen.
       const [{ data: leadData, error: leadErr }, { data: actData }] = await Promise.all([
-        supabase.from('leads').select('*').eq('id', id).single(),
+        supabase.from('leads')
+          .select('id, name, type:typ, city:stadt, status, match_rating, next_action:naechste_aktion_text, phone:telefon, email, notes:begruendung, created_at')
+          .eq('id', id).single(),
         supabase.from('lead_activities').select('*').eq('lead_id', id).order('created_at', { ascending: false }),
       ])
 

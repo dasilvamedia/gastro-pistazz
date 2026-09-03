@@ -27,13 +27,14 @@ export async function GET() {
 
     const admin = createAdminClient()
 
-    const [{ data: usersData }, { data: profiles }, { data: restaurants }] = await Promise.all([
-      admin.auth.admin.listUsers({ perPage: 1000 }),
-      admin.from('profiles').select('id, full_name, role').in('role', ['super_admin', 'restaurant_owner']),
+    // Statt ALLE Auth-Nutzer (bei tausenden Gaesten waren die ~28 Inhaber nicht
+    // in der ersten 1000er-Seite) laden wir gezielt die Owner/Admin-Profile und
+    // holen die Auth-Details pro Inhaber.
+    const [{ data: profiles }, { data: restaurants }] = await Promise.all([
+      admin.from('profiles').select('id, full_name, email, created_at, role').in('role', ['super_admin', 'restaurant_owner']),
       admin.from('restaurants').select('id, name, slug, city, owner_id'),
     ])
 
-    const users = usersData?.users ?? []
     const profileList = profiles ?? []
     const restaurantList = restaurants ?? []
 
@@ -42,30 +43,33 @@ export async function GET() {
       if (rest.owner_id) restByOwner[rest.owner_id] = { id: rest.id, name: rest.name, city: rest.city, slug: rest.slug }
     }
 
-    const profileMap: Record<string, { full_name: string | null; role: string }> = {}
-    for (const p of profileList) profileMap[p.id] = { full_name: p.full_name, role: p.role }
+    // Auth-Details (letzte Anmeldung, gesperrt) gezielt pro Inhaber
+    const authById = new Map<string, { last_sign_in_at: string | null; banned_until: string | null; email: string | null }>()
+    await Promise.all(profileList.map(async p => {
+      try {
+        const { data } = await admin.auth.admin.getUserById(p.id)
+        const u = data?.user as { last_sign_in_at?: string | null; banned_until?: string | null; email?: string | null } | undefined
+        if (u) authById.set(p.id, { last_sign_in_at: u.last_sign_in_at ?? null, banned_until: u.banned_until ?? null, email: u.email ?? null })
+      } catch { /* Auth-Nutzer evtl. geloescht */ }
+    }))
 
-    const profileIds = new Set(profileList.map(p => p.id))
-
-    const result = users
-      .filter(u => profileIds.has(u.id))
-      .map(u => {
-        const profile = profileMap[u.id]
-        const rest = restByOwner[u.id]
-        return {
-          id: u.id,
-          email: u.email ?? '',
-          full_name: profile?.full_name ?? null,
-          role: profile?.role ?? 'guest',
-          restaurant_id: rest?.id ?? null,
-          restaurant_name: rest?.name ?? null,
-          restaurant_city: rest?.city ?? null,
-          restaurant_slug: rest?.slug ?? null,
-          created_at: u.created_at,
-          last_sign_in_at: u.last_sign_in_at ?? null,
-          is_banned: !!(u.banned_until && new Date(u.banned_until) > new Date()),
-        }
-      })
+    const result = profileList.map(p => {
+      const rest = restByOwner[p.id]
+      const a = authById.get(p.id)
+      return {
+        id: p.id,
+        email: a?.email ?? p.email ?? '',
+        full_name: p.full_name ?? null,
+        role: p.role,
+        restaurant_id: rest?.id ?? null,
+        restaurant_name: rest?.name ?? null,
+        restaurant_city: rest?.city ?? null,
+        restaurant_slug: rest?.slug ?? null,
+        created_at: p.created_at,
+        last_sign_in_at: a?.last_sign_in_at ?? null,
+        is_banned: !!(a?.banned_until && new Date(a.banned_until) > new Date()),
+      }
+    })
 
     return NextResponse.json({ accounts: result })
   } catch (err) {

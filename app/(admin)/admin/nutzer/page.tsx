@@ -83,7 +83,7 @@ export default function NutzerPage() {
   useEffect(() => { setPage(0) }, [search, filterRest, filterProv])
 
   const handleSetPassword = async (u: UserRow) => {
-    if (!window.confirm(`Neues Zugangs-Passwort fuer ${u.email} setzen? Das alte Passwort wird ersetzt.`)) return
+    if (!window.confirm(`Neues Zugangs-Passwort für ${u.email} setzen? Das alte Passwort wird ersetzt.`)) return
     setPwLoading(u.id)
     try {
       const res = await fetch('/api/admin/set-user-password', {
@@ -123,7 +123,7 @@ export default function NutzerPage() {
                 className="shrink-0 text-[#577A3D]"
               ><Copy className="w-4 h-4" /></button>
             </div>
-            <p className="text-xs text-gray-400">Wird nur einmal angezeigt. Der Nutzer kann sich damit anmelden und es in den Einstellungen aendern.</p>
+            <p className="text-xs text-gray-400">Wird nur einmal angezeigt. Der Nutzer kann sich damit anmelden und es in den Einstellungen ändern.</p>
           </div>
         </div>
       )}
@@ -251,7 +251,7 @@ export default function NutzerPage() {
                 const b   = PROV_BADGE[u.provider] ?? PROV_BADGE.email
                 const seg = segment(u)
                 const spent = Math.max(0, u.total_points - u.available_points)
-                const uniqueRests = Array.from(new Map(u.all_restaurants.map(r => [r.restaurant_id, r])).values())
+                const uniqueRests = Array.from(new Map((u.all_restaurants ?? []).map(r => [r.restaurant_id, r])).values())
 
                 return (
                   <div key={u.id}

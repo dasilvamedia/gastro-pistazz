@@ -68,9 +68,11 @@ export default function AdminLeadsPage() {
   const loadLeads = useCallback(async () => {
     setLoading(true)
     try {
+      // Die leads-Tabelle nutzt deutsche Spaltennamen (typ, stadt,
+      // naechste_aktion_text). Wir aliasen sie auf die im UI verwendeten Namen.
       let query = supabase
         .from('leads')
-        .select('id, name, type, city, status, match_rating, next_action, created_at')
+        .select('id, name, type:typ, city:stadt, status, match_rating, next_action:naechste_aktion_text, created_at')
         .order('created_at', { ascending: false })
 
       if (filterStatus !== 'all') {
