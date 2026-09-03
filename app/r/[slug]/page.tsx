@@ -104,6 +104,8 @@ export default function RestaurantLandingPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'angebot' | 'info'>('angebot')
   const [stampCount, setStampCount] = useState(0)
+  const [stampTotal, setStampTotal] = useState<number | null>(null)
+  const [rewardReady, setRewardReady] = useState(false)
   const weather = useWeather(restaurant?.city ?? null)
 
   const loadData = useCallback(async () => {
@@ -121,8 +123,11 @@ export default function RestaurantLandingPage() {
 
     if (user && rest.stamp_card_enabled) {
       const { data: sc } = await supabase
-        .from('stamp_cards').select('current_stamps').eq('restaurant_id', rest.id).eq('user_id', user.id).single()
+        .from('stamp_cards').select('current_stamps, total_stamps_required, is_completed, reward_redeemed')
+        .eq('restaurant_id', rest.id).eq('user_id', user.id).maybeSingle()
       setStampCount(sc?.current_stamps ?? 0)
+      setStampTotal(sc?.total_stamps_required ?? null)
+      setRewardReady(!!sc?.is_completed && !sc?.reward_redeemed)
     }
     setLoading(false)
   }, [slug, supabase])
@@ -303,11 +308,11 @@ export default function RestaurantLandingPage() {
                 <div className="flex items-center gap-2">
                   <Star className="w-4 h-4" style={{ color: primaryColor }} />
                   <p className="text-white font-semibold text-sm">Stempelkarte</p>
-                  <span className="ml-auto text-white/40 text-xs">{stampCount} / {restaurant.stamp_card_total ?? 10}</span>
+                  <span className="ml-auto text-white/40 text-xs">{stampCount} / {stampTotal ?? restaurant.stamp_card_total ?? 10}</span>
                 </div>
                 {/* Stamp dots */}
                 <div className="flex flex-wrap gap-2">
-                  {Array.from({ length: restaurant.stamp_card_total ?? 10 }).map((_, i) => (
+                  {Array.from({ length: stampTotal ?? restaurant.stamp_card_total ?? 10 }).map((_, i) => (
                     <div key={i} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs transition-all ${
                       i < stampCount
                         ? 'text-white'
@@ -322,13 +327,23 @@ export default function RestaurantLandingPage() {
                     Belohnung: <span className="text-white/80 font-medium">{restaurant.stamp_card_reward}</span>
                   </p>
                 )}
-                <Link
-                  href={`/stempel?restaurant=${slug}`}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white"
-                  style={{ background: primaryColor }}
-                >
-                  📶 Stempel per Antippen sammeln
-                </Link>
+                {rewardReady ? (
+                  <Link
+                    href={`/stempel/belohnung?restaurant=${slug}`}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-[#1C1F1A]"
+                    style={{ background: '#E5B84C' }}
+                  >
+                    Karte voll: Belohnung einloesen
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/stempel?restaurant=${slug}`}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white"
+                    style={{ background: primaryColor }}
+                  >
+                    📶 Stempel per Antippen sammeln
+                  </Link>
+                )}
               </div>
             )}
 

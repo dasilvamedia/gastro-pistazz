@@ -146,6 +146,20 @@ export async function POST(request: Request) {
       location_distance_m = Math.round(2 * R * Math.asin(Math.sqrt(a)))
     }
 
+    // Permalink normalisieren, damit der Duplikat-Index (024) greift:
+    // Tracking-Parameter, Fragment und Slash am Ende weg, Host kleingeschrieben.
+    if (instagram_permalink) {
+      try {
+        const u = new URL(instagram_permalink.trim())
+        u.search = ''
+        u.hash = ''
+        u.hostname = u.hostname.toLowerCase()
+        instagram_permalink = u.toString().replace(/\/+$/, '')
+      } catch {
+        return NextResponse.json({ error: 'Der Link ist keine gueltige URL.' }, { status: 400 })
+      }
+    }
+
     const { data: submission, error: insertError } = await admin
       .from('story_submissions')
       .insert({
@@ -167,25 +181,33 @@ export async function POST(request: Request) {
       .single()
 
     if (insertError) {
+      if (insertError.code === '23505') {
+        return NextResponse.json({ error: 'Dieser Link wurde bereits eingereicht.' }, { status: 409 })
+      }
       console.error('Story submission insert error:', insertError)
       return NextResponse.json({ error: 'Failed to submit story' }, { status: 500 })
     }
 
     // Instagram-Verifikation triggern (URL-Match + oEmbed + dann AI-Analyse)
-    // Für nicht-Instagram-Typen direkt AI-Analyse triggern
+    // Für nicht-Instagram-Typen direkt AI-Analyse triggern.
+    // Beide Routen sind intern und verlangen das Shared Secret.
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
     const isInstagram = ['instagram_story', 'instagram_reel', 'instagram_post'].includes(type)
+    const internalHeaders = {
+      'Content-Type': 'application/json',
+      'x-internal-secret': process.env.INTERNAL_NOTIFY_SECRET ?? '',
+    }
 
     if (isInstagram) {
       fetch(`${baseUrl}/api/stories/ig-verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders,
         body: JSON.stringify({ submission_id: submission.id }),
       }).catch(err => console.error('IG verify trigger error:', err))
     } else {
       fetch(`${baseUrl}/api/stories/ai-analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders,
         body: JSON.stringify({ submission_id: submission.id }),
       }).catch(err => console.error('AI analyze trigger error:', err))
     }

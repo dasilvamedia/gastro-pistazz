@@ -171,7 +171,11 @@ export default function ProfilPage() {
         <MenuCard
           emoji="🃏"
           label="Stempelkarten"
-          sub={`${stampCards.filter(s => !s.is_completed).length} aktiv`}
+          sub={
+            stampCards.some(s => s.is_completed && !s.reward_redeemed)
+              ? `${stampCards.filter(s => s.is_completed && !s.reward_redeemed).length} Belohnung bereit`
+              : `${stampCards.filter(s => !s.is_completed).length} aktiv`
+          }
           onClick={() => router.push('/entdecken')}
         />
         <MenuCard emoji="📊" label="Punkte-Verlauf" onClick={() => router.push('/profil/punkte')} />

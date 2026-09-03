@@ -1,49 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: resolve which restaurant the current session should see.
-// Super-admins may impersonate any restaurant via the
-// `impersonate_restaurant_id` cookie (set by the admin UI).
-// ─────────────────────────────────────────────────────────────────────────────
-async function resolveRestaurant(userId: string) {
-  const admin = createAdminClient()
-
-  // Check super_admin role
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .single()
-
-  const isSuperAdmin = profile?.role === 'super_admin'
-
-  // Check impersonation cookie (set client-side by admin restaurant list)
-  const cookieStore = await cookies()
-  const impersonateCookie = cookieStore.get('impersonate_restaurant_id')?.value
-
-  if (isSuperAdmin && impersonateCookie) {
-    // Return impersonated restaurant
-    const { data: restaurant } = await admin
-      .from('restaurants')
-      .select('*')
-      .eq('id', impersonateCookie)
-      .single()
-    return { restaurant, isSuperAdmin, impersonatedId: impersonateCookie }
-  }
-
-  // Normal restaurant owner: find by owner_id
-  const { data: restaurant } = await admin
-    .from('restaurants')
-    .select('*')
-    .eq('owner_id', userId)
-    .single()
-
-  return { restaurant, isSuperAdmin, impersonatedId: null }
-}
+import { resolveRestaurant } from '@/lib/dashboard/resolveRestaurant'
 
 // ─── GET ─────────────────────────────────────────────────────────────────────
 export async function GET() {

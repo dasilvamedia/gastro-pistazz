@@ -70,6 +70,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // /redeem/[code]: Restaurant scannt den Gast-QR. Ohne Session zum
+  // Restaurant-Login und danach zurueck zum Code.
+  if (path.startsWith('/redeem') && !user) {
+    const url = new URL('/restaurant-login', request.url)
+    url.searchParams.set('next', path)
+    return NextResponse.redirect(url)
+  }
+
   // Protected /dashboard/* — restaurant_owner or super_admin
   if (path.startsWith('/dashboard')) {
     if (!user) return NextResponse.redirect(new URL('/login', request.url))

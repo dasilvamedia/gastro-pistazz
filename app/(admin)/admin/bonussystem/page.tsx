@@ -195,7 +195,8 @@ export default function BonussystemPage() {
       trigger: form.trigger,
       status: 'active' as const,
       reward_type: 'custom' as const,
-      reward_value: form.points_reward,
+      reward_value: String(form.points_reward),
+      // Bonus-Deals werden verdient, nicht gekauft: 0 Punkte noetig ist korrekt
       points_required: 0,
       badge_text: form.badge_text || null,
       image_url: form.image_url || null,

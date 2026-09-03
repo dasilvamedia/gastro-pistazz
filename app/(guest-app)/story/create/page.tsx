@@ -373,22 +373,6 @@ async function setupPush() {
   } catch { /* silently skip if unsupported */ }
 }
 
-
-async function sendPushNotification(userId: string) {
-  try {
-    await fetch('/api/push/send', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        user_id: userId,
-        title:   '📸 Story eingereicht!',
-        body:    'Zur Gutschrift deiner Bonuspunkte wird deine Story geprüft, meist in wenigen Stunden.',
-        url:     '/home',
-      }),
-    })
-  } catch { /* non-critical */ }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Sticker overlay — draggable + pinch-resizable + double-tap for color
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1704,7 +1688,6 @@ function StoryCreateInner() {
     const res = await fetch('/api/stories/submit', { method: 'POST', body: form })
     if (res.ok) {
       setPointsEarned(restaurant.points_per_story ?? 500)
-      await sendPushNotification(user.id)
     }
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { StorySubmission, SubmissionStatus, TRIGGER_CONFIG } from '@/types'
@@ -22,79 +22,106 @@ function timeAgo(date: string) {
   return `vor ${Math.floor(diff / 86400)} Tagen`
 }
 
-type StoryWithUser = StorySubmission & {
+type StoryWithUser = Omit<StorySubmission, 'restaurant'> & {
   user: { full_name: string | null; instagram_handle: string | null } | null
+  restaurant: { id: string; name: string } | null
 }
 
+// Plattformweite Story-Pruefung fuer den Super-Admin: alle Restaurants,
+// filterbar. Genehmigen/Ablehnen laeuft ueber die Verify-API (Audit-Trail,
+// Idempotenz, Punkte-Trigger), nie per Direkt-Update.
 export default function StoriesPage() {
   const supabase = createClient()
-  const [restaurantId, setRestaurantId] = useState<string | null>(null)
   const [stories, setStories] = useState<StoryWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('pending')
+  const [restaurantFilter, setRestaurantFilter] = useState<string>('alle')
   const [rejectId, setRejectId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  const fetchStories = useCallback(async (rid: string) => {
+  const fetchStories = useCallback(async () => {
     const { data } = await supabase
       .from('story_submissions')
-      .select('*, user:profiles(full_name, instagram_handle)')
-      .eq('restaurant_id', rid)
+      .select('*, user:profiles(full_name, instagram_handle), restaurant:restaurants(id, name)')
       .order('created_at', { ascending: false })
+      .limit(500)
     setStories((data ?? []) as StoryWithUser[])
     setLoading(false)
   }, [supabase])
 
   useEffect(() => {
     if (IS_MOCK_MODE) {
-      setStories(MOCK_STORIES.map(s => ({ ...s, user: (s as any).user ?? null })) as StoryWithUser[])
+      setStories(MOCK_STORIES.map(s => ({ ...s, user: (s as { user?: StoryWithUser['user'] }).user ?? null, restaurant: null })) as unknown as StoryWithUser[])
       setLoading(false)
       return
     }
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: rest } = await supabase.from('restaurants').select('id').eq('owner_id', user.id).single()
-      if (rest) { setRestaurantId(rest.id); fetchStories(rest.id) }
-    })
-  }, [fetchStories, supabase])
+    fetchStories()
+  }, [fetchStories])
 
   useEffect(() => {
-    if (!restaurantId) return
+    if (IS_MOCK_MODE) return
     const channel = supabase
-      .channel('story_submissions')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'story_submissions', filter: `restaurant_id=eq.${restaurantId}` },
-        () => fetchStories(restaurantId))
+      .channel('admin_story_submissions')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'story_submissions' }, () => fetchStories())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [restaurantId, fetchStories, supabase])
+  }, [fetchStories, supabase])
+
+  const verify = async (id: string, action: 'approve' | 'reject', reason?: string) => {
+    const res = await fetch('/api/stories/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submission_id: id, action, rejection_reason: reason || undefined }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error ?? 'Fehler bei der Pruefung')
+      return false
+    }
+    return true
+  }
 
   const approve = async (id: string) => {
-    const { error } = await supabase.from('story_submissions').update({ status: 'approved', verified_at: new Date().toISOString() }).eq('id', id)
-    if (error) { toast.error('Fehler'); return }
+    if (!(await verify(id, 'approve'))) return
     setStories(prev => prev.map(s => s.id === id ? { ...s, status: 'approved' } : s))
     toast.success('Story genehmigt')
   }
 
   const reject = async () => {
     if (!rejectId) return
-    const { error } = await supabase.from('story_submissions').update({ status: 'rejected', rejection_reason: rejectReason }).eq('id', rejectId)
-    if (error) { toast.error('Fehler'); return }
-    setStories(prev => prev.map(s => s.id === rejectId ? { ...s, status: 'rejected' } : s))
+    if (!(await verify(rejectId, 'reject', rejectReason))) return
+    setStories(prev => prev.map(s => s.id === rejectId ? { ...s, status: 'rejected', rejection_reason: rejectReason } : s))
     setRejectId(null)
     setRejectReason('')
     toast.success('Story abgelehnt')
   }
 
-  const filtered = stories.filter(s => s.status === tab)
+  const restaurants = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of stories) if (s.restaurant) map.set(s.restaurant.id, s.restaurant.name)
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'))
+  }, [stories])
+
+  const filtered = stories.filter(s =>
+    s.status === tab && (restaurantFilter === 'alle' || s.restaurant?.id === restaurantFilter)
+  )
   const pendingCount = stories.filter(s => s.status === 'pending').length
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-[#1C1F1A]">Story-Prüfung</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-[#1C1F1A]">Story-Pruefung</h1>
         {pendingCount > 0 && (
           <span className="bg-[#E86B5A] text-white text-sm px-2.5 py-0.5 rounded-full font-medium">{pendingCount}</span>
         )}
+        <select
+          value={restaurantFilter}
+          onChange={e => setRestaurantFilter(e.target.value)}
+          className="ml-auto px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white"
+        >
+          <option value="alle">Alle Restaurants</option>
+          {restaurants.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
       </div>
 
       <div className="flex gap-2 border-b border-gray-200">
@@ -130,6 +157,11 @@ export default function StoriesPage() {
                   <span className="absolute top-2 left-2 text-xs bg-white/90 px-2 py-0.5 rounded-full font-medium">
                     {trigger?.emoji} {trigger?.label ?? story.type}
                   </span>
+                  {story.restaurant && (
+                    <span className="absolute bottom-2 left-2 text-xs bg-[#1C1F1A]/80 text-white px-2 py-0.5 rounded-full font-medium truncate max-w-[80%]">
+                      {story.restaurant.name}
+                    </span>
+                  )}
                 </div>
                 <div className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
@@ -146,7 +178,7 @@ export default function StoriesPage() {
                   <div className="flex items-center justify-between text-xs text-gray-400">
                     <span>{timeAgo(story.created_at)}</span>
                     <span className="bg-[#EEF5E6] text-[#6D9450] px-2 py-0.5 rounded-full font-medium">
-                      +{story.points_awarded} Punkte
+                      {story.status === 'approved' ? `+${story.points_awarded} Punkte` : 'Punkte nach Freigabe'}
                     </span>
                   </div>
                   {story.instagram_permalink && (

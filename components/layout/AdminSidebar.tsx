@@ -8,12 +8,13 @@ import { useSubscription } from '@/lib/hooks/useSubscription'
 import {
   LayoutDashboard, ImageIcon, Users, MessageSquare, BarChart3,
   Store, Star, Settings, LogOut, Gift, Building2, FileText,
-  UserCog, QrCode, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Menu, X,
+  UserCog, QrCode, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Menu, X, ScanLine,
 } from 'lucide-react'
 
 const ownerNavItems = [
   { href: '/dashboard',               label: 'Dashboard',         icon: LayoutDashboard },
   { href: '/dashboard/deals',         label: 'Deals',             icon: Gift },
+  { href: '/dashboard/einloesen',     label: 'Einloesen',         icon: ScanLine },
   { href: '/dashboard/stories',       label: 'Stories prüfen',    icon: ImageIcon },
   { href: '/dashboard/kunden',        label: 'Kunden',            icon: Users },
   { href: '/dashboard/nachrichten',   label: 'Nachrichten',       icon: MessageSquare },
@@ -31,6 +32,8 @@ const superAdminNavItems = [
   { href: '/admin/leads',         label: 'Leads & CRM',   icon: Users },
   { href: '/admin/angebote',      label: 'Angebote',      icon: FileText },
   { href: '/admin/accounts',      label: 'Accounts',      icon: UserCog },
+  { href: '/admin/stories',       label: 'Story-Pruefung', icon: ImageIcon },
+  { href: '/admin/stempelkarte',  label: 'Stempelkarten', icon: Star },
   { href: '/admin/analytics',     label: 'Analytics',     icon: BarChart3 },
   { href: '/admin/einstellungen', label: 'Einstellungen', icon: Settings },
 ]

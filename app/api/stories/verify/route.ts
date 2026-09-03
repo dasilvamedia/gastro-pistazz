@@ -41,7 +41,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    if (profile.role !== 'restaurant_owner' && profile.role !== 'admin') {
+    // super_admin ist die echte Plattform-Rolle (Migration 002); 'admin' bleibt
+    // aus Kompatibilitaet erlaubt. Ownership wird nur fuer Inhaber geprueft.
+    const ALLOWED_ROLES = ['restaurant_owner', 'admin', 'super_admin']
+    if (!ALLOWED_ROLES.includes(profile.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

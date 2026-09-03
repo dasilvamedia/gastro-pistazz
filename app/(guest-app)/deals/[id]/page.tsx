@@ -1,113 +1,17 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, X, AlertTriangle, Clock } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
+import { AnimatePresence } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Deal } from '@/types'
-import { TRIGGER_CONFIG, RESTAURANT_TYPE_LABELS } from '@/types'
+import { TRIGGER_CONFIG } from '@/types'
 import { MOCK_DEALS, IS_MOCK_MODE } from '@/lib/mock-data'
+import { RedemptionModal } from '@/components/guest/RedemptionModal'
 
-function formatTime(s: number) {
-  const m = Math.floor(s / 60)
-  const sec = s % 60
-  return `${m}:${sec.toString().padStart(2, '0')}`
-}
-
-function RedemptionModal({
-  deal,
-  code,
-  expiresAt,
-  onClose,
-}: {
-  deal: Deal
-  code: string
-  expiresAt: Date
-  onClose: () => void
-}) {
-  const [secondsLeft, setSecondsLeft] = useState(() =>
-    Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000))
-  )
-
-  useEffect(() => {
-    if (secondsLeft <= 0) return
-    const t = setInterval(() => {
-      setSecondsLeft(s => Math.max(0, s - 1))
-    }, 1000)
-    return () => clearInterval(t)
-  }, [secondsLeft])
-
-  const qrValue = `https://gastro.pistazz.io/redeem/${code}`
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/60 flex items-end"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 25 }}
-        onClick={e => e.stopPropagation()}
-        className="w-full bg-white rounded-t-3xl p-6 pb-10 max-h-[90vh] overflow-y-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-[#1C1F1A]">Deal einlösen</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#EEF5E6] flex items-center justify-center">
-            <X size={16} className="text-[#6D9450]" />
-          </button>
-        </div>
-
-        {/* Warning */}
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 flex gap-3">
-          <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-amber-800 font-bold text-sm mb-1">Wichtig! ⚠️</p>
-            <p className="text-amber-700 text-sm">
-              Sage dem Kellner VOR dem Bestellen Bescheid, dass du diesen Deal nutzen möchtest.
-            </p>
-          </div>
-        </div>
-
-        {/* QR Code */}
-        <div className="flex justify-center mb-4">
-          <div className="bg-white p-4 rounded-2xl shadow border border-[#EEF5E6]">
-            <QRCodeSVG value={qrValue} size={180} fgColor="#1C1F1A" />
-          </div>
-        </div>
-
-        {/* Code */}
-        <div className="bg-[#EEF5E6] rounded-2xl p-4 text-center mb-4">
-          <p className="text-[#6D9450] text-xs mb-1">Dein Code</p>
-          <p className="text-[#1C1F1A] text-2xl font-bold tracking-widest font-mono">{code}</p>
-        </div>
-
-        {/* Timer */}
-        <div className={`flex items-center justify-center gap-2 mb-4 ${secondsLeft < 60 ? 'text-[#E86B5A]' : 'text-[#6D9450]'}`}>
-          <Clock size={16} />
-          <span className="font-bold">{formatTime(secondsLeft)}</span>
-          <span className="text-sm">verbleibend</span>
-        </div>
-
-        {/* Status */}
-        <div className={`flex items-center justify-center gap-2 py-3 rounded-2xl ${
-          secondsLeft > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-        }`}>
-          <span className="font-semibold text-sm">
-            {secondsLeft > 0 ? 'Deal ist aktiv ✅' : 'Deal abgelaufen ❌'}
-          </span>
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
+type ActiveCode = { id: string; code: string; expiresAt: Date }
 
 export default function DealDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -116,7 +20,26 @@ export default function DealDetailPage() {
   const [deal, setDeal] = useState<Deal | null>(null)
   const [loading, setLoading] = useState(true)
   const [redeeming, setRedeeming] = useState(false)
-  const [modal, setModal] = useState<{ code: string; expiresAt: Date } | null>(null)
+  // Bereits laufender Code fuer diesen Deal (sonst wuerde ein zweiter Tap
+  // mit "bereits eingeloest" scheitern und wie ein Fehler wirken)
+  const [existing, setExisting] = useState<ActiveCode | null>(null)
+  const [modal, setModal] = useState<ActiveCode | null>(null)
+
+  const loadExisting = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('deal_redemptions')
+      .select('id, redemption_code, expires_at')
+      .eq('deal_id', id)
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .order('redeemed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    setExisting(data ? { id: data.id, code: data.redemption_code, expiresAt: new Date(data.expires_at) } : null)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -133,6 +56,7 @@ export default function DealDetailPage() {
           .single()
         if (error) throw error
         setDeal(data)
+        await loadExisting()
       } catch {
         toast.error('Deal nicht gefunden')
         router.back()
@@ -153,10 +77,12 @@ export default function DealDetailPage() {
         .subscribe()
       return () => { supabase.removeChannel(channel) }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const handleRedeem = async () => {
     if (!deal) return
+    if (existing) { setModal(existing); return }
     setRedeeming(true)
     try {
       const res = await fetch('/api/deals/redeem', {
@@ -164,15 +90,19 @@ export default function DealDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deal_id: deal.id }),
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error ?? 'Fehler beim Einlösen')
-      }
       const data = await res.json()
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-      setModal({ code: data.redemption_code, expiresAt })
-    } catch (e: any) {
-      toast.error(e.message ?? 'Fehler beim Einlösen')
+      if (!res.ok) {
+        if (data.code === 'user_limit_reached') await loadExisting()
+        throw new Error(data.error ?? 'Fehler beim Einloesen')
+      }
+      const active = { id: data.redemption_id, code: data.redemption_code, expiresAt: new Date(data.expires_at) }
+      setExisting(active)
+      setModal(active)
+      if (data.points_spent > 0) {
+        toast.success(`${data.points_spent} Punkte eingesetzt. Neuer Stand: ${data.available_points}`)
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Fehler beim Einloesen')
     } finally {
       setRedeeming(false)
     }
@@ -198,7 +128,6 @@ export default function DealDetailPage() {
   return (
     <>
       <div className="min-h-screen bg-[#EEF5E6] pb-24">
-        {/* Header image */}
         <div
           className="relative h-56 w-full flex items-end p-4 overflow-hidden"
           style={!deal.image_url ? {
@@ -232,7 +161,7 @@ export default function DealDetailPage() {
                 onClick={() => router.push(`/restaurant/${deal.restaurant_id}`)}
                 className="text-[#6D9450] font-medium text-sm underline"
               >
-                {(deal.restaurant as any).name}
+                {deal.restaurant.name}
               </button>
             )}
           </div>
@@ -256,7 +185,7 @@ export default function DealDetailPage() {
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🏆</span>
                 <div>
-                  <p className="text-[#1C1F1A] font-semibold text-sm">Punkte benötigt</p>
+                  <p className="text-[#1C1F1A] font-semibold text-sm">Punkte benoetigt</p>
                   <p className="text-[#6D9450] text-sm">{deal.points_required} Punkte</p>
                 </div>
               </div>
@@ -265,7 +194,7 @@ export default function DealDetailPage() {
               <div className="flex items-center gap-3">
                 <span className="text-2xl">📅</span>
                 <div>
-                  <p className="text-[#1C1F1A] font-semibold text-sm">Gültig bis</p>
+                  <p className="text-[#1C1F1A] font-semibold text-sm">Gueltig bis</p>
                   <p className="text-[#6D9450] text-sm">
                     {new Date(deal.valid_until).toLocaleDateString('de-DE')}
                   </p>
@@ -279,18 +208,26 @@ export default function DealDetailPage() {
             disabled={redeeming}
             className="w-full gradient-primary text-white font-bold py-4 rounded-2xl text-lg shadow-lg disabled:opacity-60"
           >
-            {redeeming ? 'Wird eingelöst...' : 'Deal einlösen 💳'}
+            {redeeming ? 'Wird eingeloest...' : existing ? 'Code anzeigen' : 'Deal einloesen'}
           </button>
+          {existing && (
+            <p className="text-center text-[#6D9450] text-xs">
+              Du hast einen laufenden Code fuer diesen Deal. Zeige ihn dem Personal.
+            </p>
+          )}
         </div>
       </div>
 
       <AnimatePresence initial={false}>
         {modal && (
           <RedemptionModal
-            deal={deal}
+            kind="deal"
+            title={deal.title}
             code={modal.code}
             expiresAt={modal.expiresAt}
+            redemptionId={modal.id}
             onClose={() => setModal(null)}
+            onRedeemed={() => setExisting(null)}
           />
         )}
       </AnimatePresence>

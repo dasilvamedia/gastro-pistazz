@@ -12,8 +12,10 @@ type ScanState = 'idle' | 'scanning' | 'not_supported' | 'success' | 'error'
 
 interface TapResult {
   restaurant_name: string | null
+  restaurant_slug: string | null
   reward: string | null
-  card: { current_stamps: number; total_stamps_required: number; is_completed: boolean } | null
+  reward_code: string | null
+  card: { current_stamps: number; total_stamps_required: number; is_completed: boolean; reward_code?: string | null } | null
 }
 
 // Web NFC (NDEFReader) deckt Android/Chrome ab. iOS braucht das native
@@ -68,13 +70,15 @@ function StempelInner() {
       const data = await res.json()
       if (!res.ok) {
         if (data.error === 'cooldown') {
-          toast.error(`Schon gestempelt! Nächster Stempel in bis zu ${data.cooldownHours}h möglich.`)
+          toast.error(`Schon gestempelt! Naechster Stempel in bis zu ${data.cooldownHours} Stunden moeglich.`)
         } else if (data.error === 'unknown_tag') {
           toast.error('Dieser Tag ist noch nicht registriert. Das Restaurant muss ihn im Dashboard hinzufügen.')
         } else if (data.error === 'stamp_card_disabled') {
           toast.error('Die Stempelkarte ist bei diesem Restaurant gerade nicht aktiv.')
         } else if (data.error === 'card_already_complete') {
-          toast.error('Deine Karte ist schon voll. Löse deine Belohnung ein!')
+          // Keine Sackgasse: direkt zur Belohnung mit QR + Code
+          router.replace(`/stempel/belohnung?restaurant=${encodeURIComponent(data.restaurant_slug ?? slug)}`)
+          return
         } else if (data.error === 'unauthorized') {
           toast.error('Bitte zuerst anmelden.')
         } else {
@@ -145,8 +149,9 @@ function StempelInner() {
           <CheckCircle className="w-14 h-14 text-[#8BB06A]" />
         </div>
         <div>
+          {result.restaurant_name && <p className="text-white/60 text-sm mb-1">{result.restaurant_name}</p>}
           <h1 className="text-3xl font-bold text-white mb-2">
-            {card?.is_completed ? 'Karte voll! 🎉' : 'Gestempelt! ✨'}
+            {card?.is_completed ? 'Karte voll! Gratulation' : 'Gestempelt!'}
           </h1>
           <p className="text-white/70 text-sm">
             {card?.is_completed
@@ -155,13 +160,37 @@ function StempelInner() {
           </p>
         </div>
         {card && (
-          <div className="w-full max-w-xs bg-white/10 rounded-full h-3 overflow-hidden">
-            <div className="h-full bg-[#8BB06A] transition-all duration-700" style={{ width: `${percent}%` }} />
+          <div className="w-full max-w-xs">
+            <div className="flex justify-center gap-2 flex-wrap mb-3">
+              {Array.from({ length: card.total_stamps_required }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-500 ${
+                    i < card.current_stamps ? 'bg-[#8BB06A] border-[#8BB06A] text-white' : 'border-white/30 text-transparent'
+                  }`}
+                  style={i === card.current_stamps - 1 ? { transform: 'scale(1.15)', boxShadow: '0 0 0 6px rgba(139,176,106,0.25)' } : undefined}
+                >
+                  ✓
+                </span>
+              ))}
+            </div>
+            <div className="bg-white/10 rounded-full h-3 overflow-hidden">
+              <div className="h-full bg-[#8BB06A] transition-all duration-700" style={{ width: `${percent}%` }} />
+            </div>
           </div>
         )}
-        <button onClick={() => router.push('/profil')} className="mt-2 gradient-primary text-white font-bold px-8 py-3 rounded-2xl text-base">
-          Zurück zur App
-        </button>
+        {card?.is_completed ? (
+          <button
+            onClick={() => router.push(`/stempel/belohnung?restaurant=${encodeURIComponent(result.restaurant_slug ?? slug)}`)}
+            className="mt-2 gradient-primary text-white font-bold px-8 py-3.5 rounded-2xl text-base"
+          >
+            Belohnung einloesen
+          </button>
+        ) : (
+          <button onClick={() => router.push('/profil')} className="mt-2 gradient-primary text-white font-bold px-8 py-3 rounded-2xl text-base">
+            Zurueck zur App
+          </button>
+        )}
       </div>
     )
   }

@@ -24,13 +24,19 @@ const DAYS: { key: string; label: string }[] = [
 ]
 
 function StampProgress({ card, restaurant, onStamp }: { card: StampCard | null; restaurant: Restaurant; onStamp: () => void }) {
+  const router = useRouter()
   if (!restaurant.stamp_card_enabled) return null
-  const total = restaurant.stamp_card_total || 10
+  // Zielwert aus dem Snapshot der Karte, damit eine laufende Karte nicht
+  // springt, wenn das Restaurant die Einstellung aendert
+  const total = card?.total_stamps_required ?? restaurant.stamp_card_total ?? 10
   const current = card?.current_stamps ?? 0
+  const rewardReady = !!card?.is_completed && !card?.reward_redeemed
   return (
     <div className="bg-white rounded-2xl p-4 border border-[#EEF5E6]">
       <h3 className="text-[#1C1F1A] font-bold mb-1">Stempelkarte 🃏</h3>
-      <p className="text-[#6D9450] text-sm mb-3">{current} von {total} Stempeln gesammelt</p>
+      <p className="text-[#6D9450] text-sm mb-3">
+        {rewardReady ? 'Karte voll, deine Belohnung wartet' : `${current} von ${total} Stempeln gesammelt`}
+      </p>
       <div className="flex flex-wrap gap-2 mb-3">
         {Array.from({ length: total }).map((_, i) => (
           <div
@@ -51,7 +57,14 @@ function StampProgress({ card, restaurant, onStamp }: { card: StampCard | null; 
         </p>
       )}
       {/* NFC-Stempeln - gleiche Funktion wie auf der dunklen /r/[slug]-Ansicht */}
-      {restaurant.slug && (
+      {rewardReady ? (
+        <button
+          onClick={() => router.push(`/stempel/belohnung?restaurant=${encodeURIComponent(restaurant.slug)}`)}
+          className="mt-3 w-full flex items-center justify-center gap-2 bg-[#E5B84C] text-[#1C1F1A] font-bold py-3 rounded-xl text-sm"
+        >
+          Belohnung einloesen
+        </button>
+      ) : restaurant.slug && (
         <button
           onClick={onStamp}
           className="mt-3 w-full flex items-center justify-center gap-2 gradient-primary text-white font-semibold py-3 rounded-xl text-sm"

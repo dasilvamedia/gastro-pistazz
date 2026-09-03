@@ -151,10 +151,12 @@ function StempelkarteContent() {
         setStampTotal(rest.stamp_card_total || 8)
         setReward(rest.stamp_card_reward ?? '')
 
+        // Aktiv = laufende Karten, Abgeschlossen = volle Karten mit offener
+        // Belohnung, Eingeloest = bestaetigte Belohnungen (stamp_reward_claims)
         const [activeRes, completedRes, redeemedRes] = await Promise.all([
           supabase.from('stamp_cards').select('id', { count: 'exact', head: true }).eq('restaurant_id', rest.id).eq('is_completed', false),
-          supabase.from('stamp_cards').select('id', { count: 'exact', head: true }).eq('restaurant_id', rest.id).eq('is_completed', true),
-          supabase.from('stamp_cards').select('id', { count: 'exact', head: true }).eq('restaurant_id', rest.id).eq('reward_redeemed', true),
+          supabase.from('stamp_cards').select('id', { count: 'exact', head: true }).eq('restaurant_id', rest.id).eq('is_completed', true).eq('reward_redeemed', false),
+          supabase.from('stamp_reward_claims').select('id', { count: 'exact', head: true }).eq('restaurant_id', rest.id),
         ])
         setStats({ active: activeRes.count ?? 0, completed: completedRes.count ?? 0, redeemed: redeemedRes.count ?? 0 })
       }
@@ -162,15 +164,21 @@ function StempelkarteContent() {
     }).catch(() => setLoading(false))
   }, [supabase])
 
+  // Ueber die API (Service-Role, Ownership-Check, Cache-Invalidierung), nicht
+  // per Anon-Key direkt in die Tabelle
   const save = async () => {
     if (!restaurant) return
     setSaving(true)
-    const { error } = await supabase.from('restaurants').update({
-      stamp_card_enabled: enabled,
-      stamp_card_total: stampTotal,
-      stamp_card_reward: reward,
-    }).eq('id', restaurant.id)
-    if (error) toast.error('Fehler beim Speichern')
+    const res = await fetch('/api/dashboard/restaurant', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stamp_card_enabled: enabled,
+        stamp_card_total: stampTotal,
+        stamp_card_reward: reward,
+      }),
+    })
+    if (!res.ok) toast.error('Fehler beim Speichern')
     else toast.success('Stempelkarte gespeichert')
     setSaving(false)
   }

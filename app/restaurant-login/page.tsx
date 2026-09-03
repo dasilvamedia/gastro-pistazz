@@ -1,13 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, UtensilsCrossed, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
+// Nur eigene Pfade als Ziel erlauben (z.B. /redeem/CODE nach dem QR-Scan)
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/dashboard'
+  return raw
+}
+
 export default function RestaurantLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <RestaurantLoginInner />
+    </Suspense>
+  )
+}
+
+function RestaurantLoginInner() {
   const router = useRouter()
+  const nextPath = safeNext(useSearchParams().get('next'))
   const [slug, setSlug] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
@@ -47,7 +62,7 @@ export default function RestaurantLoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push(nextPath)
   }
 
   return (

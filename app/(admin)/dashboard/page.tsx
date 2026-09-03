@@ -70,12 +70,13 @@ export default function DashboardPage() {
         .eq('restaurant_id', rid).order('created_at', { ascending: false }).limit(10),
       supabase.from('stamp_cards').select('id', { count: 'exact', head: true })
         .eq('restaurant_id', rid),
-      supabase.from('points_transactions').select('points')
-        .eq('restaurant_id', rid).gte('created_at', weekAgo),
+      // Spalte heisst 'amount'; nur vergebene Punkte zaehlen (nicht Abzug/Refund)
+      supabase.from('points_transactions').select('amount')
+        .eq('restaurant_id', rid).in('type', ['earned', 'bonus']).gte('created_at', weekAgo),
     ])
 
     const totalReach = (reachRes.data ?? []).reduce((s: number, r: { reach: number }) => s + (r.reach || 0), 0)
-    const totalPoints = (pointsRes.data ?? []).reduce((s: number, r: { points: number }) => s + (r.points || 0), 0)
+    const totalPoints = (pointsRes.data ?? []).reduce((s: number, r: { amount: number }) => s + (r.amount || 0), 0)
 
     setKpi({
       storiesCount: storiesRes.count ?? 0,

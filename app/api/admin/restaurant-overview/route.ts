@@ -39,10 +39,10 @@ export async function GET(request: NextRequest) {
       admin.from('deal_redemptions').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       admin.from('stamp_cards').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       admin.from('story_submissions').select('id, status, created_at, reach, user:profiles(full_name)').eq('restaurant_id', restaurantId).order('created_at', { ascending: false }).limit(5),
-      admin.from('points_transactions').select('points').eq('restaurant_id', restaurantId).gte('created_at', weekAgo),
+      admin.from('points_transactions').select('amount').eq('restaurant_id', restaurantId).in('type', ['earned', 'bonus']).gte('created_at', weekAgo),
     ])
 
-    const totalPoints = (pointsData ?? []).reduce((s: number, r: { points: number }) => s + (r.points || 0), 0)
+    const totalPoints = (pointsData ?? []).reduce((s: number, r: { amount: number }) => s + (r.amount || 0), 0)
     const pendingStories = (recentStories ?? []).filter((s: { status: string }) => s.status === 'pending').length
 
     return NextResponse.json({

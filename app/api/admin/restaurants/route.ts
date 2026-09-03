@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -18,7 +19,7 @@ export async function GET() {
 
   const { data, error } = await auth.admin
     .from('restaurants')
-    .select('id, slug, name, type, city, total_stories, total_customers, is_active, is_verified, owner_id, owner:profiles!owner_id(full_name)')
+    .select('id, slug, name, type, city, total_stories, total_customers, is_active, is_verified, owner_id, stamp_card_enabled, stamp_card_total, stamp_card_reward, owner:profiles!owner_id(full_name)')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -34,19 +35,37 @@ export async function GET() {
   return NextResponse.json({ restaurants })
 }
 
+// Schnelle Schalter aus den Admin-Listen (Aktiv, Stempelkarte). Der volle
+// Editor laeuft ueber /api/admin/restaurants/[id].
+const patchSchema = z.object({
+  id: z.string().uuid(),
+  is_active: z.boolean().optional(),
+  stamp_card_enabled: z.boolean().optional(),
+  stamp_card_total: z.number().int().min(1).max(20).optional(),
+  stamp_card_reward: z.string().max(120).nullable().optional(),
+})
+
 export async function PATCH(request: NextRequest) {
   const auth = await assertSuperAdmin()
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await request.json()
-  const { id, is_active } = body
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+  const parsed = patchSchema.safeParse(await request.json())
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Ungueltige Eingabe', details: parsed.error.flatten() }, { status: 400 })
+  }
+  const { id, ...fields } = parsed.data
+  const update = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined))
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'Nichts zu aendern' }, { status: 400 })
+  }
 
-  const { error } = await auth.admin
+  const { data, error } = await auth.admin
     .from('restaurants')
-    .update({ is_active })
+    .update(update)
     .eq('id', id)
+    .select('id, is_active, stamp_card_enabled, stamp_card_total, stamp_card_reward')
+    .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, restaurant: data })
 }

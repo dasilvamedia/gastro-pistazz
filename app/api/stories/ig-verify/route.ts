@@ -41,6 +41,13 @@ async function checkOEmbed(permalink: string): Promise<{ exists: boolean; author
 
 export async function POST(request: Request) {
   try {
+    // Nur intern aufrufbar (Server -> Server). Ohne diesen Guard konnte jeder
+    // die Pruefergebnisse beliebiger Einreichungen ueberschreiben.
+    const secret = process.env.INTERNAL_NOTIFY_SECRET
+    if (!secret || request.headers.get('x-internal-secret') !== secret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { submission_id } = await request.json()
     if (!submission_id) {
       return NextResponse.json({ error: 'submission_id required' }, { status: 400 })
@@ -107,7 +114,7 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
     fetch(`${baseUrl}/api/stories/ai-analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
       body: JSON.stringify({ submission_id }),
     }).catch(err => console.error('AI analyze trigger error:', err))
 

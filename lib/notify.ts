@@ -1,6 +1,9 @@
 /**
  * Sendet eine interne Benachrichtigung an info@pistazz.io.
- * Schlägt still fehl — der Nutzer-Flow wird nie geblockt.
+ * Schlaegt still fehl, der Nutzer-Flow wird nie geblockt.
+ *
+ * Laeuft im Browser direkt nach der Registrierung. Die Route prueft die
+ * Supabase-Session des Aufrufers (kein Shared Secret im Client-Bundle).
  */
 export async function notifyNewUser(params: {
   email:  string
@@ -15,13 +18,8 @@ export async function notifyNewUser(params: {
 
     await fetch(`${base}/api/notify/new-user`, {
       method:  'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_NOTIFY_SECRET
-                             ?? process.env.INTERNAL_NOTIFY_SECRET
-                             ?? 'pistazz-internal',
-      },
-      body: JSON.stringify(params),
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(params),
     })
   } catch {
     // nie kritisch

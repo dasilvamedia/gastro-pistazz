@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
+import { createClient } from '@/lib/supabase/server'
 
 // All-Inkl SMTP (w01c832d)
 const transporter = nodemailer.createTransport({
@@ -15,17 +16,29 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request: NextRequest) {
   try {
-    // Einfache interne Absicherung
+    // Zwei erlaubte Aufrufer: Server-intern per Shared Secret oder der frisch
+    // registrierte Nutzer selbst (Browser mit Supabase-Session). Im zweiten
+    // Fall zaehlt die E-Mail aus der Session, nicht aus dem Body.
     const secret = request.headers.get('x-internal-secret')
     const expectedSecret = process.env.INTERNAL_NOTIFY_SECRET
-    if (!expectedSecret || secret !== expectedSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const internal = !!expectedSecret && secret === expectedSecret
 
-    const { email, name, method } = await request.json() as {
+    const body = await request.json() as {
       email:  string
       name:   string | null
       method: string
+    }
+    const { method } = body
+    let { email, name } = body
+
+    if (!internal) {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      email = user.email
+      name = name ?? (user.user_metadata?.full_name as string | undefined) ?? null
     }
 
     const methodLabel: Record<string, string> = {

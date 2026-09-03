@@ -1,4 +1,4 @@
-export type UserRole = 'guest' | 'restaurant_owner' | 'admin'
+export type UserRole = 'guest' | 'restaurant_owner' | 'admin' | 'super_admin'
 export type UserTier = 'bronze' | 'silber' | 'gold' | 'platin'
 export type RestaurantType = 'restaurant' | 'bar' | 'bistro' | 'cafe' | 'imbiss' | 'food_truck' | 'hotel' | 'fine_dining' | 'biergarten' | 'eisdiele'
 export type DealTrigger = 'instagram_story' | 'instagram_reel' | 'instagram_post' | 'google_review' | 'receipt_upload' | 'stamp_card' | 'custom'
@@ -119,6 +119,8 @@ export interface DealRedemption {
   used_at: string | null
   expires_at: string | null
   redemption_code: string
+  confirmed_by?: string | null
+  refunded_at?: string | null
 }
 
 export interface StorySubmission {
@@ -169,6 +171,9 @@ export interface StampCard {
   is_completed: boolean
   completed_at: string | null
   reward_redeemed: boolean
+  reward_code?: string | null
+  reward_redeemed_at?: string | null
+  completed_count?: number
   created_at: string
   updated_at: string
 }

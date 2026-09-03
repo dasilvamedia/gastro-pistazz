@@ -246,6 +246,13 @@ async function callClaudeStructured(systemPrompt: string, contentBlocks: unknown
 
 export async function POST(request: Request) {
   try {
+    // Nur intern aufrufbar (Server -> Server). Ohne diesen Guard konnte jeder
+    // ai_verdict / ig_checks beliebiger Einreichungen setzen.
+    const secret = process.env.INTERNAL_NOTIFY_SECRET
+    if (!secret || request.headers.get('x-internal-secret') !== secret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { submission_id } = await request.json()
     if (!submission_id) return NextResponse.json({ error: 'submission_id required' }, { status: 400 })
 
