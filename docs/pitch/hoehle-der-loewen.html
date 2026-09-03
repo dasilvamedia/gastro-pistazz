@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>gastro.pistazz.io, Pitch</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "DM Sans", "Helvetica Neue", Arial, sans-serif; color: #1C1F1A; margin: 0; font-size: 12.5px; line-height: 1.5; }
+  .page { page-break-after: always; padding: 4mm 0; min-height: 250mm; position: relative; }
+  .page:last-child { page-break-after: auto; }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; margin: 0 0 10px; letter-spacing: -0.01em; }
+  h1 { font-size: 40px; line-height: 1.05; }
+  h2 { font-size: 26px; line-height: 1.15; }
+  h3 { font-size: 16px; margin-bottom: 6px; }
+  .kicker { font-family: "DM Mono", Menlo, monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: #577A3D; margin-bottom: 10px; }
+  .green { color: #577A3D; } .muted { color: rgba(28,31,26,0.6); }
+  .cover { background: #1C1F1A; color: #fff; padding: 22mm 16mm; min-height: 250mm; border-radius: 8px; }
+  .cover h1 { font-size: 46px; color: #fff; margin-top: 60mm; }
+  .cover .kicker { color: #A7C48D; }
+  .cover p { color: rgba(255,255,255,0.7); font-size: 14px; max-width: 120mm; }
+  .cover .brand { font-family: Georgia, serif; font-size: 22px; } .cover .brand b { color: #8BB06A; font-weight: 400; }
+  .grid { display: flex; gap: 12px; } .grid > div { flex: 1; }
+  .card { background: #F8FAF5; border: 1px solid #E2EDD6; border-radius: 10px; padding: 12px 14px; }
+  .card.dark { background: #1C1F1A; color: #fff; border-color: #1C1F1A; } .card.dark .muted { color: rgba(255,255,255,0.6); }
+  .big { font-family: Georgia, serif; font-size: 30px; line-height: 1; margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 11.5px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #E2EDD6; vertical-align: top; }
+  th { font-family: "DM Mono", Menlo, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(28,31,26,0.55); }
+  tr.hl td { background: #EEF5E6; font-weight: 600; }
+  .bar { display: flex; align-items: flex-end; gap: 10px; height: 120px; margin: 10px 0 4px; }
+  .bar div { flex: 1; background: #D4E8C2; border-radius: 6px 6px 0 0; position: relative; }
+  .bar div.b { background: #8BB06A; } .bar div span { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: 10px; font-family: "DM Mono", Menlo, monospace; }
+  .bar-labels { display: flex; gap: 10px; } .bar-labels span { flex: 1; text-align: center; font-size: 10px; color: rgba(28,31,26,0.55); }
+  ul { padding-left: 18px; margin: 6px 0; } li { margin: 3px 0; }
+  .pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #EEF5E6; color: #3D7A22; font-weight: 600; margin-right: 4px; }
+  .foot { position: absolute; bottom: 0; left: 0; right: 0; font-family: "DM Mono", Menlo, monospace; font-size: 9px; color: rgba(28,31,26,0.45); display: flex; justify-content: space-between; }
+  .note { font-size: 10.5px; color: rgba(28,31,26,0.55); }
+</style>
+</head>
+<body>
+
+<!-- 01 Cover -->
+<div class="page cover">
+  <div class="brand"><b>gastro</b>.pistazz.io</div>
+  <div class="kicker" style="margin-top:12mm">Pitch, Die Hoehle der Loewen</div>
+  <h1>Jeder Gast wird zum Werbekanal.<br>Jeder Besuch zum Stammgast.</h1>
+  <p>Die Loyalty-App fuer Restaurants: Gaeste posten Instagram-Stories, sammeln Punkte und Stempel per NFC-Tap und loesen Belohnungen ein. Restaurants bekommen Reichweite, Daten und Wiederkehr, ohne Werbebudget.</p>
+  <p style="margin-top:30mm">Marcio Da Silva, Gruender<br>September 2026, live im App Store</p>
+</div>
+
+<!-- 02 Problem -->
+<div class="page">
+  <div class="kicker">01 / Das Problem</div>
+  <h2>Restaurants zahlen fuer Reichweite, die nicht bleibt.</h2>
+  <div class="grid" style="margin-top:14px">
+    <div class="card"><div class="muted">Google Ads, pro neuem Gast</div><div class="big">€ 187,50</div><div class="note">1.500 € Budget, 8 neue Gaeste</div></div>
+    <div class="card"><div class="muted">Plakate, pro neuem Gast</div><div class="big">€ 200</div><div class="note">800 € Budget, 4 neue Gaeste</div></div>
+    <div class="card"><div class="muted">Lokale Influencer</div><div class="big">€ 50</div><div class="note">600 € Budget, 12 neue Gaeste</div></div>
+  </div>
+  <ul style="margin-top:16px">
+    <li><b>180.000 Gastronomiebetriebe</b> in Deutschland, die meisten ohne Marketing-Team und ohne eigene Kundendaten.</li>
+    <li>Die wertvollste Werbung machen die Gaeste bereits selbst: Fotos vom Essen, Stories vom Abend. Nur landet davon nichts beim Restaurant.</li>
+    <li>Papier-Stempelkarten gehen verloren, Bewertungsportale bringen Sterne, aber keine Wiederkehr.</li>
+    <li>Das Restaurant weiss nicht, wer seine Stammgaeste sind, und kann sie nicht erreichen.</li>
+  </ul>
+  <div class="foot"><span>gastro.pistazz.io</span><span>02</span></div>
+</div>
+
+<!-- 03 Loesung -->
+<div class="page">
+  <div class="kicker">02 / Die Loesung</div>
+  <h2>Eine App, drei Bewegungen.</h2>
+  <div class="grid" style="margin-top:14px">
+    <div class="card"><h3>1. Posten</h3><p>Der Gast teilt eine Instagram-Story, ein Reel oder eine Google-Bewertung ueber das Restaurant. Kassenbon und Standort sichern ab, eine KI (Claude Vision) prueft den Beitrag. Punkte werden gutgeschrieben.</p></div>
+    <div class="card"><h3>2. Stempeln</h3><p>Handy an den NFC-Tag am Tresen: ein Stempel, Konfetti, fertig. Kein Foto, kein Link, kein Kartenverlust. Volle Karte: QR-Code zeigen, Belohnung abholen, neue Karte startet.</p></div>
+    <div class="card"><h3>3. Einloesen</h3><p>Punkte werden zu Deals: Dessert, Drink, Rabatt. Der Gast zeigt den Code, das Restaurant bestaetigt mit einem Tap. Beides atomar und betrugssicher in der Datenbank.</p></div>
+  </div>
+  <h3 style="margin-top:18px">Fuer das Restaurant</h3>
+  <ul>
+    <li>Dashboard auf dem Handy: Stories freigeben, Deals anlegen, Einloesungen bestaetigen, Kunden-CRM, Analytics.</li>
+    <li>Push-Nachrichten an die eigenen Gaeste nach Segmenten (inaktiv, Stempelkarte fast voll, Gold-Gaeste).</li>
+    <li>Kein Computer, kein Agentur-Briefing, kein Werbebudget. Einrichtung in einem Termin.</li>
+  </ul>
+  <div class="foot"><span>gastro.pistazz.io</span><span>03</span></div>
+</div>
+
+<!-- 04 Produkt & Stand -->
+<div class="page">
+  <div class="kicker">03 / Produkt und Stand</div>
+  <h2>Live im App Store. Nicht Powerpoint.</h2>
+  <div class="grid" style="margin-top:14px">
+    <div class="card dark"><div class="muted">Status</div><div class="big" style="font-size:22px">iOS live</div><div class="muted">Bundle io.pistazz.gastro, Android im Closed Test</div></div>
+    <div class="card"><div class="muted">Native Kamera</div><div class="big" style="font-size:22px">Stories in-App</div><div class="note">Stabilisierung, Filter, Instagram-Sticker</div></div>
+    <div class="card"><div class="muted">Anti-Betrug</div><div class="big" style="font-size:22px">KI + Beleg + GPS</div><div class="note">Serverseitig, nicht manipulierbar</div></div>
+  </div>
+  <table>
+    <tr><th>Baustein</th><th>Stand</th></tr>
+    <tr><td>Punkte fuer Story, Reel, Post, Google-Bewertung, Kassenbon</td><td><span class="pill">live</span></td></tr>
+    <tr><td>NFC-Stempelkarte mit Belohnungs-Code und Reset</td><td><span class="pill">live</span></td></tr>
+    <tr><td>Deals einloesen mit 30-Minuten-Code, Restaurant bestaetigt, automatische Rueckerstattung</td><td><span class="pill">live</span></td></tr>
+    <tr><td>Umkreissuche mit Slider, Kueche- und Ernaehrungs-Filter, Favoriten-Swipe</td><td><span class="pill">live</span></td></tr>
+    <tr><td>Restaurant-Dashboard mobil, Super-Admin mobil, 1-Klick-Anlage neuer Restaurants</td><td><span class="pill">live</span></td></tr>
+    <tr><td>Push-Benachrichtigungen (APNs) und Kampagnen nach Segmenten</td><td><span class="pill">Build 20</span></td></tr>
+    <tr><td>Multi-Standort, White-Label, API (Enterprise)</td><td><span class="pill" style="background:#F3F4F6;color:#6B7280">Roadmap</span></td></tr>
+  </table>
+  <p class="note">Technik: Next.js, Supabase (Postgres, Realtime, Auth), Capacitor iOS, Claude Vision. Alles serverseitig aktualisierbar, Restaurants gehen ohne App-Update live.</p>
+  <div class="foot"><span>gastro.pistazz.io</span><span>04</span></div>
+</div>
+
+<!-- 05 Geschaeftsmodell -->
+<div class="page">
+  <div class="kicker">04 / Geschaeftsmodell</div>
+  <h2>Setup plus Abo. Planbar fuer beide Seiten.</h2>
+  <table>
+    <tr><th>Paket</th><th>Monatlich</th><th>Setup einmalig</th><th>Enthaelt</th></tr>
+    <tr><td><b>Professional</b><br><span class="note">Der Einstieg</span></td><td>49 €</td><td>849 €</td><td>Instagram Story/Reel/Post mit Punkten, Google-Booster, Kassenbon mit KI-Pruefung, 5 Deals, 3 QR-Codes, App-Sichtbarkeit, CRM bis 1.000 Gaeste, Onboarding, Druck-Starterpaket</td></tr>
+    <tr class="hl"><td><b>Premium</b><br><span class="note">Bestseller</span></td><td>109 €</td><td>1.500 €</td><td>Alles aus Professional, unbegrenzte Deals/QR, NFC-Stempelkarte inkl. 10 Tags, Analytics, CRM ohne Limit, Gaeste-Nachrichten und Push, Instagram-Erkennung, Featured-Platzierung, Druckpaket, Team-Schulung, WhatsApp-Support</td></tr>
+    <tr><td><b>Enterprise</b><br><span class="note">Fuer Marktfuehrer</span></td><td>169 €</td><td>2.349 €</td><td>Alles aus Premium, Multi-Standort, White-Label, API und Integrationen, Account-Manager, Onboarding vor Ort, Quartals-Workshop, 24/7 Support</td></tr>
+  </table>
+  <div class="grid">
+    <div class="card"><div class="muted">Ø Umsatz je Restaurant</div><div class="big">79 €/Monat</div><div class="note">Mix 60 / 30 / 10 Prozent</div></div>
+    <div class="card"><div class="muted">Ø Setup je Restaurant</div><div class="big">1.194 €</div><div class="note">Finanziert Onboarding, Druck, NFC-Tags am Tag 1</div></div>
+    <div class="card"><div class="muted">Laufende Kosten</div><div class="big">~150 €/Monat</div><div class="note">Bruttomarge ueber 90 Prozent</div></div>
+  </div>
+  <p class="note" style="margin-top:10px">30 Tage kostenlos testen, danach 30-Tage-Garantie: mindestens 10 neue Gaeste oder Geld zurueck. Die Setup-Gebuehr bindet, die Mechanik haelt: wer eine volle Stempelkarte gesehen hat, kuendigt nicht.</p>
+  <div class="foot"><span>gastro.pistazz.io</span><span>05</span></div>
+</div>
+
+<!-- 06 Zahlen -->
+<div class="page">
+  <div class="kicker">05 / Zahlen</div>
+  <h2>MRR und ARR, drei Tempi.</h2>
+  <p class="note">Annahmen: 30 Tage Test, zahlend ab Monat 2, 75 Prozent Konversion, Ø 79 € Monat und 1.194 € Setup je Restaurant, kein Churn im ersten Jahr (ab Jahr 2 mit 2 Prozent pro Monat gerechnet).</p>
+  <table>
+    <tr><th>Monat</th><th>Konservativ (3/Monat)</th><th>Realistisch (6/Monat)</th><th>Basis (11/Monat)</th></tr>
+    <tr><td>3</td><td>6 Kunden, MRR 474 €, kum. 7.875 €</td><td>12 Kunden, MRR 948 €, kum. 15.750 €</td><td><b>22 Kunden, MRR 1.738 €, ARR 20.856 €, kum. 28.875 €</b></td></tr>
+    <tr><td>6</td><td>15 Kunden, MRR 1.185 €, kum. 21.465 €</td><td>30 Kunden, MRR 2.370 €, kum. 42.930 €</td><td><b>55 Kunden, MRR 4.345 €, ARR 52.140 €, kum. 78.705 €</b></td></tr>
+    <tr class="hl"><td>12</td><td>33 Kunden, MRR 2.607 €, kum. 55.044 €</td><td>66 Kunden, MRR 5.214 €, kum. 110.088 €</td><td>121 Kunden, MRR 9.559 €, ARR 114.708 €, kum. 201.828 €</td></tr>
+  </table>
+  <h3>MRR Basis-Szenario, Monat 1 bis 12 (in €)</h3>
+  <div class="bar">
+    <div style="height:0%"><span>0</span></div>
+    <div style="height:9%"><span>869</span></div>
+    <div style="height:18%"><span>1.738</span></div>
+    <div style="height:27%"><span>2.607</span></div>
+    <div style="height:36%"><span>3.476</span></div>
+    <div class="b" style="height:45%"><span>4.345</span></div>
+    <div style="height:55%"><span>5.214</span></div>
+    <div style="height:64%"><span>6.083</span></div>
+    <div style="height:73%"><span>6.952</span></div>
+    <div style="height:82%"><span>7.821</span></div>
+    <div style="height:91%"><span>8.690</span></div>
+    <div class="b" style="height:100%"><span>9.559</span></div>
+  </div>
+  <div class="bar-labels"><span>M1</span><span>M2</span><span>M3</span><span>M4</span><span>M5</span><span>M6</span><span>M7</span><span>M8</span><span>M9</span><span>M10</span><span>M11</span><span>M12</span></div>
+  <div class="grid" style="margin-top:14px">
+    <div class="card"><div class="muted">50 zahlende Kunden</div><div class="big" style="font-size:22px">Monat 5 bis 6</div></div>
+    <div class="card"><div class="muted">200.000 € kumuliert</div><div class="big" style="font-size:22px">Monat 12</div></div>
+    <div class="card"><div class="muted">1 Mio € kumuliert</div><div class="big" style="font-size:22px">Monat ~36</div></div>
+  </div>
+  <div class="foot"><span>gastro.pistazz.io</span><span>06</span></div>
+</div>
+
+<!-- 07 Markt -->
+<div class="page">
+  <div class="kicker">06 / Markt</div>
+  <h2>180.000 Betriebe. Ein Kanal, den noch niemand bedient.</h2>
+  <div class="grid" style="margin-top:14px">
+    <div class="card dark"><div class="muted">Gastrobetriebe Deutschland</div><div class="big">180.000</div></div>
+    <div class="card"><div class="muted">davon mit aktivem Instagram-Fokus</div><div class="big">~60.000</div><div class="note">Restaurants, Bars, Cafes in Staedten ab 20.000 Einwohnern</div></div>
+    <div class="card"><div class="muted">Bei 79 € Ø je Betrieb</div><div class="big">57 Mio €</div><div class="note">jaehrlich erreichbarer Markt (SAM), plus Setup</div></div>
+  </div>
+  <h3 style="margin-top:18px">Warum jetzt</h3>
+  <ul>
+    <li>Gaeste posten sowieso. Instagram ist fuer Gastronomie der wichtigste Entdeckungskanal geworden, aber die Restaurants sehen nichts davon.</li>
+    <li>NFC ist in jedem Smartphone. Tap statt Scan, ohne App-Zwang fuer den Erstkontakt (Universal Links).</li>
+    <li>KI-Pruefung macht Belohnungen fuer Beitraege erst betrugssicher und damit skalierbar.</li>
+    <li>DACH zuerst, dann Portugal und Spanien (App ist bereits dreisprachig angelegt).</li>
+  </ul>
+  <h3>Wettbewerb</h3>
+  <table>
+    <tr><th>Anbieter</th><th>Fokus</th><th>Was fehlt</th></tr>
+    <tr><td>Digitale Stempelkarten (z.B. Stempel-Apps, Wallet-Karten)</td><td>Wiederkehr</td><td>Keine Reichweite, keine Content-Belohnung, kein CRM</td></tr>
+    <tr><td>Influencer-Plattformen</td><td>Reichweite</td><td>Teuer, einmalig, keine Bindung der echten Gaeste</td></tr>
+    <tr><td>Bewertungsportale</td><td>Sterne</td><td>Kein Kanal zurueck zum Gast</td></tr>
+    <tr class="hl"><td>gastro.pistazz.io</td><td>Reichweite + Wiederkehr + Daten</td><td>Die drei Bewegungen in einer App, am Handy des Wirts bedienbar</td></tr>
+  </table>
+  <div class="foot"><span>gastro.pistazz.io</span><span>07</span></div>
+</div>
+
+<!-- 08 Traction & Vertrieb -->
+<div class="page">
+  <div class="kicker">07 / Traction und Vertrieb</div>
+  <h2>Von der Strasse in die App.</h2>
+  <ul>
+    <li>App live im App Store, Android im Closed Test, Restaurants in Aalen, Heidenheim und Stuttgart als erste Partner.</li>
+    <li>Landing, Onboarding, Druckmaterial, NFC-Tags: alles fertig fuer den 30-Tage-Gratis-Start.</li>
+    <li>Vertrieb heute: direkt vor Ort. 3 Besuche am Tag, 25 Prozent starten den Test, 75 Prozent bleiben.</li>
+  </ul>
+  <h3>Der Weg zu 11 Neukunden pro Monat</h3>
+  <table>
+    <tr><th>Schritt</th><th>Kennzahl</th></tr>
+    <tr><td>Restaurantbesuche pro Monat</td><td>60 (3 pro Arbeitstag)</td></tr>
+    <tr><td>Testphasen gestartet</td><td>15 (25 Prozent)</td></tr>
+    <tr><td>Zahlende Kunden</td><td>11 (75 Prozent Konversion)</td></tr>
+    <tr><td>Ab Monat 4</td><td>Zweiter Verkaeufer auf Provision oder Partner (Kassensystem, Brauerei)</td></tr>
+  </table>
+  <h3>Hebel fuer 500k und 1 Mio ARR</h3>
+  <ul>
+    <li><b>Reseller</b>: Kassensystem-Anbieter, Brauereien, Getraende-Grosshaendler mit Zugang zu hunderten Betrieben.</li>
+    <li><b>Mehr Erloes pro Restaurant</b>: Push-Kontingente, gesponsertes Restaurant der Woche in Entdecken, Druck-Nachbestellung.</li>
+    <li><b>Zweite Vertikale</b>: Friseure, Fitness, Einzelhandel mit identischer Mechanik (pistazz-Familie).</li>
+  </ul>
+  <div class="foot"><span>gastro.pistazz.io</span><span>08</span></div>
+</div>
+
+<!-- 09 Team & Ask -->
+<div class="page">
+  <div class="kicker">08 / Team und Ask</div>
+  <h2>Gebaut, nicht geplant.</h2>
+  <div class="card" style="margin-top:14px">
+    <h3>Marcio Da Silva, Gruender</h3>
+    <p>Hat das Produkt allein bis in den App Store gebracht: native Kamera, NFC, KI-Pruefung, Dashboard, Landing. Kennt die Gastronomie von innen und den Vertrieb von der Strasse.</p>
+  </div>
+  <div class="grid" style="margin-top:14px">
+    <div class="card dark">
+      <div class="muted">Der Ask (Vorschlag, anpassen)</div>
+      <div class="big">250.000 €</div>
+      <div class="muted">fuer 12,5 Prozent</div>
+    </div>
+    <div class="card">
+      <div class="muted">Mittelverwendung</div>
+      <ul style="margin-top:4px">
+        <li>50 Prozent Vertrieb: 2 Verkaeufer, Messen, Reseller-Programm</li>
+        <li>25 Prozent Produkt: Android-Push, Multi-Standort, White-Label, API</li>
+        <li>15 Prozent Marketing: Launch-Kampagne 30 Tage gratis, Referenz-Videos</li>
+        <li>10 Prozent Betrieb: Server, Support, Reserve</li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top:16px">Was ein Loewe mitbringen sollte</h3>
+  <ul>
+    <li>Zugang zu Gastronomie-Netzwerken (Ketten, Brauereien, Kassensysteme).</li>
+    <li>Erfahrung mit Abo-Modellen im Mittelstand.</li>
+    <li>Reichweite fuer den Launch: Die Gaeste-Seite waechst mit jedem Restaurant automatisch.</li>
+  </ul>
+  <p class="note" style="margin-top:20px">Kontakt: info@pistazz.io, gastro.pistazz.io</p>
+  <div class="foot"><span>gastro.pistazz.io</span><span>09</span></div>
+</div>
+
+</body>
+</html>

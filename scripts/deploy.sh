@@ -30,6 +30,10 @@ fi
 for a in $SIDE_APPS_STOP; do pm2 stop "$a" >/dev/null 2>&1 || true; done
 pkill -f jest-worker >/dev/null 2>&1 || true
 
+# Abhaengigkeiten auf den Stand der package-lock bringen (neue Pakete wie
+# apns2 oder @capacitor/push-notifications sonst "Module not found")
+npm install --no-audit --no-fund --prefer-offline
+
 rollback() {
   echo "Build fehlgeschlagen, stelle vorherige .next wieder her." >&2
   if [ -d .next.prev ]; then rm -rf .next && mv .next.prev .next; fi
