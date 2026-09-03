@@ -1,16 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Deal } from '@/types'
 import DealForm from '@/components/admin/DealForm'
 
-interface Props {
-  params: { id: string }
-}
-
-export default function EditDealPage({ params }: Props) {
+export default function EditDealPage() {
+  const { id } = useParams<{ id: string }>()
   const supabase = createClient()
   const [deal, setDeal] = useState<Deal | null>(null)
   const [restaurantId, setRestaurantId] = useState<string | null>(null)
@@ -25,14 +23,14 @@ export default function EditDealPage({ params }: Props) {
         const { data } = await supabase
           .from('deals')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', id)
           .eq('restaurant_id', rest.id)
           .single()
         setDeal(data ?? null)
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [params.id])
+  }, [id])
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">

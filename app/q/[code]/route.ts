@@ -17,9 +17,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
-  const code = (params.code ?? '').toUpperCase().trim()
+  const { code: rawCode } = await params
+  const code = (rawCode ?? '').toUpperCase().trim()
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gastro.pistazz.io'
 
   if (!code) return NextResponse.redirect(base, { status: 302 })
