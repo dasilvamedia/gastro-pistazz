@@ -25,8 +25,10 @@ const schema = z.object({
   restaurant_id: z.string().optional(),
   title: z.string().min(1, 'Titel ist erforderlich'),
   description: z.string().optional(),
-  monthly_fee: z.number().min(0, 'Ungültiger Preis'),
-  setup_fee: z.number().min(0, 'Ungültiger Preis'),
+  // coerce: <input type="number"> liefert einen String; z.number() wuerde
+  // beim manuellen Tippen scheitern und "Angebot erstellen" still blockieren.
+  monthly_fee: z.coerce.number().min(0, 'Ungültiger Preis'),
+  setup_fee: z.coerce.number().min(0, 'Ungültiger Preis'),
   features: z.array(z.string()),
   valid_until: z.string().optional(),
   notes: z.string().optional(),

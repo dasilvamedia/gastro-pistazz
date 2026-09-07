@@ -1780,6 +1780,17 @@ function StoryCreateInner() {
     setSubmitting(false)
   }
 
+  // Vor dem Punkte-Anfordern sichergehen, dass die Tags wirklich in der Story
+  // sind. Sonst merkt der Gast erst nach dem Posten, dass es keine Punkte gibt.
+  const confirmTagsThenSubmit = () => {
+    const igTag = restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null
+    const tagList = [igTag, '@gastro.pistazz.io'].filter(Boolean).join(' und ')
+    const ok = window.confirm(
+      `Hast du ${tagList} in deiner Story markiert?\n\nWichtig: in der Vorschlagsliste den Account antippen, nicht nur eintippen. Ohne beide Tags gibt es keine Punkte.`,
+    )
+    if (ok) router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
+  }
+
   const retake = () => {
     setCapturedSrc(null); setTextBlocks([]); setStickerPos({ x: 0.5, y: 0.78, scale: 1.0 })
     if (exportedBlobUrl) { URL.revokeObjectURL(exportedBlobUrl); setExportedBlobUrl(null) }
@@ -1899,7 +1910,7 @@ function StoryCreateInner() {
           </button>
 
           <button
-            onClick={() => router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)}
+            onClick={confirmTagsThenSubmit}
             className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
           >
             <CheckCircle className="w-5 h-5" />Geteilt? Punkte anfordern
@@ -2069,7 +2080,7 @@ function StoryCreateInner() {
             <span className="text-white/70 text-lg">›</span>
           </button>
           <button
-            onClick={() => router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)}
+            onClick={confirmTagsThenSubmit}
             className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base flex items-center justify-center gap-2"
           >
             <CheckCircle className="w-5 h-5" />Geteilt? Punkte anfordern

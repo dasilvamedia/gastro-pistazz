@@ -25,47 +25,34 @@ export async function GET() {
 
     const admin = createAdminClient()
 
-    // Alle Auth-User der letzten 60 Tage
+    // Kuerzlich registrierte Nutzer der letzten 60 Tage direkt aus profiles
+    // (skaliert; listUsers haette nur die erste 1000er-Seite gesehen).
     const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    const { data: recentProfiles } = await admin
+      .from('profiles')
+      .select('id, full_name, email, created_at, auth_provider')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(500)
 
-    // Nur kürzlich registrierte filtern
-    const recentUsers = authUsers.filter(u => u.created_at > since)
+    if (!recentProfiles?.length) return NextResponse.json({ users: [], restaurantId })
 
-    if (!recentUsers.length) return NextResponse.json({ users: [] })
-
-    // Alle visits für dieses Restaurant laden
+    // Bereits mit diesem Restaurant verknuepfte Nutzer
     const { data: existingVisits } = await admin
       .from('visits')
       .select('user_id')
       .eq('restaurant_id', restaurantId)
-
     const linkedIds = new Set((existingVisits ?? []).map(v => v.user_id))
 
-    // Profile für diese User laden
-    const recentIds = recentUsers.map(u => u.id)
-    const { data: profiles } = await admin
-      .from('profiles')
-      .select('id, full_name, email, created_at')
-      .in('id', recentIds)
-
-    const profileMap = new Map((profiles ?? []).map(p => [p.id, p]))
-
-    // Nicht verknüpfte User — mit Provider-Info
-    const unlinked = recentUsers
-      .filter(u => !linkedIds.has(u.id))
-      .map(u => {
-        const profile = profileMap.get(u.id)
-        const provider = u.app_metadata?.provider ?? u.identities?.[0]?.provider ?? 'email'
-        return {
-          id: u.id,
-          email: u.email ?? profile?.email ?? '',
-          name: profile?.full_name ?? u.user_metadata?.full_name ?? u.user_metadata?.name ?? null,
-          provider,
-          created_at: u.created_at,
-        }
-      })
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    const unlinked = recentProfiles
+      .filter(p => !linkedIds.has(p.id))
+      .map(p => ({
+        id: p.id,
+        email: p.email ?? '',
+        name: p.full_name ?? null,
+        provider: p.auth_provider ?? 'email',
+        created_at: p.created_at,
+      }))
 
     return NextResponse.json({ users: unlinked, restaurantId })
   } catch (err) {

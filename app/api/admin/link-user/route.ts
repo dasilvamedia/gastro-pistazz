@@ -36,9 +36,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!profile) {
-      // Auch in auth.users suchen (falls E-Mail nur dort gespeichert ist)
-      const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-      const authUser = users.find(u => u.email?.toLowerCase() === email.trim().toLowerCase())
+      // Auch in auth.users suchen (falls E-Mail nur dort gespeichert ist).
+      // Paginieren, sonst wird bei > 1000 Nutzern jenseits der ersten Seite
+      // nichts gefunden.
+      const needle = email.trim().toLowerCase()
+      let authUser: { id: string; email?: string; user_metadata?: { full_name?: string; name?: string } } | null = null
+      for (let page = 1; page <= 60 && !authUser; page++) {
+        const { data } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+        const list = data?.users ?? []
+        authUser = list.find(u => u.email?.toLowerCase() === needle) ?? null
+        if (list.length < 1000) break
+      }
       if (!authUser) return NextResponse.json({ error: 'Nutzer nicht gefunden' }, { status: 404 })
 
       // Profil ggf. anlegen
