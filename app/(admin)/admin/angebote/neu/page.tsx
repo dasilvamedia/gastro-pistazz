@@ -25,10 +25,8 @@ const schema = z.object({
   restaurant_id: z.string().optional(),
   title: z.string().min(1, 'Titel ist erforderlich'),
   description: z.string().optional(),
-  // coerce: <input type="number"> liefert einen String; z.number() wuerde
-  // beim manuellen Tippen scheitern und "Angebot erstellen" still blockieren.
-  monthly_fee: z.coerce.number().min(0, 'Ungültiger Preis'),
-  setup_fee: z.coerce.number().min(0, 'Ungültiger Preis'),
+  monthly_fee: z.number().min(0, 'Ungültiger Preis'),
+  setup_fee: z.number().min(0, 'Ungültiger Preis'),
   features: z.array(z.string()),
   valid_until: z.string().optional(),
   notes: z.string().optional(),
@@ -280,7 +278,7 @@ function NeuesAngebotForm() {
               <input
                 type="number"
                 step="0.01"
-                {...register('monthly_fee')}
+                {...register('monthly_fee', { valueAsNumber: true })}
                 className={inputCls}
               />
               {errors.monthly_fee && <p className={errorCls}>{errors.monthly_fee.message}</p>}
@@ -290,7 +288,7 @@ function NeuesAngebotForm() {
               <input
                 type="number"
                 step="0.01"
-                {...register('setup_fee')}
+                {...register('setup_fee', { valueAsNumber: true })}
                 className={inputCls}
               />
               {errors.setup_fee && <p className={errorCls}>{errors.setup_fee.message}</p>}
