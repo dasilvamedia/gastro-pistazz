@@ -157,9 +157,10 @@ export default function EinstellungenPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      await supabase.from('profiles').update({
+      const { error } = await supabase.from('profiles').update({
         google_profile_url: googleProfileUrl || null,
       } as Record<string, unknown>).eq('id', user.id)
+      if (error) throw error
       toast.success('Google-Konto gespeichert ✓')
     } catch {
       toast.error('Fehler beim Speichern')
