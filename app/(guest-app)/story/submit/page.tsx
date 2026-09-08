@@ -114,10 +114,12 @@ function StorySubmitInner() {
   const step2Valid = () => {
     if (!selectedType) return false
     if (selectedType === 'instagram_story') {
-      // Story: Link-Check + Kassenbon sind Pflicht (Betrugsschutz: der Kassenbon
-      // beweist, dass die Person gerade wirklich vor Ort ist). Screenshot ist
-      // optional, Standort wird automatisch beim Kassenbon-Upload miterfasst.
-      return link.trim().length > 0 && storyReceipt !== null
+      // Story: Screenshot + Kassenbon sind Pflicht. Der Screenshot zeigt Tags
+      // und Zeitstempel (prueft die KI), der Kassenbon beweist vor Ort.
+      // Der Story-Link ist bewusst weggefallen: fuer Gaeste schwer zu finden,
+      // laeuft nach 24 h ab und ist per oEmbed nicht pruefbar. Stattdessen
+      // serverseitig: max. 1 Story pro Restaurant pro Tag.
+      return screenshot !== null && storyReceipt !== null
     }
     if (selectedType === 'instagram_reel' || selectedType === 'instagram_post') {
       return link.trim().length > 0
@@ -141,7 +143,8 @@ function StorySubmitInner() {
     if (!selectedRestaurant || !selectedType) return
     if (!step2Valid()) {
       if (selectedType === 'receipt') toast.error('Bitte lade einen Beleg hoch')
-      else if (selectedType === 'instagram_story' && !storyReceipt) toast.error('Bitte lade zum Schluss noch deinen Kassenbon hoch')
+      else if (selectedType === 'instagram_story' && !storyReceipt) toast.error('Bitte lade noch deinen Kassenbon hoch')
+      else if (selectedType === 'instagram_story' && !screenshot) toast.error('Bitte lade einen Screenshot deiner Story hoch')
       else toast.error('Bitte füge einen Link ein')
       return
     }
@@ -335,7 +338,11 @@ function StorySubmitInner() {
                     <p className="text-green-800 font-bold text-sm">
                       {selectedType === 'instagram_reel' ? 'Reel geteilt!' : selectedType === 'instagram_post' ? 'Post geteilt!' : 'Story geteilt!'}
                     </p>
-                    <p className="text-green-700 text-xs">Gib jetzt den Instagram-Link ein, um deine Punkte zu erhalten.</p>
+                    <p className="text-green-700 text-xs">
+                      {selectedType === 'instagram_story'
+                        ? 'Nur noch zwei Fotos: Kassenbon und Story-Screenshot. Dann gehören die Punkte dir.'
+                        : 'Gib jetzt den Instagram-Link ein, um deine Punkte zu erhalten.'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -361,8 +368,9 @@ function StorySubmitInner() {
                 </div>
               )}
 
-              {/* Instagram: Anleitung + Copy-Buttons */}
-              {isInstagramType && (
+              {/* Instagram: Anleitung + Copy-Buttons — entfaellt, wenn die Story
+                  schon aus dem Kamera-Flow geteilt wurde (alles bereits erledigt) */}
+              {isInstagramType && !alreadyShared && (
                 <div className="bg-white rounded-2xl p-4 border border-[#D4E8C2] space-y-4">
                   <div className="flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#ig2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -388,11 +396,11 @@ function StorySubmitInner() {
                       </li>
                       <li className="flex items-start gap-2 text-xs text-[#6D7A6D]">
                         <span className="w-5 h-5 rounded-full bg-[#8BB06A] text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
-                        <span>Story erstellen &amp; teilen</span>
+                        <span>Story erstellen &amp; teilen, dann einen <strong>Screenshot deiner Story</strong> machen</span>
                       </li>
                       <li className="flex items-start gap-2 text-xs text-[#6D7A6D] bg-red-50 rounded-xl p-2 border border-red-100">
                         <span className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
-                        <span><strong className="text-red-700">Zum Schluss</strong> Kassenbon-Foto hochladen. Das bestätigt, dass du gerade wirklich vor Ort bist.</span>
+                        <span><strong className="text-red-700">Kassenbon-Foto</strong> und Screenshot unten hochladen. Der Kassenbon bestätigt, dass du gerade wirklich vor Ort bist.</span>
                       </li>
                     </>)}
                     {selectedType === 'instagram_reel' && (<>
@@ -517,21 +525,19 @@ function StorySubmitInner() {
                 </div>
               )}
 
-              {/* Instagram Link-Input */}
-              {isInstagramType && (
+              {/* Instagram Link-Input — nur Reel/Post. Fuer Stories entfaellt der
+                  Link (schwer zu finden, laeuft nach 24 h ab, nicht pruefbar);
+                  der Screenshot ist dort der Beweis. */}
+              {(selectedType === 'instagram_reel' || selectedType === 'instagram_post') && (
                 <div>
                   <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
-                    {selectedType === 'instagram_story' ? 'Link zu deiner Story *'
-                      : selectedType === 'instagram_reel' ? 'Link zu deinem Reel *'
-                      : 'Link zu deinem Post *'}
+                    {selectedType === 'instagram_reel' ? 'Link zu deinem Reel *' : 'Link zu deinem Post *'}
                   </label>
                   <input
                     value={link}
                     onChange={e => setLink(e.target.value)}
                     placeholder={
-                      selectedType === 'instagram_story'
-                        ? 'https://www.instagram.com/stories/dein_name/...'
-                        : selectedType === 'instagram_reel'
+                      selectedType === 'instagram_reel'
                         ? 'https://www.instagram.com/reel/...'
                         : 'https://www.instagram.com/dein_name/p/...'
                     }
@@ -546,57 +552,12 @@ function StorySubmitInner() {
                 </div>
               )}
 
-              {/* Screenshot-Upload — fuer Stories Pflicht, fuer Reels/Posts optional */}
-              {isInstagramType && (
-                <div>
-                  <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
-                    Screenshot{' '}
-                    <span className="text-[#8BB06A]/70 font-normal">(optional, erhöht die Chance auf sofortige Genehmigung)</span>
-                  </label>
-                  <p className="text-[#6D7A6D] text-xs mb-2">
-                    📱 iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.
-                  </p>
-                  <input
-                    type="file"
-                    ref={screenshotRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => setScreenshot(e.target.files?.[0] ?? null)}
-                  />
-                  <button
-                    onClick={() => screenshotRef.current?.click()}
-                    className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center gap-2 transition-all ${screenshot ? 'border-[#8BB06A] bg-[#EEF5E6]' : 'border-[#D4E8C2] bg-white'}`}
-                  >
-                    {screenshot ? (
-                      <>
-                        <CheckCircle size={28} className="text-[#8BB06A]" />
-                        <p className="text-[#6D9450] font-semibold text-sm">{screenshot.name}</p>
-                        <p className="text-[#8BB06A] text-xs">Tippen zum Ändern</p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={28} className="text-[#8BB06A]" />
-                        <p className="text-[#6D9450] font-semibold text-sm">Screenshot hochladen</p>
-                        <p className="text-[#8BB06A] text-xs">
-                          {selectedType === 'instagram_story'
-                            ? 'Zeige den Restaurant-Tag und den Timestamp'
-                            : 'Zeige deinen Beitrag mit Restaurantbezug'}
-                        </p>
-                      </>
-                    )}
-                  </button>
-                  {!screenshot && (
-                    <p className="text-[#8BB06A] text-xs mt-1">Mit Screenshot wird deine Story schneller und automatisch genehmigt.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Kassenbon fuer Stories — zusaetzlicher Betrugsschutz: beweist,
-                  dass du gerade wirklich vor Ort bist (nicht nur, dass du irgendwann gepostet hast) */}
+              {/* Kassenbon zuerst — der wichtigste Beweis (gerade vor Ort),
+                  danach der Story-Screenshot. Beides Pflicht fuer Stories. */}
               {selectedType === 'instagram_story' && (
                 <div>
                   <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
-                    Kassenbon <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span>
+                    1. Kassenbon <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span>
                   </label>
                   <p className="text-[#6D7A6D] text-xs mb-2">
                     Beweist, dass du gerade wirklich bei <strong>{selectedRestaurant?.name}</strong> bist. Dein Standort wird beim Hochladen automatisch mit übermittelt.
@@ -644,6 +605,59 @@ function StorySubmitInner() {
                 </div>
               )}
 
+              {/* Screenshot — fuer Stories Pflicht (zeigt Tags + Zeitstempel),
+                  fuer Reels/Posts optional */}
+              {isInstagramType && (
+                <div>
+                  <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
+                    {selectedType === 'instagram_story' ? (
+                      <>2. Story-Screenshot <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span></>
+                    ) : (
+                      <>Screenshot <span className="text-[#8BB06A]/70 font-normal">(optional, erhöht die Chance auf sofortige Genehmigung)</span></>
+                    )}
+                  </label>
+                  <p className="text-[#6D7A6D] text-xs mb-2">
+                    {selectedType === 'instagram_story'
+                      ? <>Öffne deine Story in Instagram, mach einen Screenshot und lade ihn hier hoch. Beide Tags und der Zeitstempel müssen sichtbar sein.</>
+                      : <>📱 iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.</>}
+                  </p>
+                  <input
+                    type="file"
+                    ref={screenshotRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => setScreenshot(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    onClick={() => screenshotRef.current?.click()}
+                    className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center gap-2 transition-all ${screenshot ? 'border-[#8BB06A] bg-[#EEF5E6]' : 'border-[#D4E8C2] bg-white'}`}
+                  >
+                    {screenshot ? (
+                      <>
+                        <CheckCircle size={28} className="text-[#8BB06A]" />
+                        <p className="text-[#6D9450] font-semibold text-sm">{screenshot.name}</p>
+                        <p className="text-[#8BB06A] text-xs">Tippen zum Ändern</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={28} className="text-[#8BB06A]" />
+                        <p className="text-[#6D9450] font-semibold text-sm">Screenshot hochladen</p>
+                        <p className="text-[#8BB06A] text-xs">
+                          {selectedType === 'instagram_story'
+                            ? 'Zeige beide Tags und den Zeitstempel'
+                            : 'Zeige deinen Beitrag mit Restaurantbezug'}
+                        </p>
+                      </>
+                    )}
+                  </button>
+                  {!screenshot && (
+                    selectedType === 'instagram_story'
+                      ? <p className="text-[#E86B5A] text-xs mt-1">Screenshot wird zur Verifizierung benötigt</p>
+                      : <p className="text-[#8BB06A] text-xs mt-1">Mit Screenshot wird dein Beitrag schneller und automatisch genehmigt.</p>
+                  )}
+                </div>
+              )}
+
               {/* Receipt upload */}
               {selectedType === 'receipt' && (
                 <div className="space-y-3">
@@ -687,7 +701,9 @@ function StorySubmitInner() {
                   <span className="text-base flex-shrink-0">✅</span>
                   <p className="text-[#577A3D] text-xs leading-relaxed">
                     {isInstagramType
-                      ? 'Link und Screenshot werden automatisch geprüft. Die Story muss aktuell sein (von heute) und das Restaurant getaggt haben.'
+                      ? selectedType === 'instagram_story'
+                        ? 'Kassenbon und Screenshot werden automatisch geprüft. Die Story muss von heute sein und beide Tags zeigen.'
+                        : 'Link und Screenshot werden automatisch geprüft. Der Beitrag muss aktuell sein und das Restaurant getaggt haben.'
                       : 'Der eingereichte Link wird zur Verifizierung benötigt. Nur echte Google-Bewertungen werden akzeptiert.'}
                   </p>
                 </div>

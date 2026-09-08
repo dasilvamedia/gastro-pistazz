@@ -1786,7 +1786,7 @@ function StoryCreateInner() {
     const igTag = restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null
     const tagList = [igTag, '@gastro.pistazz.io'].filter(Boolean).join(' und ')
     const ok = window.confirm(
-      `Hast du ${tagList} in deiner Story markiert?\n\nWichtig: in der Vorschlagsliste den Account antippen, nicht nur eintippen. Ohne beide Tags gibt es keine Punkte.`,
+      `Hast du ${tagList} in deiner Story markiert?\n\nWichtig: in der Vorschlagsliste den Account antippen, nicht nur eintippen. Ohne beide Tags gibt es keine Punkte.\n\nGleich brauchst du noch: einen Screenshot deiner Story und deinen Kassenbon.`,
     )
     if (ok) router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
   }
@@ -1877,6 +1877,9 @@ function StoryCreateInner() {
           </div>
           <p className="text-white/45 text-[11px] leading-snug text-center px-2">
             In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> und nicht nur eintippen, sonst zählt der Tag nicht.
+          </p>
+          <p className="text-[#E5B84C] text-[11px] leading-snug text-center px-2">
+            Für die Punkte brauchst du danach noch: 🧾 Kassenbon und 📸 Screenshot deiner Story.
           </p>
 
           {hasNativeIG ? (
@@ -2065,6 +2068,9 @@ function StoryCreateInner() {
               )
             })}
           </div>
+          <p className="text-[#E5B84C] text-[11px] leading-snug text-center px-2">
+            Für die Punkte brauchst du danach noch: 🧾 Kassenbon und 📸 Screenshot deiner Story.
+          </p>
           <button
             onClick={shareVideoToIG}
             disabled={videoBusy}
@@ -2337,7 +2343,7 @@ function StoryCreateInner() {
             <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
               <li><strong className="text-white">1.</strong> Foto oder Video aufnehmen und Sticker platzieren</li>
               <li><strong className="text-white">2.</strong> Auf „Teilen“ tippen, deine Story geht direkt an Instagram</li>
-              <li><strong className="text-white">3.</strong> Zurück in der App: Kassenbon fotografieren (Beweis, dass du vor Ort bist)</li>
+              <li><strong className="text-white">3.</strong> Zurück in der App: Kassenbon und Story-Screenshot hochladen (Beweis, dass du vor Ort bist)</li>
               <li><strong className="text-white">4.</strong> Punkte anfordern. Fertig!</li>
             </ol>
             <div className="flex gap-2 mt-3">

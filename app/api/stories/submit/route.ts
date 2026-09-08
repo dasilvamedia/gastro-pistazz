@@ -75,6 +75,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 })
     }
 
+    // Stories: max. eine Einreichung pro Restaurant und Tag (abgelehnte zaehlen
+    // nicht, damit ein zweiter Versuch nach Ablehnung moeglich bleibt). Ersetzt
+    // die Link-Duplikatssperre, seit der Story-Link entfallen ist.
+    if (type === 'instagram_story') {
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      const { count: todayCount } = await admin
+        .from('story_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('restaurant_id', restaurant_id)
+        .eq('type', 'instagram_story')
+        .neq('status', 'rejected')
+        .gte('created_at', startOfDay.toISOString())
+      if ((todayCount ?? 0) > 0) {
+        return NextResponse.json({ error: 'Du hast heute schon eine Story für dieses Restaurant eingereicht.' }, { status: 409 })
+      }
+    }
+
     // Haupt-Datei hochladen (z.B. Kassenbon)
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic']
     const MAX_SIZE = 50 * 1024 * 1024 // 50MB
@@ -131,6 +150,17 @@ export async function POST(request: Request) {
         receipt_url = urlData.publicUrl
       } else if (uploadError) {
         console.error('Receipt upload error:', uploadError)
+      }
+    }
+
+    // Story-Pflichtbeweise serverseitig erzwingen (Client-Pruefung reicht nicht):
+    // Kassenbon = gerade vor Ort, Screenshot = Story mit Tags und Zeitstempel.
+    if (type === 'instagram_story') {
+      if (!receipt_url) {
+        return NextResponse.json({ error: 'Kassenbon-Foto fehlt. Es wird zur Verifizierung benötigt.' }, { status: 400 })
+      }
+      if (!screenshot_url) {
+        return NextResponse.json({ error: 'Story-Screenshot fehlt. Er wird zur Verifizierung benötigt.' }, { status: 400 })
       }
     }
 
