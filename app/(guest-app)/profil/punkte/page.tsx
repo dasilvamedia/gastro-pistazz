@@ -37,6 +37,7 @@ type MySubmission = {
   type: string
   status: 'pending' | 'approved' | 'rejected'
   receipt_url: string | null
+  nfc_confirmed_at: string | null
   points_awarded: number | null
   created_at: string
   restaurant: { name: string; slug: string } | null
@@ -69,7 +70,7 @@ export default function PunkteverlaufPage() {
           .single(),
         supabase
           .from('story_submissions')
-          .select('id, type, status, receipt_url, points_awarded, created_at, restaurant:restaurants(name, slug)')
+          .select('id, type, status, receipt_url, nfc_confirmed_at, points_awarded, created_at, restaurant:restaurants(name, slug)')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -107,8 +108,11 @@ export default function PunkteverlaufPage() {
           </h2>
           <div className="space-y-2">
             {submissions.map(s => {
-              const needsReceipt = s.type === 'instagram_story' && s.status === 'pending' && !s.receipt_url
-              const chip = needsReceipt
+              const needsReceipt = s.type === 'instagram_story' && s.status === 'pending' && !s.receipt_url && !s.nfc_confirmed_at
+              const windowExpired = needsReceipt && Date.now() - new Date(s.created_at).getTime() > 5 * 3600 * 1000
+              const chip = windowExpired
+                ? { label: '📲 Beim nächsten Besuch bestätigen', cls: 'bg-amber-100 text-amber-800' }
+                : needsReceipt
                 ? { label: '🧾 Kassenbon fehlt', cls: 'bg-amber-100 text-amber-800' }
                 : s.status === 'pending'
                 ? { label: '⏳ In Prüfung', cls: 'bg-blue-50 text-blue-700' }

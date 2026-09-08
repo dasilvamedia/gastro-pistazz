@@ -299,15 +299,21 @@ export async function POST(request: Request) {
     if (sub.type === 'instagram_story' && finalVerdict === 'approved') {
       const distance = sub.location_distance_m as number | null
       const hasReceipt = !!sub.receipt_url
+      // NFC-Bestaetigung: Der Gast hat die Pistazz-Karte des Restaurants
+      // physisch angetippt. Das beweist die Anwesenheit vor Ort und ersetzt
+      // Kassenbon UND Standort (Fallback, wenn der Bon vergessen wurde).
+      const nfcConfirmed = !!(sub as { nfc_confirmed_at?: string | null }).nfc_confirmed_at
       const tooFar = distance == null || distance > 500
-      if (!hasReceipt) {
-        finalVerdict = 'suspicious'
-        finalNotes = 'Kein Kassenbon vorhanden, manuelle Prüfung erforderlich.'
-      } else if (tooFar) {
-        finalVerdict = 'suspicious'
-        finalNotes = distance == null
-          ? 'Kein Standort übermittelt, manuelle Prüfung erforderlich.'
-          : `Standort war ${distance}m vom Restaurant entfernt, manuelle Prüfung erforderlich.`
+      if (!nfcConfirmed) {
+        if (!hasReceipt) {
+          finalVerdict = 'suspicious'
+          finalNotes = 'Kein Kassenbon vorhanden, manuelle Prüfung erforderlich.'
+        } else if (tooFar) {
+          finalVerdict = 'suspicious'
+          finalNotes = distance == null
+            ? 'Kein Standort übermittelt, manuelle Prüfung erforderlich.'
+            : `Standort war ${distance}m vom Restaurant entfernt, manuelle Prüfung erforderlich.`
+        }
       }
     }
 

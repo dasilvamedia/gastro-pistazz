@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient()
     const { data: sub, error: subErr } = await admin
       .from('story_submissions')
-      .select('id, user_id, restaurant_id, type, status, receipt_url, screenshot_url, submitted_lat, submitted_lng')
+      .select('id, user_id, restaurant_id, type, status, receipt_url, screenshot_url, submitted_lat, submitted_lng, created_at, nfc_confirmed_at')
       .eq('id', submissionId)
       .single()
 
@@ -58,6 +58,20 @@ export async function POST(request: Request) {
     }
     if (sub.receipt_url) {
       return NextResponse.json({ error: 'Dein Kassenbon ist schon da. Die Einreichung wird geprüft.' }, { status: 409 })
+    }
+    if (sub.nfc_confirmed_at) {
+      return NextResponse.json({ error: 'Deine Story ist schon vor Ort bestätigt und wird geprüft.' }, { status: 409 })
+    }
+
+    // Kassenbon-Fenster: nach 5 Stunden ist ein nachgereichter Bon kein
+    // Beweis mehr (koennte ein beliebiger fremder Beleg sein). Fallback:
+    // beim naechsten Besuch die Pistazz-NFC-Karte antippen.
+    const PROOF_WINDOW_MS = 5 * 60 * 60 * 1000
+    if (Date.now() - new Date(sub.created_at).getTime() > PROOF_WINDOW_MS) {
+      return NextResponse.json({
+        error: 'Das 5-Stunden-Fenster für den Kassenbon ist vorbei. Kein Problem: Zeig deine Story beim nächsten Besuch und tippe vor Ort die Pistazz-Karte an, damit ist sie bestätigt.',
+        window_expired: true,
+      }, { status: 409 })
     }
 
     // Kassenbon hochladen

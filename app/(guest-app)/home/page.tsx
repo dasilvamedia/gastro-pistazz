@@ -174,7 +174,8 @@ export default function HomePage() {
       .eq('type', 'instagram_story')
       .eq('status', 'pending')
       .is('receipt_url', null)
-      .gte('created_at', new Date(Date.now() - 48 * 3600 * 1000).toISOString())
+      .is('nfc_confirmed_at', null)
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString())
       .order('created_at', { ascending: false })
     setPendingProofs((data as unknown as PendingProof[]) ?? [])
   }
@@ -312,27 +313,39 @@ export default function HomePage() {
       </div>
 
       <div className="px-5 pt-6 space-y-7 pb-8">
-        {/* Kassenbon-Erinnerung: Story eingereicht, Beweis fehlt noch */}
-        {pendingProofs.map(p => (
-          <button
-            key={p.id}
-            onClick={() => router.push(`/story/submit?submission=${p.id}${p.restaurant?.slug ? `&restaurant=${p.restaurant.slug}` : ''}`)}
-            className="w-full text-left bg-amber-50 border-2 border-amber-300 rounded-3xl p-4 active:scale-[0.99] transition-transform"
-            style={{ boxShadow: '0 8px 24px rgba(180,120,0,0.10)' }}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🧾</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-amber-900 font-bold text-sm leading-snug">Kassenbon fehlt noch!</p>
-                <p className="text-amber-800 text-xs mt-0.5 leading-relaxed">
-                  Deine Story{p.restaurant ? <> bei <strong>{p.restaurant.name}</strong></> : null} wartet.
-                  Lade nach dem Bezahlen deinen Kassenbon hoch{p.restaurant ? <>, dann gibt es <strong>+{p.restaurant.points_per_story} Punkte</strong></> : null}.
-                </p>
-                <span className="inline-block mt-2 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">Jetzt hochladen</span>
+        {/* Kassenbon-Erinnerung: Story eingereicht, Beweis fehlt noch.
+            Nach dem 5-Stunden-Fenster: NFC-Fallback beim naechsten Besuch. */}
+        {pendingProofs.map(p => {
+          const expired = Date.now() - new Date(p.created_at).getTime() > 5 * 3600 * 1000
+          return (
+            <button
+              key={p.id}
+              onClick={() => router.push(`/story/submit?submission=${p.id}${p.restaurant?.slug ? `&restaurant=${p.restaurant.slug}` : ''}`)}
+              className="w-full text-left bg-amber-50 border-2 border-amber-300 rounded-3xl p-4 active:scale-[0.99] transition-transform"
+              style={{ boxShadow: '0 8px 24px rgba(180,120,0,0.10)' }}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">{expired ? '📲' : '🧾'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-amber-900 font-bold text-sm leading-snug">
+                    {expired ? 'Kassenbon vergessen? Kein Problem!' : 'Kassenbon fehlt noch!'}
+                  </p>
+                  <p className="text-amber-800 text-xs mt-0.5 leading-relaxed">
+                    {expired ? (
+                      <>Bestätige deine Story{p.restaurant ? <> bei <strong>{p.restaurant.name}</strong></> : null} beim nächsten Besuch: einfach vor Ort die Pistazz-Karte antippen{p.restaurant ? <>, dann gibt es <strong>+{p.restaurant.points_per_story} Punkte</strong></> : null}.</>
+                    ) : (
+                      <>Deine Story{p.restaurant ? <> bei <strong>{p.restaurant.name}</strong></> : null} wartet.
+                      Lade nach dem Bezahlen deinen Kassenbon hoch{p.restaurant ? <>, dann gibt es <strong>+{p.restaurant.points_per_story} Punkte</strong></> : null}.</>
+                    )}
+                  </p>
+                  <span className="inline-block mt-2 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                    {expired ? 'So geht es' : 'Jetzt hochladen'}
+                  </span>
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          )
+        })}
 
         {/* Story CTA */}
         <div

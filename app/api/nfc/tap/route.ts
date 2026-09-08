@@ -45,6 +45,51 @@ export async function POST(req: NextRequest) {
     .select('id, name, slug, stamp_card_total, stamp_card_reward, stamp_card_enabled')
     .eq('id', tag.restaurant_id)
     .single()
+
+  // Offene Story-Einreichung ohne Kassenbon? Der physische Tap beweist die
+  // Anwesenheit vor Ort und ersetzt den vergessenen Bon (Fallback "beim
+  // naechsten Besuch bestaetigen"). Laeuft bewusst VOR allen Stempel-
+  // Ausgaengen (Cooldown, deaktivierte Karte): vor Ort ist vor Ort.
+  try {
+    const { data: pendingStories } = await admin
+      .from('story_submissions')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('restaurant_id', tag.restaurant_id)
+      .eq('type', 'instagram_story')
+      .eq('status', 'pending')
+      .is('receipt_url', null)
+      .is('nfc_confirmed_at', null)
+      .limit(3)
+    if (pendingStories && pendingStories.length > 0) {
+      const ids = pendingStories.map(s => s.id)
+      await admin
+        .from('story_submissions')
+        .update({ nfc_confirmed_at: new Date().toISOString() })
+        .in('id', ids)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
+      for (const id of ids) {
+        fetch(`${baseUrl}/api/stories/ig-verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.INTERNAL_NOTIFY_SECRET ?? '' },
+          body: JSON.stringify({ submission_id: id }),
+        }).catch(() => {})
+      }
+      notifyUser(user.id, {
+        title: 'Story vor Ort bestätigt 🎉',
+        body: `Dein Besuch${restaurant?.name ? ` bei ${restaurant.name}` : ''} ist per Pistazz-Karte bestätigt. Deine Story wird jetzt geprüft, die Punkte kommen nach der Freigabe.`,
+        url: '/profil/punkte',
+      }).catch(() => {})
+      notifyRestaurantOwner(tag.restaurant_id, {
+        title: 'Story per NFC bestätigt',
+        body: 'Ein Gast hat seine Story-Einreichung vor Ort mit der Pistazz-Karte bestätigt. Bitte im Dashboard prüfen.',
+        url: '/dashboard/stories',
+      }).catch(() => {})
+    }
+  } catch (e) {
+    console.error('nfc story confirm error:', e)
+  }
+
   // Nur stempeln, wenn die Stempelkarte im Dashboard aktiviert ist
   if (restaurant && restaurant.stamp_card_enabled === false) {
     return NextResponse.json({ error: 'stamp_card_disabled' }, { status: 403 })

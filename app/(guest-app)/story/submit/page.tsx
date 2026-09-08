@@ -61,6 +61,8 @@ function StorySubmitInner() {
   const [userInstagramHandle, setUserInstagramHandle] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [copiedHandle, setCopiedHandle] = useState<'restaurant' | 'platform' | null>(null)
+  // Nachreich-Modus: Zustand der bestehenden Einreichung (Fenster 5 h)
+  const [proofState, setProofState] = useState<'loading' | 'open' | 'expired' | 'done'>(proofMode ? 'loading' : 'open')
   const fileRef = useRef<HTMLInputElement>(null)
   const screenshotRef = useRef<HTMLInputElement>(null)
   const storyReceiptRef = useRef<HTMLInputElement>(null)
@@ -109,6 +111,27 @@ function StorySubmitInner() {
     }
     load()
   }, [restaurantSlug, supabase])
+
+  // Nachreich-Modus: Ist das 5-Stunden-Fenster noch offen? Ist schon alles da?
+  useEffect(() => {
+    if (!proofMode || !submissionId) return
+    supabase
+      .from('story_submissions')
+      .select('id, created_at, receipt_url, nfc_confirmed_at, status')
+      .eq('id', submissionId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) { setProofState('open'); return }
+        if (data.receipt_url || data.nfc_confirmed_at || data.status !== 'pending') {
+          setProofState('done')
+        } else if (Date.now() - new Date(data.created_at).getTime() > 5 * 3600 * 1000) {
+          setProofState('expired')
+        } else {
+          setProofState('open')
+        }
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proofMode, submissionId])
 
   const filteredRestaurants = restaurants.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -247,6 +270,29 @@ function StorySubmitInner() {
     })
     setCopiedHandle(which)
     setTimeout(() => setCopiedHandle(null), 2000)
+  }
+
+  // Nachreich-Modus: Fenster vorbei oder schon erledigt -> eigener Screen
+  if (proofMode && (proofState === 'expired' || proofState === 'done')) {
+    const expired = proofState === 'expired'
+    return (
+      <div className="min-h-screen bg-[#EEF5E6] flex flex-col items-center justify-center text-center px-8">
+        <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-4xl mb-5 border border-[#D4E8C2]">
+          {expired ? '📲' : '✅'}
+        </div>
+        <h2 className="text-2xl font-bold text-[#1C1F1A] mb-3" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          {expired ? 'Kassenbon-Fenster vorbei' : 'Alles da!'}
+        </h2>
+        <p className="text-[#6D9450] text-sm leading-relaxed max-w-xs">
+          {expired
+            ? <>Kein Problem! Zeig deine Story beim nächsten Besuch{selectedRestaurant ? <> bei <strong>{selectedRestaurant.name}</strong></> : null} und tippe vor Ort die Pistazz-Karte an, wie beim Stempeln. Damit ist sie bestätigt und die Punkte kommen nach der Freigabe.</>
+            : 'Deine Einreichung ist vollständig und wird geprüft. Du bekommst eine Nachricht, sobald sie freigegeben ist.'}
+        </p>
+        <button onClick={() => router.push('/home')} className="gradient-primary text-white font-bold px-8 py-3.5 rounded-2xl text-base mt-8">
+          Alles klar
+        </button>
+      </div>
+    )
   }
 
   return (
