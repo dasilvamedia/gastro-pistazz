@@ -145,6 +145,13 @@ function DealCard({ deal }: { deal: Deal }) {
   )
 }
 
+// Story-Einreichung, bei der der Kassenbon noch nachgereicht werden muss
+type PendingProof = {
+  id: string
+  created_at: string
+  restaurant: { name: string; slug: string; points_per_story: number } | null
+}
+
 export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
@@ -154,6 +161,23 @@ export default function HomePage() {
   const [isDemo, setIsDemo] = useState(false)
   const [loadingRestaurants, setLoadingRestaurants] = useState(true)
   const [loadingDeals, setLoadingDeals] = useState(true)
+  // Story eingereicht, Kassenbon fehlt noch: prominente Erinnerung ganz oben.
+  // Bezahlt wird oft erst lange nach dem Posten, die Karte holt die Leute ab,
+  // sobald sie die App wieder oeffnen.
+  const [pendingProofs, setPendingProofs] = useState<PendingProof[]>([])
+
+  const loadPendingProofs = async (userId: string) => {
+    const { data } = await supabase
+      .from('story_submissions')
+      .select('id, created_at, restaurant:restaurants(name, slug, points_per_story)')
+      .eq('user_id', userId)
+      .eq('type', 'instagram_story')
+      .eq('status', 'pending')
+      .is('receipt_url', null)
+      .gte('created_at', new Date(Date.now() - 48 * 3600 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+    setPendingProofs((data as unknown as PendingProof[]) ?? [])
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -196,6 +220,7 @@ export default function HomePage() {
           const patched = await syncNameFromAuth(supabase, user, p)
           setProfile(patched ? { ...p, ...patched } : p)
         }
+        loadPendingProofs(user.id)
 
         const [{ data: rData, error: rErr }, { data: dData, error: dErr }] = await Promise.all([
           supabase.from('restaurants').select('*').eq('is_active', true).order('is_featured', { ascending: false }).order('name').limit(HOME_FETCH_LIMIT),
@@ -232,7 +257,12 @@ export default function HomePage() {
         .on('broadcast', { event: 'restaurant_updated' }, refresh)
         .on('broadcast', { event: 'deal_updated' }, refresh)
         .subscribe()
-      const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible') return
+        refresh()
+        // Kassenbon-Erinnerung aktualisieren, sobald die App wieder im Vordergrund ist
+        supabase.auth.getUser().then(({ data: { user } }) => { if (user) loadPendingProofs(user.id) })
+      }
       document.addEventListener('visibilitychange', onVisible)
       return () => { supabase.removeChannel(channel); document.removeEventListener('visibilitychange', onVisible) }
     }
@@ -282,6 +312,28 @@ export default function HomePage() {
       </div>
 
       <div className="px-5 pt-6 space-y-7 pb-8">
+        {/* Kassenbon-Erinnerung: Story eingereicht, Beweis fehlt noch */}
+        {pendingProofs.map(p => (
+          <button
+            key={p.id}
+            onClick={() => router.push(`/story/submit?submission=${p.id}${p.restaurant?.slug ? `&restaurant=${p.restaurant.slug}` : ''}`)}
+            className="w-full text-left bg-amber-50 border-2 border-amber-300 rounded-3xl p-4 active:scale-[0.99] transition-transform"
+            style={{ boxShadow: '0 8px 24px rgba(180,120,0,0.10)' }}
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🧾</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-amber-900 font-bold text-sm leading-snug">Kassenbon fehlt noch!</p>
+                <p className="text-amber-800 text-xs mt-0.5 leading-relaxed">
+                  Deine Story{p.restaurant ? <> bei <strong>{p.restaurant.name}</strong></> : null} wartet.
+                  Lade nach dem Bezahlen deinen Kassenbon hoch{p.restaurant ? <>, dann gibt es <strong>+{p.restaurant.points_per_story} Punkte</strong></> : null}.
+                </p>
+                <span className="inline-block mt-2 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">Jetzt hochladen</span>
+              </div>
+            </div>
+          </button>
+        ))}
+
         {/* Story CTA */}
         <div
           className="bg-white rounded-3xl p-5"

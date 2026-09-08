@@ -41,8 +41,12 @@ function StorySubmitInner() {
   const supabase = createClient()
 
   const alreadyShared = searchParams.get('shared') === 'true'
-  const preType = (searchParams.get('type') as SubmissionType | null) ?? null
-  const [step, setStep] = useState(alreadyShared && restaurantSlug ? 2 : restaurantSlug ? 1 : 0)
+  // Nachreich-Modus: die Story-Einreichung existiert schon (direkt nach dem
+  // Teilen angelegt), hier wird nur noch der Kassenbon nachgereicht.
+  const submissionId = searchParams.get('submission')
+  const proofMode = !!submissionId
+  const preType = (searchParams.get('type') as SubmissionType | null) ?? (proofMode ? 'instagram_story' : null)
+  const [step, setStep] = useState(proofMode || (alreadyShared && restaurantSlug) ? 2 : restaurantSlug ? 1 : 0)
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [search, setSearch] = useState('')
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
@@ -114,12 +118,12 @@ function StorySubmitInner() {
   const step2Valid = () => {
     if (!selectedType) return false
     if (selectedType === 'instagram_story') {
-      // Story: Screenshot + Kassenbon sind Pflicht. Der Screenshot zeigt Tags
-      // und Zeitstempel (prueft die KI), der Kassenbon beweist vor Ort.
-      // Der Story-Link ist bewusst weggefallen: fuer Gaeste schwer zu finden,
-      // laeuft nach 24 h ab und ist per oEmbed nicht pruefbar. Stattdessen
-      // serverseitig: max. 1 Story pro Restaurant pro Tag.
-      return screenshot !== null && storyReceipt !== null
+      // Story: Pflicht ist nur der Kassenbon (beweist Konsum; der Standort vom
+      // Story-Zeitpunkt beweist vor Ort). Screenshot ist optional und
+      // beschleunigt die automatische Genehmigung. Der Story-Link ist bewusst
+      // weggefallen: schwer zu finden, laeuft nach 24 h ab, nicht pruefbar.
+      // Serverseitig gilt: max. 1 Story pro Restaurant pro Tag.
+      return storyReceipt !== null
     }
     if (selectedType === 'instagram_reel' || selectedType === 'instagram_post') {
       return link.trim().length > 0
@@ -140,11 +144,38 @@ function StorySubmitInner() {
   }
 
   const handleSubmit = async () => {
+    // Nachreich-Modus: nur Kassenbon (plus optionalem Screenshot) an die
+    // bestehende Einreichung haengen.
+    if (proofMode) {
+      if (!storyReceipt) { toast.error('Bitte lade deinen Kassenbon hoch'); return }
+      setSubmitting(true)
+      try {
+        const formData = new FormData()
+        formData.append('submission_id', submissionId!)
+        formData.append('receipt', storyReceipt)
+        if (screenshot) formData.append('screenshot', screenshot)
+        if (coords) {
+          formData.append('lat', String(coords.lat))
+          formData.append('lng', String(coords.lng))
+        }
+        const res = await fetch('/api/stories/proof', { method: 'POST', body: formData })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.error ?? 'Fehler beim Hochladen')
+        }
+        setStep(3)
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : 'Fehler beim Hochladen')
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
+
     if (!selectedRestaurant || !selectedType) return
     if (!step2Valid()) {
       if (selectedType === 'receipt') toast.error('Bitte lade einen Beleg hoch')
-      else if (selectedType === 'instagram_story' && !storyReceipt) toast.error('Bitte lade noch deinen Kassenbon hoch')
-      else if (selectedType === 'instagram_story' && !screenshot) toast.error('Bitte lade einen Screenshot deiner Story hoch')
+      else if (selectedType === 'instagram_story') toast.error('Bitte lade noch deinen Kassenbon hoch')
       else toast.error('Bitte füge einen Link ein')
       return
     }
@@ -331,7 +362,25 @@ function StorySubmitInner() {
           {/* Step 2: Content */}
           {step === 2 && (
             <motion.div key="step2" initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -60, opacity: 0 }} className="space-y-4">
-              {alreadyShared && (
+              {proofMode ? (
+                <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎉</span>
+                    <div>
+                      <p className="text-green-800 font-bold text-sm">Story eingereicht!</p>
+                      <p className="text-green-700 text-xs">
+                        Jetzt fehlt nur noch dein Kassenbon. Er beweist deinen Besuch, erst dann gibt es die Punkte.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/home')}
+                    className="w-full text-center text-green-800 text-xs font-semibold underline py-1"
+                  >
+                    Noch nicht bezahlt? Später hochladen, die App erinnert dich auf dem Startbildschirm.
+                  </button>
+                </div>
+              ) : alreadyShared && (
                 <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
                   <span className="text-2xl">🎉</span>
                   <div>
@@ -340,7 +389,7 @@ function StorySubmitInner() {
                     </p>
                     <p className="text-green-700 text-xs">
                       {selectedType === 'instagram_story'
-                        ? 'Nur noch zwei Fotos: Kassenbon und Story-Screenshot. Dann gehören die Punkte dir.'
+                        ? 'Nur noch dein Kassenbon, dann gehören die Punkte dir.'
                         : 'Gib jetzt den Instagram-Link ein, um deine Punkte zu erhalten.'}
                     </p>
                   </div>
@@ -370,7 +419,7 @@ function StorySubmitInner() {
 
               {/* Instagram: Anleitung + Copy-Buttons — entfaellt, wenn die Story
                   schon aus dem Kamera-Flow geteilt wurde (alles bereits erledigt) */}
-              {isInstagramType && !alreadyShared && (
+              {isInstagramType && !alreadyShared && !proofMode && (
                 <div className="bg-white rounded-2xl p-4 border border-[#D4E8C2] space-y-4">
                   <div className="flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#ig2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -560,7 +609,9 @@ function StorySubmitInner() {
                     1. Kassenbon <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span>
                   </label>
                   <p className="text-[#6D7A6D] text-xs mb-2">
-                    Beweist, dass du gerade wirklich bei <strong>{selectedRestaurant?.name}</strong> bist. Dein Standort wird beim Hochladen automatisch mit übermittelt.
+                    {proofMode
+                      ? <>Foto von deinem Beleg. Er beweist deinen Besuch bei <strong>{selectedRestaurant?.name ?? 'dem Restaurant'}</strong>.</>
+                      : <>Beweist, dass du gerade wirklich bei <strong>{selectedRestaurant?.name}</strong> bist. Dein Standort wird beim Hochladen automatisch mit übermittelt.</>}
                   </p>
                   <input
                     type="file"
@@ -611,7 +662,7 @@ function StorySubmitInner() {
                 <div>
                   <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">
                     {selectedType === 'instagram_story' ? (
-                      <>2. Story-Screenshot <span className="text-[#E86B5A]/80 font-normal">(Pflicht zur Verifizierung)</span></>
+                      <>2. Story-Screenshot <span className="text-[#8BB06A]/70 font-normal">(optional, beschleunigt die Genehmigung)</span></>
                     ) : (
                       <>Screenshot <span className="text-[#8BB06A]/70 font-normal">(optional, erhöht die Chance auf sofortige Genehmigung)</span></>
                     )}
@@ -651,9 +702,7 @@ function StorySubmitInner() {
                     )}
                   </button>
                   {!screenshot && (
-                    selectedType === 'instagram_story'
-                      ? <p className="text-[#E86B5A] text-xs mt-1">Screenshot wird zur Verifizierung benötigt</p>
-                      : <p className="text-[#8BB06A] text-xs mt-1">Mit Screenshot wird dein Beitrag schneller und automatisch genehmigt.</p>
+                    <p className="text-[#8BB06A] text-xs mt-1">Mit Screenshot wird dein Beitrag schneller und automatisch genehmigt.</p>
                   )}
                 </div>
               )}
@@ -702,14 +751,15 @@ function StorySubmitInner() {
                   <p className="text-[#577A3D] text-xs leading-relaxed">
                     {isInstagramType
                       ? selectedType === 'instagram_story'
-                        ? 'Kassenbon und Screenshot werden automatisch geprüft. Die Story muss von heute sein und beide Tags zeigen.'
+                        ? 'Dein Kassenbon wird automatisch geprüft. Die Story muss von heute sein und beide Tags zeigen.'
                         : 'Link und Screenshot werden automatisch geprüft. Der Beitrag muss aktuell sein und das Restaurant getaggt haben.'
                       : 'Der eingereichte Link wird zur Verifizierung benötigt. Nur echte Google-Bewertungen werden akzeptiert.'}
                   </p>
                 </div>
               )}
 
-              {/* Optionale Beschreibung */}
+              {/* Optionale Beschreibung (im Nachreich-Modus ueberfluessig) */}
+              {!proofMode && (
               <div>
                 <label className="text-[#1C1F1A] font-semibold text-sm block mb-2">Beschreibung <span className="text-[#8BB06A]/70 font-normal">(optional)</span></label>
                 <textarea
@@ -720,6 +770,7 @@ function StorySubmitInner() {
                   className="w-full bg-white border border-[#D4E8C2] rounded-2xl px-4 py-3 text-sm text-[#1C1F1A] outline-none focus:border-[#8BB06A] resize-none"
                 />
               </div>
+              )}
             </motion.div>
           )}
 
@@ -763,7 +814,7 @@ function StorySubmitInner() {
           className="fixed bottom-0 left-0 right-0 bg-[#EEF5E6] px-5 pt-3 flex gap-3 border-t border-[#D4E8C2]"
           style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}
         >
-          {step > 0 && (
+          {step > 0 && !proofMode && (
             <button onClick={handleBack} className="flex-1 py-3.5 rounded-2xl border border-[#8BB06A] text-[#6D9450] font-semibold">
               Zurück
             </button>
@@ -774,7 +825,7 @@ function StorySubmitInner() {
             className="flex-1 py-3.5 rounded-2xl gradient-primary text-white font-bold shadow-lg disabled:opacity-50"
           >
             {step === 2
-              ? submitting ? 'Wird eingereicht...' : 'Einreichen ✨'
+              ? submitting ? 'Wird eingereicht...' : proofMode ? 'Kassenbon einreichen ✨' : 'Einreichen ✨'
               : 'Weiter'}
           </button>
         </div>

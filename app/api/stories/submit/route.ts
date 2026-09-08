@@ -47,6 +47,10 @@ export async function POST(request: Request) {
       media_url = body.media_url
       screenshot_url = body.screenshot_url
       caption = body.caption
+      if (body.lat != null && body.lng != null) {
+        submittedLat = Number(body.lat)
+        submittedLng = Number(body.lng)
+      }
     }
 
     if (!restaurant_id || !type) {
@@ -90,7 +94,7 @@ export async function POST(request: Request) {
         .neq('status', 'rejected')
         .gte('created_at', startOfDay.toISOString())
       if ((todayCount ?? 0) > 0) {
-        return NextResponse.json({ error: 'Du hast heute schon eine Story für dieses Restaurant eingereicht.' }, { status: 409 })
+        return NextResponse.json({ error: 'Du hast heute schon eine Story für dieses Restaurant eingereicht. Fehlt noch dein Kassenbon? Reiche ihn unter Profil, Punkte nach.' }, { status: 409 })
       }
     }
 
@@ -153,17 +157,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Story-Pflichtbeweise serverseitig erzwingen (Client-Pruefung reicht nicht):
-    // Kassenbon = gerade vor Ort, Screenshot = Story mit Tags und Zeitstempel.
-    if (type === 'instagram_story') {
-      if (!receipt_url) {
-        return NextResponse.json({ error: 'Kassenbon-Foto fehlt. Es wird zur Verifizierung benötigt.' }, { status: 400 })
-      }
-      if (!screenshot_url) {
-        return NextResponse.json({ error: 'Story-Screenshot fehlt. Er wird zur Verifizierung benötigt.' }, { status: 400 })
-      }
-    }
-
     // Entfernung zum Restaurant serverseitig berechnen (Haversine) — nicht der
     // KI ueberlassen, damit die Pruefung nicht manipulierbar ist.
     let location_distance_m: number | undefined
@@ -219,38 +212,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to submit story' }, { status: 500 })
     }
 
-    // Instagram-Verifikation triggern (URL-Match + oEmbed + dann AI-Analyse)
-    // Für nicht-Instagram-Typen direkt AI-Analyse triggern.
-    // Beide Routen sind intern und verlangen das Shared Secret.
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
-    const isInstagram = ['instagram_story', 'instagram_reel', 'instagram_post'].includes(type)
-    const internalHeaders = {
-      'Content-Type': 'application/json',
-      'x-internal-secret': process.env.INTERNAL_NOTIFY_SECRET ?? '',
+    // Story ohne Kassenbon: Einreichung ist angelegt, aber die Pruefkette und
+    // die Inhaber-Info starten erst, wenn der Kassenbon nachgereicht wurde
+    // (/api/stories/proof). Grund: bezahlt wird oft erst 30 Minuten bis
+    // 2 Stunden nach dem Posten der Story.
+    const needsReceipt = type === 'instagram_story' && !receipt_url
+
+    if (!needsReceipt) {
+      // Instagram-Verifikation triggern (URL-Match + oEmbed + dann AI-Analyse)
+      // Für nicht-Instagram-Typen direkt AI-Analyse triggern.
+      // Beide Routen sind intern und verlangen das Shared Secret.
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
+      const isInstagram = ['instagram_story', 'instagram_reel', 'instagram_post'].includes(type)
+      const internalHeaders = {
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.INTERNAL_NOTIFY_SECRET ?? '',
+      }
+
+      if (isInstagram) {
+        fetch(`${baseUrl}/api/stories/ig-verify`, {
+          method: 'POST',
+          headers: internalHeaders,
+          body: JSON.stringify({ submission_id: submission.id }),
+        }).catch(err => console.error('IG verify trigger error:', err))
+      } else {
+        fetch(`${baseUrl}/api/stories/ai-analyze`, {
+          method: 'POST',
+          headers: internalHeaders,
+          body: JSON.stringify({ submission_id: submission.id }),
+        }).catch(err => console.error('AI analyze trigger error:', err))
+      }
+
+      // Inhaber informieren: neue Einreichung wartet auf Pruefung
+      notifyRestaurantOwner(restaurant_id, {
+        title: 'Neue Einreichung zur Pruefung',
+        body: 'Ein Gast hat einen Beitrag eingereicht. Freigeben oder ablehnen im Dashboard.',
+        url: '/dashboard/stories',
+      }).catch(() => {})
     }
 
-    if (isInstagram) {
-      fetch(`${baseUrl}/api/stories/ig-verify`, {
-        method: 'POST',
-        headers: internalHeaders,
-        body: JSON.stringify({ submission_id: submission.id }),
-      }).catch(err => console.error('IG verify trigger error:', err))
-    } else {
-      fetch(`${baseUrl}/api/stories/ai-analyze`, {
-        method: 'POST',
-        headers: internalHeaders,
-        body: JSON.stringify({ submission_id: submission.id }),
-      }).catch(err => console.error('AI analyze trigger error:', err))
-    }
-
-    // Inhaber informieren: neue Einreichung wartet auf Pruefung
-    notifyRestaurantOwner(restaurant_id, {
-      title: 'Neue Einreichung zur Pruefung',
-      body: 'Ein Gast hat einen Beitrag eingereicht. Freigeben oder ablehnen im Dashboard.',
-      url: '/dashboard/stories',
-    }).catch(() => {})
-
-    return NextResponse.json({ success: true, submission_id: submission.id }, { status: 201 })
+    return NextResponse.json({ success: true, submission_id: submission.id, needs_receipt: needsReceipt }, { status: 201 })
   } catch (err) {
     console.error('POST /api/stories/submit error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

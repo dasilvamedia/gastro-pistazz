@@ -1781,14 +1781,54 @@ function StoryCreateInner() {
   }
 
   // Vor dem Punkte-Anfordern sichergehen, dass die Tags wirklich in der Story
-  // sind. Sonst merkt der Gast erst nach dem Posten, dass es keine Punkte gibt.
-  const confirmTagsThenSubmit = () => {
+  // sind. Danach wird die Einreichung SOFORT angelegt, mit Standort von genau
+  // jetzt (der Gast sitzt gerade im Restaurant, das ist der beste Vor-Ort-
+  // Beweis). Der Kassenbon wird nach dem Bezahlen nachgereicht.
+  const confirmTagsThenSubmit = async () => {
     const igTag = restaurant?.instagram_handle ? `@${restaurant.instagram_handle.replace(/^@+/, '')}` : null
     const tagList = [igTag, '@gastro.pistazz.io'].filter(Boolean).join(' und ')
     const ok = window.confirm(
-      `Hast du ${tagList} in deiner Story markiert?\n\nWichtig: in der Vorschlagsliste den Account antippen, nicht nur eintippen. Ohne beide Tags gibt es keine Punkte.\n\nGleich brauchst du noch: einen Screenshot deiner Story und deinen Kassenbon.`,
+      `Hast du ${tagList} in deiner Story markiert?\n\nWichtig: in der Vorschlagsliste den Account antippen, nicht nur eintippen. Ohne beide Tags gibt es keine Punkte.\n\nNach dem Bezahlen lädst du noch deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.`,
     )
-    if (ok) router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
+    if (!ok) return
+
+    const loadingToast = toast.loading('Story wird eingereicht …')
+    const coords = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+      if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(null)
+      navigator.geolocation.getCurrentPosition(
+        p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { timeout: 6000, maximumAge: 60000 },
+      )
+    })
+    try {
+      const res = await fetch('/api/stories/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurant?.id,
+          type: 'instagram_story',
+          lat: coords?.lat,
+          lng: coords?.lng,
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      toast.dismiss(loadingToast)
+      if (res.ok && j.submission_id) {
+        router.push(`/story/submit?submission=${j.submission_id}&restaurant=${slug}`)
+        return
+      }
+      if (res.status === 409) {
+        toast(j.error ?? 'Heute schon eingereicht.', { icon: 'ℹ️' })
+        router.push('/profil/punkte')
+        return
+      }
+      throw new Error(j.error ?? 'Einreichen fehlgeschlagen')
+    } catch {
+      toast.dismiss(loadingToast)
+      // Fallback: alter Weg, die Einreichung passiert dann auf der Submit-Seite
+      router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
+    }
   }
 
   const retake = () => {
@@ -1879,7 +1919,7 @@ function StoryCreateInner() {
             In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> und nicht nur eintippen, sonst zählt der Tag nicht.
           </p>
           <p className="text-[#E5B84C] text-[11px] leading-snug text-center px-2">
-            Für die Punkte brauchst du danach noch: 🧾 Kassenbon und 📸 Screenshot deiner Story.
+            🧾 Nach dem Bezahlen lädst du deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.
           </p>
 
           {hasNativeIG ? (
@@ -2069,7 +2109,7 @@ function StoryCreateInner() {
             })}
           </div>
           <p className="text-[#E5B84C] text-[11px] leading-snug text-center px-2">
-            Für die Punkte brauchst du danach noch: 🧾 Kassenbon und 📸 Screenshot deiner Story.
+            🧾 Nach dem Bezahlen lädst du deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.
           </p>
           <button
             onClick={shareVideoToIG}
@@ -2343,8 +2383,8 @@ function StoryCreateInner() {
             <ol className="space-y-1.5 text-white/80 text-[13px] leading-snug">
               <li><strong className="text-white">1.</strong> Foto oder Video aufnehmen und Sticker platzieren</li>
               <li><strong className="text-white">2.</strong> Auf „Teilen“ tippen, deine Story geht direkt an Instagram</li>
-              <li><strong className="text-white">3.</strong> Zurück in der App: Kassenbon und Story-Screenshot hochladen (Beweis, dass du vor Ort bist)</li>
-              <li><strong className="text-white">4.</strong> Punkte anfordern. Fertig!</li>
+              <li><strong className="text-white">3.</strong> Zurück in der App: Punkte anfordern</li>
+              <li><strong className="text-white">4.</strong> Nach dem Bezahlen: Kassenbon hochladen. Fertig!</li>
             </ol>
             <div className="flex gap-2 mt-3">
               <button
