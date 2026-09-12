@@ -188,11 +188,11 @@ export default function DealsPage() {
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}
       >
         <h1 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-          Deine Deals 💰
+          Deine Deals
         </h1>
         <div className="flex items-center gap-3 mb-4">
           <span className="text-white text-lg font-bold">
-            🏆 {profile?.available_points ?? 0} verfügbare Punkte
+            {profile?.available_points ?? 0} verfügbare Punkte
           </span>
           <span
             className="text-xs font-bold px-2 py-1 rounded-full"

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Trophy, CalendarDays } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Deal } from '@/types'
@@ -196,7 +196,7 @@ export default function DealDetailPage() {
             </div>
             {deal.points_required > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🏆</span>
+                <div className="w-9 h-9 rounded-xl bg-[#EEF5E6] flex items-center justify-center flex-shrink-0"><Trophy size={18} className="text-[#577A3D]" /></div>
                 <div>
                   <p className="text-[#1C1F1A] font-semibold text-sm">Punkte benoetigt</p>
                   <p className="text-[#6D9450] text-sm">{deal.points_required} Punkte</p>
@@ -205,7 +205,7 @@ export default function DealDetailPage() {
             )}
             {deal.valid_until && (
               <div className="flex items-center gap-3">
-                <span className="text-2xl">📅</span>
+                <div className="w-9 h-9 rounded-xl bg-[#EEF5E6] flex items-center justify-center flex-shrink-0"><CalendarDays size={18} className="text-[#577A3D]" /></div>
                 <div>
                   <p className="text-[#1C1F1A] font-semibold text-sm">Gueltig bis</p>
                   <p className="text-[#6D9450] text-sm">

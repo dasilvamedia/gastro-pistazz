@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Check, Upload, CheckCircle, ExternalLink, AlertTriangle, Copy, CheckCheck, X } from 'lucide-react'
+import { Search, Check, Upload, CheckCircle, ExternalLink, AlertTriangle, Copy, CheckCheck, X, Smartphone, PartyPopper, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Restaurant, SubmissionType } from '@/types'
@@ -278,7 +278,7 @@ function StorySubmitInner() {
     return (
       <div className="min-h-screen bg-[#EEF5E6] flex flex-col items-center justify-center text-center px-8">
         <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-4xl mb-5 border border-[#D4E8C2]">
-          {expired ? '📲' : '✅'}
+          {expired ? <Smartphone size={34} className="text-[#577A3D]" /> : <CheckCircle size={34} className="text-[#8BB06A]" />}
         </div>
         <h2 className="text-2xl font-bold text-[#1C1F1A] mb-3" style={{ fontFamily: 'DM Serif Display, serif' }}>
           {expired ? 'Kassenbon-Fenster vorbei' : 'Alles da!'}
@@ -411,7 +411,7 @@ function StorySubmitInner() {
               {proofMode ? (
                 <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 space-y-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🎉</span>
+                    <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"><PartyPopper size={18} className="text-green-700" /></div>
                     <div>
                       <p className="text-green-800 font-bold text-sm">Story eingereicht!</p>
                       <p className="text-green-700 text-xs">
@@ -428,7 +428,7 @@ function StorySubmitInner() {
                 </div>
               ) : alreadyShared && (
                 <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
-                  <span className="text-2xl">🎉</span>
+                  <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"><PartyPopper size={18} className="text-green-700" /></div>
                   <div>
                     <p className="text-green-800 font-bold text-sm">
                       {selectedType === 'instagram_reel' ? 'Reel geteilt!' : selectedType === 'instagram_post' ? 'Post geteilt!' : 'Story geteilt!'}
@@ -716,7 +716,7 @@ function StorySubmitInner() {
                   <p className="text-[#6D7A6D] text-xs mb-2">
                     {selectedType === 'instagram_story'
                       ? <>Öffne deine Story in Instagram, mach einen Screenshot und lade ihn hier hoch. Beide Tags und der Zeitstempel müssen sichtbar sein.</>
-                      : <>📱 iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.</>}
+                      : <>iPhone: Speichere den Screenshot in die <strong>Fotos-App</strong>, dann lade ihn hier hoch.</>}
                   </p>
                   <input
                     type="file"
@@ -782,7 +782,7 @@ function StorySubmitInner() {
                     {!file && <p className="text-[#E86B5A] text-xs mt-2">Beleg wird zur Prüfung benötigt</p>}
                   </div>
                   <div className="flex items-start gap-2 bg-[#EEF5E6] rounded-xl p-3 border border-[#D4E8C2]">
-                    <span className="text-base flex-shrink-0">✅</span>
+                    <ShieldCheck size={17} className="text-[#577A3D] flex-shrink-0 mt-0.5" />
                     <p className="text-[#577A3D] text-xs leading-relaxed">
                       Dein Beleg wird zur Verifizierung benötigt. Bitte lade nur echte Belege hoch. Nur verifizierte Einreichungen erhalten Punkte.
                     </p>
@@ -793,7 +793,7 @@ function StorySubmitInner() {
               {/* Verifikations-Hinweis */}
               {selectedType && selectedType !== 'receipt' && (
                 <div className="flex items-start gap-2 bg-[#EEF5E6] rounded-xl p-3 border border-[#D4E8C2]">
-                  <span className="text-base flex-shrink-0">✅</span>
+                  <ShieldCheck size={17} className="text-[#577A3D] flex-shrink-0 mt-0.5" />
                   <p className="text-[#577A3D] text-xs leading-relaxed">
                     {isInstagramType
                       ? selectedType === 'instagram_story'
@@ -811,7 +811,7 @@ function StorySubmitInner() {
                 <textarea
                   value={caption}
                   onChange={e => setCaption(e.target.value)}
-                  placeholder="Was war besonders toll? ✨"
+                  placeholder="Was war besonders toll?"
                   rows={2}
                   className="w-full bg-white border border-[#D4E8C2] rounded-2xl px-4 py-3 text-sm text-[#1C1F1A] outline-none focus:border-[#8BB06A] resize-none"
                 />
@@ -827,13 +827,13 @@ function StorySubmitInner() {
                 <CheckCircle size={56} className="text-[#8BB06A]" />
               </div>
               <h2 className="text-2xl font-bold text-[#1C1F1A] mb-3" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                Eingereicht! ✨
+                Eingereicht!
               </h2>
               <p className="text-[#6D9450] text-sm leading-relaxed mb-3 max-w-xs">
                 Deine Einreichung wird geprüft und anschließend vom Restaurant bestätigt.
               </p>
               <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2.5 border border-[#D4E8C2] mb-8">
-                <span className="text-base">✅</span>
+                <ShieldCheck size={15} className="text-[#577A3D]" />
                 <span className="text-[#577A3D] text-xs font-medium">Eingereicht. Du wirst benachrichtigt, sobald geprüft wurde.</span>
               </div>
               {selectedTypeInfo && (
@@ -871,7 +871,7 @@ function StorySubmitInner() {
             className="flex-1 py-3.5 rounded-2xl gradient-primary text-white font-bold shadow-lg disabled:opacity-50"
           >
             {step === 2
-              ? submitting ? 'Wird eingereicht...' : proofMode ? 'Kassenbon einreichen ✨' : 'Einreichen ✨'
+              ? submitting ? 'Wird eingereicht...' : proofMode ? 'Kassenbon einreichen' : 'Einreichen'
               : 'Weiter'}
           </button>
         </div>

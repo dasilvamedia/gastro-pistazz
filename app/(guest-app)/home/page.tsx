@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Star } from 'lucide-react'
+import { Search, Star, Receipt, Smartphone, Camera, ClipboardList } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -284,7 +284,24 @@ export default function HomePage() {
             <img src="/logo-white.png" alt="" className="w-8 h-8" />
             <span className="text-white font-bold text-base tracking-tight">gastro.pistazz.io</span>
           </div>
-          <NotificationBell className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center active:bg-white/25 transition-colors" />
+          <div className="flex items-center gap-2">
+            {/* Einreichungen: eigener Bereich mit Status + offenen Kassenbons */}
+            {!isDemo && (
+              <button
+                onClick={() => router.push('/profil/einreichungen')}
+                aria-label="Meine Einreichungen"
+                className="relative w-10 h-10 bg-white/15 rounded-full flex items-center justify-center active:bg-white/25 transition-colors"
+              >
+                <ClipboardList size={19} className="text-white" />
+                {pendingProofs.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-400 text-[#1C1F1A] text-[10px] font-bold flex items-center justify-center border-2 border-[#6D9450]">
+                    {pendingProofs.length}
+                  </span>
+                )}
+              </button>
+            )}
+            <NotificationBell className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center active:bg-white/25 transition-colors" />
+          </div>
         </div>
 
         <h1 className="text-[1.75rem] font-bold text-white leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>
@@ -325,7 +342,9 @@ export default function HomePage() {
               style={{ boxShadow: '0 8px 24px rgba(180,120,0,0.10)' }}
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl">{expired ? '📲' : '🧾'}</span>
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  {expired ? <Smartphone size={19} className="text-amber-700" /> : <Receipt size={19} className="text-amber-700" />}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-amber-900 font-bold text-sm leading-snug">
                     {expired ? 'Kassenbon vergessen? Kein Problem!' : 'Kassenbon fehlt noch!'}
@@ -353,7 +372,9 @@ export default function HomePage() {
           style={{ boxShadow: '0 8px 24px rgba(28,31,26,0.07)' }}
         >
           <div className="flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-[#EEF5E6] flex items-center justify-center text-xl flex-shrink-0">📸</div>
+            <div className="w-11 h-11 rounded-2xl bg-[#EEF5E6] flex items-center justify-center flex-shrink-0">
+              <Camera size={22} className="text-[#577A3D]" />
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-[#1C1F1A] font-bold text-base leading-snug">Story posten, Punkte sammeln</p>
               <p className="text-[#1C1F1A]/50 text-sm mt-0.5">QR-Code am Tisch scannen und loslegen.</p>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Pencil, ChevronRight } from 'lucide-react'
+import { Pencil, ChevronRight, Store, Shield, BadgePercent, Stamp, BarChart3, Settings, ClipboardList, type LucideIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, PointsTransaction, StampCard } from '@/types'
@@ -30,10 +30,12 @@ function StatCard({ value, label }: { value: number | string; label: string }) {
   )
 }
 
-function MenuCard({ emoji, label, sub, onClick }: { emoji: string; label: string; sub?: string; onClick: () => void }) {
+function MenuCard({ icon: Icon, label, sub, onClick }: { icon: LucideIcon; label: string; sub?: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full bg-white rounded-2xl p-4 border border-[#EEF5E6] flex items-center gap-3 text-left">
-      <span className="text-2xl">{emoji}</span>
+      <div className="w-10 h-10 rounded-xl bg-[#EEF5E6] flex items-center justify-center flex-shrink-0">
+        <Icon size={19} className="text-[#577A3D]" />
+      </div>
       <div className="flex-1">
         <p className="text-[#1C1F1A] font-semibold">{label}</p>
         {sub && <p className="text-[#6D9450] text-xs">{sub}</p>}
@@ -108,7 +110,7 @@ export default function ProfilPage() {
         ])
         if (p) setProfile(p)
         if (tx) setTransactions(tx)
-        toast.success(`+${(payload.new as any).amount} Punkte erhalten! 🎉`)
+        toast.success(`+${(payload.new as any).amount} Punkte erhalten!`)
       })
       .subscribe()
 
@@ -156,7 +158,7 @@ export default function ProfilPage() {
           className="inline-flex items-center gap-1 rounded-full px-3 py-1 mb-4 text-xs font-bold"
           style={{ backgroundColor: tierCfg.color + '33', color: tierCfg.color === '#E2E8F0' ? '#1C1F1A' : '#fff' }}
         >
-          {tierCfg.label} ✨
+          {tierCfg.label}
         </motion.div>
 
         <div className="flex gap-2">
@@ -168,14 +170,14 @@ export default function ProfilPage() {
 
       <div className="px-5 pt-5 space-y-3">
         {(profile?.role === 'restaurant_owner') && (
-          <MenuCard emoji="🏪" label="Mein Restaurant" sub="Dashboard, Deals, Stories, Einloesen" onClick={() => router.push('/dashboard')} />
+          <MenuCard icon={Store} label="Mein Restaurant" sub="Dashboard, Deals, Stories, Einloesen" onClick={() => router.push('/dashboard')} />
         )}
         {(profile?.role === 'super_admin' || profile?.role === 'admin') && (
-          <MenuCard emoji="🛡️" label="Admin" sub="Restaurants, Accounts, Push" onClick={() => router.push('/admin/dashboard')} />
+          <MenuCard icon={Shield} label="Admin" sub="Restaurants, Accounts, Push" onClick={() => router.push('/admin/dashboard')} />
         )}
-        <MenuCard emoji="💰" label="Meine Deals" onClick={() => router.push('/deals')} />
+        <MenuCard icon={BadgePercent} label="Meine Deals" onClick={() => router.push('/deals')} />
         <MenuCard
-          emoji="🃏"
+          icon={Stamp}
           label="Stempelkarten"
           sub={
             stampCards.some(s => s.is_completed && !s.reward_redeemed)
@@ -184,8 +186,9 @@ export default function ProfilPage() {
           }
           onClick={() => router.push('/entdecken')}
         />
-        <MenuCard emoji="📊" label="Punkte-Verlauf" onClick={() => router.push('/profil/punkte')} />
-        <MenuCard emoji="⚙️" label="Einstellungen" onClick={() => router.push('/profil/einstellungen')} />
+        <MenuCard icon={ClipboardList} label="Meine Einreichungen" sub="Status, offene Kassenbons, verrechnete Punkte" onClick={() => router.push('/profil/einreichungen')} />
+        <MenuCard icon={BarChart3} label="Punkte-Verlauf" onClick={() => router.push('/profil/punkte')} />
+        <MenuCard icon={Settings} label="Einstellungen" onClick={() => router.push('/profil/einstellungen')} />
 
         {/* Points transactions */}
         {transactions.length > 0 && (

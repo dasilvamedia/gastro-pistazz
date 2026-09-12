@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Camera, Gift, Sparkles, Clock, RotateCcw, Coins, ClipboardList } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { PointsTransaction } from '@/types'
 
@@ -14,40 +14,18 @@ const TX_TYPE_LABELS: Record<string, string> = {
   refund: 'Rückerstattung',
 }
 
-const TX_TYPE_EMOJI: Record<string, string> = {
-  earned: '📸',
-  spent: '🎁',
-  bonus: '🌟',
-  expired: '⏰',
-  refund: '↩️',
-}
-
-const SUB_TYPE_LABELS: Record<string, string> = {
-  instagram_story: 'Story',
-  instagram_reel: 'Reel',
-  instagram_post: 'Post',
-  google_review: 'Google-Bewertung',
-  receipt: 'Kassenbon',
-}
-
-// Eigene Einreichungen mit Status; bei Stories ohne Kassenbon kann er hier
-// nachgereicht werden (bezahlt wird oft erst lange nach dem Posten).
-type MySubmission = {
-  id: string
-  type: string
-  status: 'pending' | 'approved' | 'rejected'
-  receipt_url: string | null
-  nfc_confirmed_at: string | null
-  points_awarded: number | null
-  created_at: string
-  restaurant: { name: string; slug: string } | null
+const TX_TYPE_ICON: Record<string, typeof Camera> = {
+  earned: Camera,
+  spent: Gift,
+  bonus: Sparkles,
+  expired: Clock,
+  refund: RotateCcw,
 }
 
 export default function PunkteverlaufPage() {
   const router = useRouter()
   const supabase = createClient()
   const [transactions, setTransactions] = useState<PointsTransaction[]>([])
-  const [submissions, setSubmissions] = useState<MySubmission[]>([])
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
 
@@ -56,7 +34,7 @@ export default function PunkteverlaufPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const [{ data: tx }, { data: profile }, { data: subs }] = await Promise.all([
+      const [{ data: tx }, { data: profile }] = await Promise.all([
         supabase
           .from('points_transactions')
           .select('*')
@@ -68,17 +46,10 @@ export default function PunkteverlaufPage() {
           .select('available_points')
           .eq('id', user.id)
           .single(),
-        supabase
-          .from('story_submissions')
-          .select('id, type, status, receipt_url, nfc_confirmed_at, points_awarded, created_at, restaurant:restaurants(name, slug)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20),
       ])
 
       setTransactions(tx ?? [])
       setTotal(profile?.available_points ?? 0)
-      setSubmissions((subs as unknown as MySubmission[]) ?? [])
       setLoading(false)
     }
     load()
@@ -100,56 +71,22 @@ export default function PunkteverlaufPage() {
         <p className="text-white/70 text-sm mt-1">Guthaben: <span className="font-bold text-white">{total} P</span></p>
       </div>
 
-      {/* Meine Einreichungen: Status jeder Story/Bewertung, Kassenbon nachreichbar */}
-      {!loading && submissions.length > 0 && (
-        <div className="px-5 pt-5">
-          <h2 className="text-[#1C1F1A] font-bold text-base mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            Meine Einreichungen
-          </h2>
-          <div className="space-y-2">
-            {submissions.map(s => {
-              const needsReceipt = s.type === 'instagram_story' && s.status === 'pending' && !s.receipt_url && !s.nfc_confirmed_at
-              const windowExpired = needsReceipt && Date.now() - new Date(s.created_at).getTime() > 5 * 3600 * 1000
-              const chip = windowExpired
-                ? { label: '📲 Beim nächsten Besuch bestätigen', cls: 'bg-amber-100 text-amber-800' }
-                : needsReceipt
-                ? { label: '🧾 Kassenbon fehlt', cls: 'bg-amber-100 text-amber-800' }
-                : s.status === 'pending'
-                ? { label: '⏳ In Prüfung', cls: 'bg-blue-50 text-blue-700' }
-                : s.status === 'approved'
-                ? { label: '✓ Genehmigt', cls: 'bg-green-100 text-green-700' }
-                : { label: '✗ Abgelehnt', cls: 'bg-red-50 text-red-600' }
-              const inner = (
-                <>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#1C1F1A] font-semibold text-sm truncate">
-                      {SUB_TYPE_LABELS[s.type] ?? s.type}{s.restaurant ? ` · ${s.restaurant.name}` : ''}
-                    </p>
-                    <p className="text-[#6D9450] text-xs mt-0.5">
-                      {new Date(s.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      {s.status === 'approved' && s.points_awarded ? ` · +${s.points_awarded} P` : ''}
-                    </p>
-                  </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${chip.cls}`}>{chip.label}</span>
-                </>
-              )
-              return needsReceipt ? (
-                <button
-                  key={s.id}
-                  onClick={() => router.push(`/story/submit?submission=${s.id}${s.restaurant?.slug ? `&restaurant=${s.restaurant.slug}` : ''}`)}
-                  className="w-full bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
-                >
-                  {inner}
-                </button>
-              ) : (
-                <div key={s.id} className="bg-white rounded-2xl px-4 py-3 border border-[#EEF5E6] flex items-center gap-3">
-                  {inner}
-                </div>
-              )
-            })}
+      {/* Verweis auf den eigenen Einreichungen-Bereich */}
+      <div className="px-5 pt-5">
+        <button
+          onClick={() => router.push('/profil/einreichungen')}
+          className="w-full bg-white rounded-2xl px-4 py-3.5 border border-[#D4E8C2] flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#EEF5E6] flex items-center justify-center flex-shrink-0">
+            <ClipboardList size={19} className="text-[#577A3D]" />
           </div>
-        </div>
-      )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[#1C1F1A] font-semibold text-sm">Meine Einreichungen</p>
+            <p className="text-[#6D9450] text-xs mt-0.5">Status, offene Kassenbons und verrechnete Punkte</p>
+          </div>
+          <ChevronRight size={18} className="text-[#8BB06A] flex-shrink-0" />
+        </button>
+      </div>
 
       <div className="px-5 pt-5 space-y-2">
         {loading && (
@@ -160,7 +97,7 @@ export default function PunkteverlaufPage() {
 
         {!loading && transactions.length === 0 && (
           <div className="text-center py-16 text-[#6D9450]/60">
-            <p className="text-4xl mb-3">🪙</p>
+            <Coins size={40} className="mx-auto mb-3 opacity-40" />
             <p className="font-semibold">Noch keine Punkte</p>
             <p className="text-sm mt-1">Teile dein Restaurant-Erlebnis auf Instagram!</p>
           </div>
@@ -168,15 +105,16 @@ export default function PunkteverlaufPage() {
 
         {!loading && transactions.map(tx => {
           const isEarned = tx.amount > 0
+          const TxIcon = TX_TYPE_ICON[tx.type] ?? Coins
           return (
             <div
               key={tx.id}
               className="bg-white rounded-2xl px-4 py-3 border border-[#EEF5E6] flex items-center gap-3"
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                 isEarned ? 'bg-green-100' : 'bg-red-50'
               }`}>
-                {TX_TYPE_EMOJI[tx.type] ?? '🪙'}
+                <TxIcon size={18} className={isEarned ? 'text-green-700' : 'text-[#E86B5A]'} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[#1C1F1A] font-semibold text-sm truncate">

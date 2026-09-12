@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     try {
       if (age >= PROOF_WINDOW_MS && stage < 2) {
         await notifyUser(sub.user_id, {
-          title: 'Kassenbon vergessen? Kein Problem 🌿',
+          title: 'Kassenbon vergessen? Kein Problem',
           body: `Zeig deine Story${rest ? ` bei ${rest.name}` : ''} einfach beim nächsten Besuch und tippe dort die Pistazz-Karte an. Damit ist sie bestätigt und du bekommst deine Punkte.`,
           url: '/profil/punkte',
         })
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       } else if (age >= REMIND_AFTER_MS && age < PROOF_WINDOW_MS && stage < 1) {
         const deadline = new Date(new Date(sub.created_at).getTime() + PROOF_WINDOW_MS)
         await notifyUser(sub.user_id, {
-          title: '🧾 Kassenbon nicht vergessen!',
+          title: 'Kassenbon nicht vergessen!',
           body: `Deine Story${rest ? ` bei ${rest.name}` : ''} wartet. Lade deinen Kassenbon bis ${deadline.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr hoch, dann gehören die Punkte dir.`,
           url: `/story/submit?submission=${sub.id}${rest?.slug ? `&restaurant=${rest.slug}` : ''}`,
         })

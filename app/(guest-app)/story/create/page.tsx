@@ -570,7 +570,7 @@ function ShareSheet({
         <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto" />
 
         <div className="text-center space-y-1">
-          <h2 className="text-lg font-bold text-[#1C1F1A]">Story teilen 📸</h2>
+          <h2 className="text-lg font-bold text-[#1C1F1A]">Story teilen</h2>
           <p className="text-sm text-gray-500">
             Im nächsten Schritt <strong className="text-[#1C1F1A]">„Instagram Stories"</strong> wählen, das Bild wird direkt in deine Story geladen.
           </p>
@@ -1564,19 +1564,31 @@ function StoryCreateInner() {
     tryPlay()
     el.addEventListener('loadedmetadata', tryPlay)
     el.addEventListener('canplay', tryPlay)
-    // Stromsparmodus: iOS verlangt eine Beruehrung - die ERSTE Beruehrung
-    // irgendwo auf dem Bildschirm startet das Video dann sofort
-    const docPlay = () => { tryPlay() }
+    // Stromsparmodus: iOS verlangt eine Beruehrung - JEDE Beruehrung
+    // irgendwo auf dem Bildschirm startet das Video dann sofort. Der Listener
+    // bleibt aktiv, bis das Video wirklich laeuft (vorher wurde er nach ~5 s
+    // entfernt - danach half nur noch zufaellig ein Filter-Tipp).
+    const cleanup = () => {
+      document.removeEventListener('touchstart', docPlay)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+    const docPlay = () => {
+      tryPlay()
+      if ((!el.paused && !el.ended) || !el.isConnected) cleanup()
+    }
+    const onVis = () => { if (document.visibilityState === 'visible') tryPlay() }
     document.addEventListener('touchstart', docPlay, { passive: true })
+    document.addEventListener('visibilitychange', onVis)
     // Nachschieben, bis es wirklich laeuft
     let tries = 0
     const iv = setInterval(() => {
       tries++
-      if ((!el.paused && !el.ended) || tries > 15 || !el.isConnected) {
+      if ((!el.paused && !el.ended) || !el.isConnected) {
         clearInterval(iv)
-        document.removeEventListener('touchstart', docPlay)
+        cleanup()
         return
       }
+      if (tries > 40) { clearInterval(iv); return } // Touch-Fallback bleibt
       tryPlay()
     }, 350)
   }, [])
@@ -1780,6 +1792,21 @@ function StoryCreateInner() {
     setSubmitting(false)
   }
 
+  // Standort schon im Hintergrund holen, sobald der Teilen-Screen erscheint.
+  // Beim "Punkte anfordern" liegt er dann bereit und der Klick ist SOFORT
+  // (vorher wurde dort bis zu 6 s blockierend gewartet - fuehlte sich wie
+  // Haengen an).
+  const prefetchedCoordsRef = useRef<{ lat: number; lng: number } | null>(null)
+  useEffect(() => {
+    if (step !== 'share-options' && step !== 'video-share') return
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      p => { prefetchedCoordsRef.current = { lat: p.coords.latitude, lng: p.coords.longitude } },
+      () => {},
+      { timeout: 8000, maximumAge: 120000 },
+    )
+  }, [step])
+
   // Vor dem Punkte-Anfordern sichergehen, dass die Tags wirklich in der Story
   // sind. Danach wird die Einreichung SOFORT angelegt, mit Standort von genau
   // jetzt (der Gast sitzt gerade im Restaurant, das ist der beste Vor-Ort-
@@ -1793,12 +1820,15 @@ function StoryCreateInner() {
     if (!ok) return
 
     const loadingToast = toast.loading('Story wird eingereicht …')
-    const coords = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+    // Vorgeholten Standort nutzen; falls er (noch) fehlt, maximal 1,2 s
+    // versuchen und sonst ohne weitermachen. Nie den Flow blockieren.
+    const coords = prefetchedCoordsRef.current ?? await new Promise<{ lat: number; lng: number } | null>(resolve => {
       if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(null)
+      const timer = setTimeout(() => resolve(null), 1200)
       navigator.geolocation.getCurrentPosition(
-        p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => resolve(null),
-        { timeout: 6000, maximumAge: 60000 },
+        p => { clearTimeout(timer); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }) },
+        () => { clearTimeout(timer); resolve(null) },
+        { timeout: 1200, maximumAge: 120000 },
       )
     })
     try {
@@ -1919,13 +1949,13 @@ function StoryCreateInner() {
             In Instagram einfügen, dann in der Vorschlagsliste den <strong className="text-white/70">Account antippen</strong> und nicht nur eintippen, sonst zählt der Tag nicht.
           </p>
           <p className="text-[#E5B84C] text-[11px] leading-snug text-center px-2">
-            🧾 Nach dem Bezahlen lädst du deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.
+            Nach dem Bezahlen lädst du deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.
           </p>
 
           {hasNativeIG ? (
             /* Direkte Bild-Uebergabe: kein Speichern, kein Galerie-Umweg */
             <p className="text-[#8BB06A] text-[12px] leading-snug text-center">
-              ✨ Dein Bild wird <strong>automatisch an Instagram übergeben</strong>, einfach unten tippen.
+              Dein Bild wird <strong>automatisch an Instagram übergeben</strong>, einfach unten tippen.
             </p>
           ) : (
             /* Manueller Weg fuer aeltere App-Versionen / Web */
@@ -2109,7 +2139,7 @@ function StoryCreateInner() {
             })}
           </div>
           <p className="text-[#E5B84C] text-[11px] leading-snug text-center px-2">
-            🧾 Nach dem Bezahlen lädst du deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.
+            Nach dem Bezahlen lädst du deinen Kassenbon hoch, erst dann gibt es die Punkte. Die App erinnert dich daran.
           </p>
           <button
             onClick={shareVideoToIG}
@@ -2148,7 +2178,7 @@ function StoryCreateInner() {
       <div className="fixed inset-0 bg-gradient-to-b from-[#1C1F1A] to-[#2d5a27] flex flex-col items-center justify-center text-center px-8 gap-6">
         <CheckCircle className="w-20 h-20 text-[#8BB06A]" />
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Story gepostet! 🎉</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Story gepostet!</h1>
           <p className="text-white/70 text-sm">Deine Story wurde eingereicht und wird geprüft.</p>
         </div>
         {pointsEarned > 0 && (

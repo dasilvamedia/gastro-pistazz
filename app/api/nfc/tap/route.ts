@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         }).catch(() => {})
       }
       notifyUser(user.id, {
-        title: 'Story vor Ort bestätigt 🎉',
+        title: 'Story vor Ort bestätigt',
         body: `Dein Besuch${restaurant?.name ? ` bei ${restaurant.name}` : ''} ist per Pistazz-Karte bestätigt. Deine Story wird jetzt geprüft, die Punkte kommen nach der Freigabe.`,
         url: '/profil/punkte',
       }).catch(() => {})

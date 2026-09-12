@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronDown, SlidersHorizontal, LayoutList, Map, X, MapPin, LocateFixed, Loader2 } from 'lucide-react'
+import { Search, ChevronDown, SlidersHorizontal, LayoutList, Map, X, MapPin, LocateFixed, Loader2, SearchX, Camera } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -261,7 +261,7 @@ export default function EntdeckenPage() {
 
   const emptyNearby = (
     <div className="text-center py-16">
-      <p className="text-5xl mb-3">📍</p>
+      <MapPin size={44} className="mx-auto mb-3 opacity-40" />
       <p className="text-[#6D9450] font-medium">Keine Restaurants im Umkreis von {radiusKm} km.</p>
       {radiusKm < MAX_RADIUS_KM && (
         <button
@@ -340,7 +340,7 @@ export default function EntdeckenPage() {
                         !nearbyActive && selectedCity === 'alle' ? 'text-[#6D9450] font-semibold bg-[#EEF5E6]/60' : 'text-[#1C1F1A]'
                       }`}
                     >
-                      <span className="text-base">🗺️</span>
+                      <Map size={16} className="text-[#577A3D]" />
                       Alle Restaurants
                     </button>
                     {availableCities.map(city => (
@@ -454,7 +454,7 @@ export default function EntdeckenPage() {
                 : visible.length === 0
                 ? (nearbyActive && userPos ? emptyNearby : (
                   <div className="text-center py-16">
-                    <p className="text-5xl mb-3">😔</p>
+                    <SearchX size={44} className="mx-auto mb-3 opacity-40" />
                     <p className="text-[#6D9450] font-medium">Keine Restaurants gefunden</p>
                     {activeFilterCount > 0 && (
                       <button onClick={() => { setFilter('alle'); setCuisineFilter([]); setDietaryFilter([]) }} className="mt-3 text-sm text-[#577A3D] underline">Filter zurücksetzen</button>
@@ -571,7 +571,7 @@ export default function EntdeckenPage() {
                 <TagPills cuisine={selectedRestaurant.cuisine} dietary={selectedRestaurant.dietary} variant="light" max={2} />
               </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#EEF5E6', borderRadius: 99, padding: '3px 10px' }}>
-                <span style={{ fontSize: '0.72rem' }}>📸</span>
+                <Camera size={11} className="text-white" />
                 <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#3D7A22' }}>{selectedRestaurant.points_per_story}P für Story</span>
               </div>
             </div>
