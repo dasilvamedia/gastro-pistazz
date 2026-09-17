@@ -114,6 +114,10 @@ export async function POST(request: Request) {
     }
 
     // Haupt-Datei hochladen (z.B. Kassenbon)
+    // Bucket: 'restaurant-media' ist der einzige existierende Storage-Bucket
+    // in der Live-DB. 'restaurant-media' gab es nie - Uploads dorthin schlugen mit
+    // "Bucket not found" fehl (17.09.2026). Pfade receipts/, screenshots/
+    // halten die Story-Dateien getrennt.
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic']
     const MAX_SIZE = 50 * 1024 * 1024 // 50MB
     if (file && file.size > 0) {
@@ -127,11 +131,11 @@ export async function POST(request: Request) {
       const path = `${user.id}/${restaurant_id}/${Date.now()}.${ext}`
       const arrayBuffer = await file.arrayBuffer()
       const { data: uploadData, error: uploadError } = await admin.storage
-        .from('story-media')
+        .from('restaurant-media')
         .upload(path, arrayBuffer, { contentType: file.type, upsert: false })
 
       if (!uploadError && uploadData) {
-        const { data: urlData } = admin.storage.from('story-media').getPublicUrl(uploadData.path)
+        const { data: urlData } = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path)
         media_url = urlData.publicUrl
       } else if (uploadError) {
         console.error('Storage upload error:', uploadError)
@@ -144,11 +148,11 @@ export async function POST(request: Request) {
       const path = `screenshots/${user.id}/${restaurant_id}/${Date.now()}.${ext}`
       const arrayBuffer = await screenshotFile.arrayBuffer()
       const { data: uploadData, error: uploadError } = await admin.storage
-        .from('story-media')
+        .from('restaurant-media')
         .upload(path, arrayBuffer, { contentType: screenshotFile.type, upsert: false })
 
       if (!uploadError && uploadData) {
-        const { data: urlData } = admin.storage.from('story-media').getPublicUrl(uploadData.path)
+        const { data: urlData } = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path)
         screenshot_url = urlData.publicUrl
       } else if (uploadError) {
         console.error('Screenshot upload error:', uploadError)
@@ -162,10 +166,10 @@ export async function POST(request: Request) {
       const path = `receipts/${user.id}/${restaurant_id}/${Date.now()}.${ext}`
       const arrayBuffer = await receiptFile.arrayBuffer()
       const { data: uploadData, error: uploadError } = await admin.storage
-        .from('story-media')
+        .from('restaurant-media')
         .upload(path, arrayBuffer, { contentType: receiptFile.type, upsert: false })
       if (!uploadError && uploadData) {
-        const { data: urlData } = admin.storage.from('story-media').getPublicUrl(uploadData.path)
+        const { data: urlData } = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path)
         receipt_url = urlData.publicUrl
       } else if (uploadError) {
         console.error('Receipt upload error:', uploadError)

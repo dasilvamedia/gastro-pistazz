@@ -46,12 +46,12 @@ export async function POST() {
         const svg = svgInitials(r.name, r.primary_color ?? '#8BB06A')
         const fileName = `logos/${r.id}/logo.svg`
         const { error: uploadErr } = await admin.storage
-          .from('restaurant-assets')
+          .from('restaurant-media')
           .upload(fileName, Buffer.from(svg), { contentType: 'image/svg+xml', upsert: true })
 
         if (!uploadErr) {
           const { data: { publicUrl } } = admin.storage
-            .from('restaurant-assets')
+            .from('restaurant-media')
             .getPublicUrl(fileName)
           logoUrl = publicUrl
         }

@@ -74,18 +74,20 @@ export async function POST(request: Request) {
       }, { status: 409 })
     }
 
-    // Kassenbon hochladen
+    // Kassenbon hochladen. Bucket: 'restaurant-media' ist der einzige
+    // existierende Storage-Bucket in der Live-DB ('restaurant-media' gab es nie,
+    // Uploads schlugen mit "Bucket not found" fehl, 17.09.2026).
     const ext = receiptFile.name.split('.').pop() ?? 'jpg'
     const path = `receipts/${user.id}/${sub.restaurant_id}/${Date.now()}.${ext}`
     const arrayBuffer = await receiptFile.arrayBuffer()
     const { data: uploadData, error: uploadError } = await admin.storage
-      .from('story-media')
+      .from('restaurant-media')
       .upload(path, arrayBuffer, { contentType: receiptFile.type, upsert: false })
     if (uploadError || !uploadData) {
       console.error('Receipt upload error:', uploadError)
       return NextResponse.json({ error: 'Upload fehlgeschlagen, bitte nochmal versuchen.' }, { status: 500 })
     }
-    const receipt_url = admin.storage.from('story-media').getPublicUrl(uploadData.path).data.publicUrl
+    const receipt_url = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path).data.publicUrl
 
     // Optionaler Story-Screenshot (beschleunigt die automatische Genehmigung)
     let screenshot_url: string | undefined
@@ -94,9 +96,9 @@ export async function POST(request: Request) {
       const sPath = `screenshots/${user.id}/${sub.restaurant_id}/${Date.now()}.${sExt}`
       const sBuf = await screenshotFile.arrayBuffer()
       const { data: sUp } = await admin.storage
-        .from('story-media')
+        .from('restaurant-media')
         .upload(sPath, sBuf, { contentType: screenshotFile.type, upsert: false })
-      if (sUp) screenshot_url = admin.storage.from('story-media').getPublicUrl(sUp.path).data.publicUrl
+      if (sUp) screenshot_url = admin.storage.from('restaurant-media').getPublicUrl(sUp.path).data.publicUrl
     }
 
     // Standort nur ergaenzen, wenn er bei der Einreichung gefehlt hat (der
