@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyRestaurantOwner } from '@/lib/notifyUser'
+import { brandedMediaUrlAbsolute } from '@/lib/mediaUrl'
 
 // Kassenbon (und optional Story-Screenshot) zu einer bestehenden Story-
 // Einreichung nachreichen. Bezahlt wird oft erst lange nach dem Posten der
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
       console.error('Receipt upload error:', uploadError)
       return NextResponse.json({ error: 'Upload fehlgeschlagen, bitte nochmal versuchen.' }, { status: 500 })
     }
-    const receipt_url = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path).data.publicUrl
+    const receipt_url = brandedMediaUrlAbsolute(admin.storage.from('restaurant-media').getPublicUrl(uploadData.path).data.publicUrl)
 
     // Optionaler Story-Screenshot (beschleunigt die automatische Genehmigung)
     let screenshot_url: string | undefined
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
       const { data: sUp } = await admin.storage
         .from('restaurant-media')
         .upload(sPath, sBuf, { contentType: screenshotFile.type, upsert: false })
-      if (sUp) screenshot_url = admin.storage.from('restaurant-media').getPublicUrl(sUp.path).data.publicUrl
+      if (sUp) screenshot_url = brandedMediaUrlAbsolute(admin.storage.from('restaurant-media').getPublicUrl(sUp.path).data.publicUrl)
     }
 
     // Standort nur ergaenzen, wenn er bei der Einreichung gefehlt hat (der

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { StorySubmission, SubmissionStatus, TRIGGER_CONFIG } from '@/types'
 import { MOCK_STORIES, IS_MOCK_MODE } from '@/lib/mock-data'
+import { brandedMediaUrl } from '@/lib/mediaUrl'
 
 type Tab = SubmissionStatus
 
@@ -195,16 +196,18 @@ export default function StoriesPage() {
                     </p>
                   )}
                   {story.receipt_url && (
-                    <a href={story.receipt_url} target="_blank" rel="noopener noreferrer"
-                      className="block text-xs font-medium text-[#6D9450] underline hover:no-underline">
-                      Kassenbon ansehen
-                    </a>
+                    <div>
+                      <p className="text-xs font-medium text-[#6D9450] mb-1">Kassenbon</p>
+                      <img src={brandedMediaUrl(story.receipt_url) ?? story.receipt_url} alt="Kassenbon" loading="lazy"
+                        className="max-h-56 w-auto rounded-lg border border-gray-200 bg-white" />
+                    </div>
                   )}
                   {story.screenshot_url && (
-                    <a href={story.screenshot_url} target="_blank" rel="noopener noreferrer"
-                      className="block text-xs text-purple-500 underline hover:no-underline">
-                      Screenshot ansehen
-                    </a>
+                    <div>
+                      <p className="text-xs font-medium text-purple-500 mb-1">Story-Screenshot</p>
+                      <img src={brandedMediaUrl(story.screenshot_url) ?? story.screenshot_url} alt="Screenshot" loading="lazy"
+                        className="max-h-56 w-auto rounded-lg border border-gray-200 bg-white" />
+                    </div>
                   )}
                   {story.instagram_permalink && (
                     <a href={story.instagram_permalink} target="_blank" rel="noopener noreferrer"

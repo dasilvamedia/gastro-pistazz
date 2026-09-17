@@ -39,6 +39,16 @@ const nextConfig: NextConfig = {
   },
   // Der Proxy puffert Request-Bodies und kappt sonst bei 10 MB (Video-Upload fuer die App-Pruefung)
   experimental: { proxyClientMaxBodySize: '300mb' },
+  // Storage-Bilder unter der eigenen Domain ausliefern: Gaeste und Wirte
+  // sehen nie eine *.supabase.co-Adresse (unprofessionell, schreckt ab).
+  async rewrites() {
+    return [
+      {
+        source: '/media/:path*',
+        destination: 'https://drvhdrhyjbyjilaxuxjy.supabase.co/storage/v1/object/public/:path*',
+      },
+    ]
+  },
   async headers() {
     return [
       {

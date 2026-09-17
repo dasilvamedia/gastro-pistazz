@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyRestaurantOwner } from '@/lib/notifyUser'
+import { brandedMediaUrlAbsolute } from '@/lib/mediaUrl'
 
 export async function POST(request: Request) {
   try {
@@ -115,9 +116,8 @@ export async function POST(request: Request) {
 
     // Haupt-Datei hochladen (z.B. Kassenbon)
     // Bucket: 'restaurant-media' ist der einzige existierende Storage-Bucket
-    // in der Live-DB. 'restaurant-media' gab es nie - Uploads dorthin schlugen mit
-    // "Bucket not found" fehl (17.09.2026). Pfade receipts/, screenshots/
-    // halten die Story-Dateien getrennt.
+    // in der Live-DB ('story-media' gab es nie, "Bucket not found", 17.09.2026).
+    // Pfade receipts/, screenshots/ halten die Story-Dateien getrennt.
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic']
     const MAX_SIZE = 50 * 1024 * 1024 // 50MB
     if (file && file.size > 0) {
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
 
       if (!uploadError && uploadData) {
         const { data: urlData } = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path)
-        media_url = urlData.publicUrl
+        media_url = brandedMediaUrlAbsolute(urlData.publicUrl)
       } else if (uploadError) {
         console.error('Storage upload error:', uploadError)
       }
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
 
       if (!uploadError && uploadData) {
         const { data: urlData } = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path)
-        screenshot_url = urlData.publicUrl
+        screenshot_url = brandedMediaUrlAbsolute(urlData.publicUrl)
       } else if (uploadError) {
         console.error('Screenshot upload error:', uploadError)
       }
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
         .upload(path, arrayBuffer, { contentType: receiptFile.type, upsert: false })
       if (!uploadError && uploadData) {
         const { data: urlData } = admin.storage.from('restaurant-media').getPublicUrl(uploadData.path)
-        receipt_url = urlData.publicUrl
+        receipt_url = brandedMediaUrlAbsolute(urlData.publicUrl)
       } else if (uploadError) {
         console.error('Receipt upload error:', uploadError)
       }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { brandedMediaUrlAbsolute } from '@/lib/mediaUrl'
 
 export const maxDuration = 60
 
@@ -53,7 +54,7 @@ export async function POST() {
           const { data: { publicUrl } } = admin.storage
             .from('restaurant-media')
             .getPublicUrl(fileName)
-          logoUrl = publicUrl
+          logoUrl = brandedMediaUrlAbsolute(publicUrl)
         }
       }
 

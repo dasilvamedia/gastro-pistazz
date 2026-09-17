@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Receipt, Smartphone, Clock, CheckCircle2, XCircle, Camera, Star, Film, Image as ImageIcon, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { brandedMediaUrl } from '@/lib/mediaUrl'
 
 // Eigener Bereich fuer alle Einreichungen des Gastes: was wartet noch auf den
 // Kassenbon, was wird geprueft, was wurde genehmigt und verrechnet.
@@ -156,16 +157,20 @@ export default function EinreichungenPage() {
                 <div className="mt-3 pt-3 border-t border-[#EEF5E6] space-y-2.5">
                   <p className="text-[#1C1F1A]/70 text-xs leading-relaxed">{detail}</p>
                   {s.receipt_url && (
-                    <a
-                      href={s.receipt_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#577A3D] underline"
-                    >
-                      <Receipt size={13} />
-                      Deinen Kassenbon ansehen
-                    </a>
+                    <div>
+                      <p className="flex items-center gap-1.5 text-xs font-semibold text-[#577A3D] mb-1.5">
+                        <Receipt size={13} />
+                        Dein Kassenbon
+                      </p>
+                      {/* Vorschau direkt in der Kachel - nie ein Browserfenster
+                          mit fremder Adresse oeffnen. */}
+                      <img
+                        src={brandedMediaUrl(s.receipt_url) ?? s.receipt_url}
+                        alt="Kassenbon"
+                        loading="lazy"
+                        className="w-full max-h-72 object-contain rounded-xl bg-white border border-[#EEF5E6]"
+                      />
+                    </div>
                   )}
                   {s.status === 'approved' && (
                     <span
