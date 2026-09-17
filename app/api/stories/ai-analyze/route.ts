@@ -18,6 +18,10 @@ type AnalyzeResult = {
   confidence: number
   notes: string
   ig_updates?: Partial<IgChecks>
+  // Kassenbon-Befunde (nur Stories): gehoert der Bon zu DIESEM Restaurant
+  // und ist er vom Einreichungstag? null = nicht lesbar/nicht pruefbar.
+  receipt_matches_restaurant?: boolean | null
+  receipt_is_today?: boolean | null
 }
 
 async function analyzeWithClaude(opts: {
@@ -29,12 +33,14 @@ async function analyzeWithClaude(opts: {
   distanceM?: number | null
   caption: string | null
   restaurantName: string
+  restaurantAddress: string | null
   restaurantHandle: string | null
   userHandle: string | null
   igChecks: IgChecks | null
   submittedAt?: string | null
+  nfcConfirmed?: boolean
 }): Promise<AnalyzeResult> {
-  const { type, permalink, mediaUrl, screenshotUrl, receiptUrl, distanceM, caption, restaurantName, restaurantHandle, userHandle, igChecks, submittedAt } = opts
+  const { type, permalink, mediaUrl, screenshotUrl, receiptUrl, distanceM, caption, restaurantName, restaurantAddress, restaurantHandle, userHandle, igChecks, submittedAt, nfcConfirmed } = opts
 
   if (!ANTHROPIC_API_KEY) {
     return { verdict: 'pending', confidence: 0, notes: 'Kein API-Schlüssel konfiguriert, manuelle Prüfung erforderlich.' }
@@ -124,7 +130,7 @@ Sei streng: lieber suspicious als approved wenn du unsicher bist.`
         contentBlocks.push({ type: 'image', source: { type: 'url', url: receiptUrl } })
         contentBlocks.push({
           type: 'text',
-          text: `Dies ist zusätzlich der eingereichte Kassenbon. Prüfe: Ist es ein echter, unbearbeiteter Kassenbon/Beleg? Ist ein Datum/Zeitstempel darauf sichtbar und plausibel aktuell (heute)? Ergänze deine JSON-Antwort um "receipt_looks_valid": true|false und "receipt_notes": "<kurz>".`,
+          text: receiptCheckInstruction(restaurantName, restaurantAddress, submittedAt),
         })
       }
 
@@ -147,7 +153,56 @@ Sei streng: lieber suspicious als approved wenn du unsicher bist.`
         confidence: Number(result.confidence ?? 0),
         notes: String(result.notes ?? ''),
         ig_updates: igUpdates,
+        receipt_matches_restaurant: typeof result.receipt_matches_restaurant === 'boolean' ? result.receipt_matches_restaurant : null,
+        receipt_is_today: typeof result.receipt_is_today === 'boolean' ? result.receipt_is_today : null,
       }
+    }
+
+    // Story ohne Screenshot, aber mit Kassenbon: Der Bon ist dann der einzige
+    // Beweis und MUSS selbst geprueft werden - vor allem, ob er wirklich von
+    // DIESEM Restaurant stammt (kein fremder Bon fuer fremde Punkte) und vom
+    // Einreichungstag ist.
+    if (type === 'instagram_story' && receiptUrl) {
+      const systemPrompt = `Du bist ein strenger KI-Qualitätsprüfer für ein Gastro-Marketing-Programm.
+Gäste bekommen Punkte für eine Instagram-Story über ein Restaurant. Als Beweis für den Besuch reichen sie einen Kassenbon ein. Betrugsversuch Nummer 1: ein fremder Kassenbon von einem anderen Lokal.
+Restaurant: "${restaurantName}"${restaurantAddress ? ` | Adresse: ${restaurantAddress}` : ''}
+${submittedAt ? `Einreichungsdatum: ${new Date(submittedAt).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' })}` : ''}
+
+Analysiere das Kassenbon-Foto GENAU. Antworte NUR als JSON ohne weiteren Text:
+{
+  "verdict": "approved"|"suspicious"|"rejected",
+  "confidence": 0-100,
+  "receipt_matches_restaurant": true|false|null,
+  "receipt_is_today": true|false|null,
+  "notes": "<Kurze deutsche Begründung, max. 2 Sätze>"
+}
+
+Regeln:
+- receipt_matches_restaurant: true wenn der Name, die Adresse oder ein klarer Bezug zum Restaurant auf dem Bon steht. Firmennamen weichen oft ab (GmbH, Inhabername, Kurzform) - werte Ähnlichkeit großzügig. false NUR wenn klar ein ANDERER Gastronomiebetrieb draufsteht. null wenn kein Betriebsname lesbar ist.
+- receipt_is_today: true wenn das Bon-Datum dem Einreichungsdatum entspricht, false bei klar anderem Datum, null wenn kein Datum lesbar.
+- verdict "rejected": kein echter Kassenbon ODER klar ein anderer Betrieb ODER offensichtlich bearbeitet.
+- verdict "suspicious": Betriebsname/Datum nicht lesbar ODER Datum weicht ab ODER sonst unsicher (manuelle Prüfung).
+- verdict "approved": echter Bon UND passt zum Restaurant UND Datum ist das Einreichungsdatum.
+Sei streng: lieber suspicious als approved wenn du unsicher bist.`
+
+      const rContent: unknown[] = [
+        { type: 'image', source: { type: 'url', url: receiptUrl } },
+        { type: 'text', text: 'Analysiere diesen Kassenbon gemäß den Anweisungen.' },
+      ]
+      const result = await callClaudeStructured(systemPrompt, rContent)
+      return {
+        verdict: String(result.verdict ?? 'pending'),
+        confidence: Number(result.confidence ?? 0),
+        notes: String(result.notes ?? ''),
+        receipt_matches_restaurant: typeof result.receipt_matches_restaurant === 'boolean' ? result.receipt_matches_restaurant : null,
+        receipt_is_today: typeof result.receipt_is_today === 'boolean' ? result.receipt_is_today : null,
+      }
+    }
+
+    // Story ohne Screenshot und ohne Bon, aber per NFC-Karte des Restaurants
+    // bestaetigt: Das Restaurant selbst hat den Besuch quittiert.
+    if (type === 'instagram_story' && nfcConfirmed) {
+      return { verdict: 'approved', confidence: 85, notes: 'Vor Ort per Pistazz-Karte (NFC) des Restaurants bestätigt.' }
     }
 
     // Ohne Screenshot: einfacher URL-Format-Check
@@ -168,6 +223,18 @@ Sei streng: Ohne Screenshot kann nur das URL-Format und der Restaurantbezug in d
   }
 
   return { verdict: 'pending', confidence: 50, notes: 'Unbekannter Einreichungstyp, manuelle Prüfung erforderlich.' }
+}
+
+// Zusatzanweisung, wenn der Kassenbon zusammen mit einem Story-Screenshot
+// geprueft wird: Der Bon muss zu DIESEM Restaurant gehoeren und vom
+// Einreichungstag sein - fremde Bons anderer Lokale zaehlen nicht.
+function receiptCheckInstruction(restaurantName: string, restaurantAddress: string | null, submittedAt?: string | null): string {
+  const dateStr = submittedAt ? new Date(submittedAt).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' }) : null
+  return `Dies ist zusätzlich der eingereichte Kassenbon. Prüfe streng:
+1) Ist es ein echter, unbearbeiteter Kassenbon/Beleg?
+2) Gehört er zu "${restaurantName}"${restaurantAddress ? ` (${restaurantAddress})` : ''}? Firmennamen weichen oft ab (GmbH, Inhabername, Kurzform) - werte Ähnlichkeit großzügig, aber ein klar ANDERER Gastronomiebetrieb ist ein Betrugsversuch.
+3) Ist das Bon-Datum ${dateStr ? `der ${dateStr}` : 'das heutige Datum'}?
+Ergänze deine JSON-Antwort um "receipt_matches_restaurant": true|false|null (null = Betriebsname nicht lesbar), "receipt_is_today": true|false|null und "receipt_notes": "<kurz>". Setze verdict höchstens auf "suspicious", wenn der Bon nicht zum Restaurant passt oder das Datum abweicht.`
 }
 
 async function callClaude(systemPrompt: string, contentBlocks: unknown[]): Promise<AnalyzeResult> {
@@ -260,14 +327,16 @@ export async function POST(request: Request) {
 
     const { data: sub, error: subErr } = await admin
       .from('story_submissions')
-      .select('*, restaurant:restaurants(name, instagram_handle), profile:profiles(instagram_handle)')
+      .select('*, restaurant:restaurants(name, instagram_handle, address, city), profile:profiles(instagram_handle)')
       .eq('id', submission_id)
       .single()
 
     if (subErr || !sub) return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
 
-    const restaurantName = (sub.restaurant as { name: string; instagram_handle: string | null } | null)?.name ?? 'Unbekannt'
-    const restaurantHandle = (sub.restaurant as { name: string; instagram_handle: string | null } | null)?.instagram_handle ?? null
+    const restRow = sub.restaurant as { name: string; instagram_handle: string | null; address: string | null; city: string | null } | null
+    const restaurantName = restRow?.name ?? 'Unbekannt'
+    const restaurantHandle = restRow?.instagram_handle ?? null
+    const restaurantAddress = [restRow?.address, restRow?.city].filter(Boolean).join(', ') || null
     const userHandle = (sub.profile as { instagram_handle: string | null } | null)?.instagram_handle?.toLowerCase() ?? null
 
     const result = await analyzeWithClaude({
@@ -279,10 +348,12 @@ export async function POST(request: Request) {
       distanceM: sub.location_distance_m ?? null,
       caption: sub.caption,
       restaurantName,
+      restaurantAddress,
       restaurantHandle,
       userHandle,
       igChecks: (sub.ig_checks as IgChecks | null) ?? null,
       submittedAt: sub.created_at ?? null,
+      nfcConfirmed: !!(sub as { nfc_confirmed_at?: string | null }).nfc_confirmed_at,
     })
 
     // ig_checks mit Vision-Ergebnissen mergen falls vorhanden
@@ -313,6 +384,14 @@ export async function POST(request: Request) {
           finalNotes = distance == null
             ? 'Kein Standort übermittelt, manuelle Prüfung erforderlich.'
             : `Standort war ${distance}m vom Restaurant entfernt, manuelle Prüfung erforderlich.`
+        } else if (result.receipt_matches_restaurant === false) {
+          // Fremder Bon eines anderen Lokals zaehlt NIE - egal was die KI
+          // sonst gut fand. Der Inhaber entscheidet in der manuellen Pruefung.
+          finalVerdict = 'suspicious'
+          finalNotes = `Der Kassenbon scheint nicht von "${restaurantName}" zu sein, manuelle Prüfung erforderlich.`
+        } else if (result.receipt_is_today === false) {
+          finalVerdict = 'suspicious'
+          finalNotes = 'Das Datum auf dem Kassenbon ist nicht das Einreichungsdatum, manuelle Prüfung erforderlich.'
         }
       }
     }

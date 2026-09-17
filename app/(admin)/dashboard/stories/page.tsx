@@ -37,6 +37,9 @@ type StoryWithUser = StorySubmission & {
   ai_notes?: string | null
   ig_checks?: IgChecks | null
   screenshot_url?: string | null
+  receipt_url?: string | null
+  location_distance_m?: number | null
+  nfc_confirmed_at?: string | null
 }
 
 function IgCheckBadge({ ok, label }: { ok: boolean | null | undefined; label: string }) {
@@ -232,6 +235,26 @@ export default function StoriesPage() {
                   )}
                   {story.ai_notes && story.ai_verdict !== 'pending' && (
                     <p className="text-xs text-gray-500 italic mt-1">{story.ai_notes}</p>
+                  )}
+                  {story.type === 'instagram_story' && (
+                    <div className="flex gap-1 flex-wrap">
+                      {story.receipt_url ? (
+                        <IgCheckBadge ok={true} label="Kassenbon da" />
+                      ) : story.nfc_confirmed_at ? (
+                        <IgCheckBadge ok={true} label="Vor Ort per NFC bestätigt" />
+                      ) : (
+                        <IgCheckBadge ok={false} label="Kassenbon fehlt noch" />
+                      )}
+                      {story.location_distance_m != null && (
+                        <IgCheckBadge ok={story.location_distance_m <= 500} label={`Standort ${story.location_distance_m} m`} />
+                      )}
+                    </div>
+                  )}
+                  {story.receipt_url && (
+                    <a href={story.receipt_url} target="_blank" rel="noopener noreferrer"
+                      className="block text-xs font-medium text-[#6D9450] underline hover:no-underline">
+                      Kassenbon ansehen (gehört er zu deinem Restaurant?)
+                    </a>
                   )}
                   {story.screenshot_url && (
                     <a href={story.screenshot_url} target="_blank" rel="noopener noreferrer"

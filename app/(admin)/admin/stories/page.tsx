@@ -25,6 +25,10 @@ function timeAgo(date: string) {
 type StoryWithUser = Omit<StorySubmission, 'restaurant'> & {
   user: { full_name: string | null; instagram_handle: string | null } | null
   restaurant: { id: string; name: string } | null
+  receipt_url?: string | null
+  screenshot_url?: string | null
+  location_distance_m?: number | null
+  nfc_confirmed_at?: string | null
 }
 
 // Plattformweite Story-Pruefung fuer den Super-Admin: alle Restaurants,
@@ -181,6 +185,27 @@ export default function StoriesPage() {
                       {story.status === 'approved' ? `+${story.points_awarded} Punkte` : 'Punkte nach Freigabe'}
                     </span>
                   </div>
+                  {story.type === 'instagram_story' && (
+                    <p className="text-xs text-gray-500">
+                      {story.receipt_url
+                        ? `Kassenbon da${story.location_distance_m != null ? `, Standort ${story.location_distance_m} m` : ''}`
+                        : story.nfc_confirmed_at
+                          ? 'Vor Ort per NFC bestätigt'
+                          : 'Kassenbon fehlt noch'}
+                    </p>
+                  )}
+                  {story.receipt_url && (
+                    <a href={story.receipt_url} target="_blank" rel="noopener noreferrer"
+                      className="block text-xs font-medium text-[#6D9450] underline hover:no-underline">
+                      Kassenbon ansehen
+                    </a>
+                  )}
+                  {story.screenshot_url && (
+                    <a href={story.screenshot_url} target="_blank" rel="noopener noreferrer"
+                      className="block text-xs text-purple-500 underline hover:no-underline">
+                      Screenshot ansehen
+                    </a>
+                  )}
                   {story.instagram_permalink && (
                     <a href={story.instagram_permalink} target="_blank" rel="noopener noreferrer"
                       className="text-xs text-[#8BB06A] underline hover:no-underline">
