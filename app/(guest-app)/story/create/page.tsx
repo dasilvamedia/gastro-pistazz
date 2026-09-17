@@ -1674,7 +1674,9 @@ function StoryCreateInner() {
         })
         if (off === 0) await Fs.writeFile({ path: fileName, data: b64, directory: 'CACHE' })
         else await Fs.appendFile({ path: fileName, data: b64, directory: 'CACHE' })
-        await new Promise(r => setTimeout(r, 0))
+        // Ein voller Frame Luft zwischen den Scheiben haelt Overlay-Animation
+        // und Touch-Handling fluessig
+        await new Promise(r => setTimeout(r, 16))
       }
       const { uri } = await Fs.getUri({ path: fileName, directory: 'CACHE' })
       return uri
@@ -2180,12 +2182,16 @@ function StoryCreateInner() {
           >
             <X className="w-5 h-5" />
           </button>
-          {/* Uebergabe-Overlay: maskiert den kurzen Bruecken-Transfer, sonst
-              wirkt die Instagram-Uebergabe wie Flackern/Haengen */}
+          {/* Uebergabe-Overlay: VOLL deckend. Halbtransparent liess jedes
+              Mini-Ruckeln des pausierten Videos durchscheinen und wirkte wie
+              Zittern/Flackern. Der Spinner laeuft als CSS-Animation auf dem
+              Compositor und bleibt auch fluessig, wenn der JS-Thread kurz
+              mit dem Datei-Transfer beschaeftigt ist. */}
           {videoBusy && (
-            <div className="absolute inset-0 z-20 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-              <div className="w-10 h-10 border-[3px] border-white/25 border-t-white rounded-full animate-spin" />
+            <div className="absolute inset-0 z-20 bg-[#1C1F1A] flex flex-col items-center justify-center gap-4">
+              <div className="w-11 h-11 border-[3px] border-[#8BB06A]/30 border-t-[#8BB06A] rounded-full animate-spin" />
               <p className="text-white font-semibold text-sm">Wird an Instagram übergeben …</p>
+              <p className="text-white/50 text-xs">Einen Moment, dein Video ist gleich drüben.</p>
             </div>
           )}
         </div>
