@@ -1649,41 +1649,51 @@ function StoryCreateInner() {
   // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
   const shareVideoToIG = async () => {
     if (videoBusy) return
-    // Normalfall: fertig eingebranntes Video liegt schon vor
-    let share: { blob: Blob; mime: string } | null = burnedVideo
-    if (!share && capturedVideo) {
-      setVideoBusy(true)
-      try { share = await burnVideoOverlay({ withFilter: filter !== 'original', withSticker: !stickerNative }) } catch { share = capturedVideo }
-      setVideoBusy(false)
-    }
-    if (!share) return
+    // Die komplette Uebergabe laeuft hinter einem Busy-Overlay: die Base64-
+    // Konvertierung + der Transfer ueber die native Bruecke blockieren bei
+    // grossen Videos kurz den Thread - ohne Overlay wirkte das wie Flackern.
+    setVideoBusy(true)
+    // Laufende Vorschau pausieren: weniger Decode-Last = fluessigere Uebergabe
+    document.querySelectorAll('video').forEach(v => { try { v.pause() } catch {} })
+    try {
+      // Normalfall: fertig eingebranntes Video liegt schon vor
+      let share: { blob: Blob; mime: string } | null = burnedVideo
+      if (!share && capturedVideo) {
+        try { share = await burnVideoOverlay({ withFilter: filter !== 'original', withSticker: !stickerNative }) } catch { share = capturedVideo }
+      }
+      if (!share) return
 
-    const native = (window as unknown as {
-      Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string; stickerBase64?: string }) => Promise<{ shared: boolean }> } } }
-    }).Capacitor?.Plugins?.InstagramStory
-    if (native?.shareVideo) {
-      try {
-        const base64 = await new Promise<string>((res, rej) => {
-          const r = new FileReader()
-          r.onload = () => res((r.result as string).split(',')[1])
-          r.onerror = rej
-          r.readAsDataURL(share.blob)
-        })
-        const out = await native.shareVideo({
-          base64,
-          appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097',
-          // Original-Modus: Sticker als eigenes Instagram-Element obendrauf
-          ...(stickerNative ? { stickerBase64: stickerPngBase64() } : {}),
-        })
-        if (out?.shared) return
-      } catch { /* Fallback unten */ }
+      const native = (window as unknown as {
+        Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string; stickerBase64?: string }) => Promise<{ shared: boolean }> } } }
+      }).Capacitor?.Plugins?.InstagramStory
+      if (native?.shareVideo) {
+        try {
+          const base64 = await new Promise<string>((res, rej) => {
+            const r = new FileReader()
+            r.onload = () => res((r.result as string).split(',')[1])
+            r.onerror = rej
+            r.readAsDataURL(share.blob)
+          })
+          const out = await native.shareVideo({
+            base64,
+            appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097',
+            // Original-Modus: Sticker als eigenes Instagram-Element obendrauf
+            ...(stickerNative ? { stickerBase64: stickerPngBase64() } : {}),
+          })
+          if (out?.shared) return
+        } catch { /* Fallback unten */ }
+      }
+      const ext = share.mime.includes('mp4') ? 'mp4' : 'webm'
+      const file = new File([share.blob], `pistazz-story.${ext}`, { type: share.mime })
+      if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: 'pistazz Story' }); return } catch { /* abgebrochen */ }
+      }
+      window.location.href = 'instagram://camera'
+    } finally {
+      setVideoBusy(false)
+      // Vorschau wieder anwerfen, falls der Gast in der App geblieben ist
+      document.querySelectorAll('video').forEach(v => { try { v.play().catch(() => {}) } catch {} })
     }
-    const ext = share.mime.includes('mp4') ? 'mp4' : 'webm'
-    const file = new File([share.blob], `pistazz-story.${ext}`, { type: share.mime })
-    if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'pistazz Story' }); return } catch { /* abgebrochen */ }
-    }
-    window.location.href = 'instagram://camera'
   }
 
   // ── Helper: submit story to Pistazz API ─────────────────────────────────
@@ -1850,14 +1860,16 @@ function StoryCreateInner() {
       }
       if (res.status === 409) {
         toast(j.error ?? 'Heute schon eingereicht.', { icon: 'ℹ️' })
-        router.push('/profil/punkte')
+        router.push('/profil/einreichungen')
         return
       }
       throw new Error(j.error ?? 'Einreichen fehlgeschlagen')
-    } catch {
+    } catch (e: unknown) {
       toast.dismiss(loadingToast)
-      // Fallback: alter Weg, die Einreichung passiert dann auf der Submit-Seite
-      router.push(`/story/submit?restaurant=${slug}&type=instagram_story&shared=true`)
+      // BEWUSST kein Fallback in den alten Zwangs-Upload-Flow: der Screen
+      // bleibt stehen, der Gast tippt einfach nochmal. Die Einreichung MUSS
+      // sofort angelegt werden, der Kassenbon kommt spaeter.
+      toast.error(e instanceof Error && e.message ? e.message : 'Einreichen fehlgeschlagen. Bitte nochmal auf "Punkte anfordern" tippen.')
     }
   }
 
@@ -2109,6 +2121,14 @@ function StoryCreateInner() {
           >
             <X className="w-5 h-5" />
           </button>
+          {/* Uebergabe-Overlay: maskiert den kurzen Bruecken-Transfer, sonst
+              wirkt die Instagram-Uebergabe wie Flackern/Haengen */}
+          {videoBusy && (
+            <div className="absolute inset-0 z-20 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+              <div className="w-10 h-10 border-[3px] border-white/25 border-t-white rounded-full animate-spin" />
+              <p className="text-white font-semibold text-sm">Wird an Instagram übergeben …</p>
+            </div>
+          )}
         </div>
         <div
           className="bg-[#1C1F1A] px-5 pt-4 space-y-2.5"
@@ -2152,7 +2172,7 @@ function StoryCreateInner() {
               <circle cx="13.2" cy="4.8" r="1" fill="white"/>
               <rect x="1" y="1" width="16" height="16" rx="4.5" stroke="white" strokeWidth="1.5" fill="none"/>
             </svg>
-            <span className="text-white font-bold text-base flex-1 text-left">Story in Instagram teilen</span>
+            <span className="text-white font-bold text-base flex-1 text-left">{videoBusy ? 'Wird übergeben …' : 'Story in Instagram teilen'}</span>
             <span className="text-white/70 text-lg">›</span>
           </button>
           <button

@@ -11,7 +11,7 @@ import { notifyUser } from '@/lib/notifyUser'
 //                    (NFC) vor Ort bestaetigen."
 // Der partielle Index idx_story_pending_receipt (035) haelt den Scan winzig.
 
-const REMIND_AFTER_MS = 60 * 60 * 1000        // 1 Stunde
+const REMIND_AFTER_MS = 40 * 60 * 1000        // 40 Minuten (Wunsch: 30-45)
 const PROOF_WINDOW_MS = 5 * 60 * 60 * 1000    // 5 Stunden
 
 export async function GET(request: NextRequest) {

@@ -409,22 +409,16 @@ function StorySubmitInner() {
           {step === 2 && (
             <motion.div key="step2" initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -60, opacity: 0 }} className="space-y-4">
               {proofMode ? (
-                <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 space-y-2">
+                <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"><PartyPopper size={18} className="text-green-700" /></div>
                     <div>
-                      <p className="text-green-800 font-bold text-sm">Story eingereicht!</p>
+                      <p className="text-green-800 font-bold text-sm">Story eingereicht und gespeichert!</p>
                       <p className="text-green-700 text-xs">
-                        Jetzt fehlt nur noch dein Kassenbon. Er beweist deinen Besuch, erst dann gibt es die Punkte.
+                        Lade deinen Kassenbon jetzt hoch, oder nach dem Bezahlen über „Später hochladen". Die App erinnert dich, nichts geht verloren.
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => router.push('/home')}
-                    className="w-full text-center text-green-800 text-xs font-semibold underline py-1"
-                  >
-                    Noch nicht bezahlt? Später hochladen, die App erinnert dich auf dem Startbildschirm.
-                  </button>
                 </div>
               ) : alreadyShared && (
                 <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
@@ -863,6 +857,14 @@ function StorySubmitInner() {
           {step > 0 && !proofMode && (
             <button onClick={handleBack} className="flex-1 py-3.5 rounded-2xl border border-[#8BB06A] text-[#6D9450] font-semibold">
               Zurück
+            </button>
+          )}
+          {proofMode && step === 2 && (
+            <button
+              onClick={() => router.push('/home')}
+              className="flex-1 py-3.5 rounded-2xl border border-[#8BB06A] text-[#6D9450] font-semibold"
+            >
+              Später hochladen
             </button>
           )}
           <button
