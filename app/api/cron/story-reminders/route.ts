@@ -74,5 +74,35 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ reminded, expiredNotified, scanned: subs?.length ?? 0, at: new Date().toISOString() })
+  // ── Selbstheilung: haengengebliebene KI-Pruefungen nachholen ──
+  // Die Pruefkette (proof -> ig-verify -> ai-analyze) laeuft fire-and-forget
+  // und stirbt z.B. bei einem pm2-Reload mitten im Deploy. Alles, was Beweise
+  // hat (Bon oder NFC) aber nie analysiert wurde, wird hier neu angestossen.
+  let reanalyzed = 0
+  const { data: stuck } = await admin
+    .from('story_submissions')
+    .select('id, receipt_url, nfc_confirmed_at')
+    .eq('status', 'pending')
+    .is('ai_analyzed_at', null)
+    .gte('created_at', since)
+    .lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+    .limit(20)
+
+  const secret = process.env.INTERNAL_NOTIFY_SECRET ?? ''
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gastro.pistazz.io'
+  for (const s of stuck ?? []) {
+    if (!s.receipt_url && !s.nfc_confirmed_at) continue // wartet noch auf Beweis
+    try {
+      await fetch(`${baseUrl}/api/stories/ig-verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
+        body: JSON.stringify({ submission_id: s.id }),
+      })
+      reanalyzed++
+    } catch (e) {
+      console.error('cron story-reminders reanalyze error:', s.id, e)
+    }
+  }
+
+  return NextResponse.json({ reminded, expiredNotified, reanalyzed, scanned: subs?.length ?? 0, at: new Date().toISOString() })
 }

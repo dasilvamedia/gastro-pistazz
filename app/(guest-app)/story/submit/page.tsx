@@ -821,14 +821,16 @@ function StorySubmitInner() {
                 <CheckCircle size={56} className="text-[#8BB06A]" />
               </div>
               <h2 className="text-2xl font-bold text-[#1C1F1A] mb-3" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                Eingereicht!
+                {proofMode ? 'Kassenbon eingereicht!' : 'Eingereicht!'}
               </h2>
               <p className="text-[#6D9450] text-sm leading-relaxed mb-3 max-w-xs">
-                Deine Einreichung wird geprüft und anschließend vom Restaurant bestätigt.
+                {proofMode
+                  ? 'Damit ist alles komplett. Das Restaurant prüft jetzt deine Story.'
+                  : 'Deine Einreichung wird geprüft und anschließend vom Restaurant bestätigt.'}
               </p>
               <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2.5 border border-[#D4E8C2] mb-8">
                 <ShieldCheck size={15} className="text-[#577A3D]" />
-                <span className="text-[#577A3D] text-xs font-medium">Eingereicht. Du wirst benachrichtigt, sobald geprüft wurde.</span>
+                <span className="text-[#577A3D] text-xs font-medium">Nach der Freigabe bekommst du eine Benachrichtigung und deine Punkte werden gutgeschrieben.</span>
               </div>
               {selectedTypeInfo && (
                 <div className="bg-[#EEF5E6] rounded-2xl px-6 py-4 mb-8 border border-[#D4E8C2]">
@@ -837,10 +839,10 @@ function StorySubmitInner() {
                 </div>
               )}
               <button
-                onClick={() => restaurantSlug ? router.push(`/r/${restaurantSlug}`) : router.push('/home')}
+                onClick={() => proofMode ? router.push('/profil/einreichungen') : restaurantSlug ? router.push(`/r/${restaurantSlug}`) : router.push('/home')}
                 className="gradient-primary text-white font-bold px-8 py-3.5 rounded-2xl text-base"
               >
-                {restaurantSlug ? 'Zurück zum Restaurant' : 'Zur Übersicht'}
+                {proofMode ? 'Zu meinen Einreichungen' : restaurantSlug ? 'Zurück zum Restaurant' : 'Zur Übersicht'}
               </button>
             </motion.div>
           )}

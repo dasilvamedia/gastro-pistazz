@@ -25,6 +25,7 @@ type Submission = {
   receipt_url: string | null
   nfc_confirmed_at: string | null
   points_awarded: number | null
+  rejection_reason: string | null
   created_at: string
   restaurant: { name: string; slug: string } | null
 }
@@ -34,6 +35,7 @@ export default function EinreichungenPage() {
   const supabase = createClient()
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -41,7 +43,7 @@ export default function EinreichungenPage() {
       if (!user) { router.push('/login'); return }
       const { data } = await supabase
         .from('story_submissions')
-        .select('id, type, status, receipt_url, nfc_confirmed_at, points_awarded, created_at, restaurant:restaurants(name, slug)')
+        .select('id, type, status, receipt_url, nfc_confirmed_at, points_awarded, rejection_reason, created_at, restaurant:restaurants(name, slug)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50)
@@ -101,6 +103,22 @@ export default function EinreichungenPage() {
             ? { text: s.points_awarded ? `Genehmigt, +${s.points_awarded} P verrechnet` : 'Genehmigt', cls: 'text-green-700', Icon: CheckCircle2, iconCls: 'text-green-600' }
             : { text: 'Abgelehnt', cls: 'text-red-600', Icon: XCircle, iconCls: 'text-red-500' }
 
+          const isOpen = expanded === s.id
+
+          // Detail-Erklaerung je Status: Der Gast soll immer wissen, was
+          // gerade passiert und was als Naechstes kommt.
+          const detail = windowExpired
+            ? `Das 5-Stunden-Fenster für den Kassenbon ist vorbei. Kein Problem: Zeig deine Story beim nächsten Besuch${s.restaurant ? ` bei ${s.restaurant.name}` : ''} und lass dort die Pistazz-Karte antippen. Damit ist dein Besuch bestätigt und du bekommst deine Punkte.`
+            : needsReceipt
+            ? 'Lade deinen Kassenbon hoch, damit dein Besuch bestätigt ist. Danach prüft das Restaurant deine Story und du bekommst deine Punkte.'
+            : s.status === 'pending'
+            ? `${s.nfc_confirmed_at ? 'Dein Besuch ist vor Ort per Pistazz-Karte bestätigt.' : 'Dein Kassenbon ist da.'} Das Restaurant prüft jetzt deine Einreichung. Sobald sie freigegeben ist, bekommst du eine Benachrichtigung und die Punkte werden dir direkt gutgeschrieben.`
+            : s.status === 'approved'
+            ? `Freigegeben! ${s.points_awarded ? `Die ${s.points_awarded} Punkte sind auf deinem Konto.` : 'Deine Punkte sind auf deinem Konto.'} Du findest sie unter Profil, Punkte.`
+            : s.rejection_reason
+            ? `Grund: ${s.rejection_reason}`
+            : 'Das Restaurant hat diese Einreichung abgelehnt. Bei Fragen wende dich direkt an das Restaurant.'
+
           const card = (
             <div className="flex items-center gap-3">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${needsReceipt ? 'bg-amber-100' : 'bg-[#EEF5E6]'}`}>
@@ -118,22 +136,49 @@ export default function EinreichungenPage() {
                   {new Date(s.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} Uhr
                 </p>
               </div>
-              {needsReceipt && <ChevronRight size={18} className="text-amber-500 flex-shrink-0" />}
+              <ChevronRight
+                size={18}
+                className={`flex-shrink-0 transition-transform ${needsReceipt ? 'text-amber-500' : 'text-[#8BB06A]/60'} ${isOpen && !needsReceipt ? 'rotate-90' : ''}`}
+              />
             </div>
           )
 
-          return needsReceipt ? (
+          return (
             <button
               key={s.id}
-              onClick={() => router.push(proofUrl)}
-              className="w-full text-left bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform"
+              onClick={() => needsReceipt ? router.push(proofUrl) : setExpanded(isOpen ? null : s.id)}
+              className={`w-full text-left rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform ${
+                needsReceipt ? 'bg-amber-50 border border-amber-300' : 'bg-white border border-[#EEF5E6]'
+              }`}
             >
               {card}
+              {isOpen && !needsReceipt && (
+                <div className="mt-3 pt-3 border-t border-[#EEF5E6] space-y-2.5">
+                  <p className="text-[#1C1F1A]/70 text-xs leading-relaxed">{detail}</p>
+                  {s.receipt_url && (
+                    <a
+                      href={s.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#577A3D] underline"
+                    >
+                      <Receipt size={13} />
+                      Deinen Kassenbon ansehen
+                    </a>
+                  )}
+                  {s.status === 'approved' && (
+                    <span
+                      role="link"
+                      onClick={e => { e.stopPropagation(); router.push('/profil/punkte') }}
+                      className="block text-xs font-semibold text-[#577A3D] underline"
+                    >
+                      Zu meinen Punkten
+                    </span>
+                  )}
+                </div>
+              )}
             </button>
-          ) : (
-            <div key={s.id} className="bg-white rounded-2xl px-4 py-3.5 border border-[#EEF5E6]">
-              {card}
-            </div>
           )
         })}
       </div>

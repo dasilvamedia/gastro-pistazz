@@ -400,8 +400,11 @@ export async function POST(request: Request) {
       ai_verdict: finalVerdict,
       ai_confidence: result.confidence,
       ai_notes: finalNotes,
-      ai_analyzed_at: new Date().toISOString(),
     }
+    // ai_analyzed_at nur bei echtem Ergebnis setzen: 'pending' heisst
+    // "konnte nicht pruefen" (kein API-Key, API-Fehler) - der Cron stoesst
+    // solche Faelle ueber ig-verify erneut an, bis ein Urteil da ist.
+    if (finalVerdict !== 'pending') updatePayload.ai_analyzed_at = new Date().toISOString()
     if (igChecksUpdate) updatePayload.ig_checks = igChecksUpdate
 
     await admin.from('story_submissions').update(updatePayload).eq('id', submission_id)
