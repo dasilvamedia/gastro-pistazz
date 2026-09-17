@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? ''
-const MODEL = 'claude-opus-4-5'
+// Sonnet statt Opus: fuer Bon-/Screenshot-Abgleich gleichwertig treffsicher,
+// aber rund ein Fuenftel der API-Kosten pro Pruefung.
+const MODEL = 'claude-sonnet-5'
 
 type IgChecks = {
   url_user_match: boolean | null
