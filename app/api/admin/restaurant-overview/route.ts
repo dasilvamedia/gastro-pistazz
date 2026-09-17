@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       admin.from('story_submissions').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       admin.from('deal_redemptions').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       admin.from('stamp_cards').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-      admin.from('story_submissions').select('id, status, created_at, reach, user:profiles(full_name)').eq('restaurant_id', restaurantId).order('created_at', { ascending: false }).limit(5),
+      admin.from('story_submissions').select('id, status, created_at, reach, user:profiles!story_submissions_user_id_fkey(full_name)').eq('restaurant_id', restaurantId).order('created_at', { ascending: false }).limit(5),
       admin.from('points_transactions').select('amount').eq('restaurant_id', restaurantId).in('type', ['earned', 'bonus']).gte('created_at', weekAgo),
     ])
 

@@ -327,7 +327,7 @@ export async function POST(request: Request) {
 
     const { data: sub, error: subErr } = await admin
       .from('story_submissions')
-      .select('*, restaurant:restaurants(name, instagram_handle, address, city), profile:profiles(instagram_handle)')
+      .select('*, restaurant:restaurants(name, instagram_handle, address, city), profile:profiles!story_submissions_user_id_fkey(instagram_handle)')
       .eq('id', submission_id)
       .single()
 

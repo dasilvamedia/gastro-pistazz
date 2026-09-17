@@ -66,7 +66,7 @@ export default function DashboardPage() {
       // Restaurant-gebunden: neue Besucher DIESES Restaurants (nicht plattformweit!)
       supabase.from('visits').select('id', { count: 'exact', head: true })
         .eq('restaurant_id', rid).gte('visited_at', weekAgo),
-      supabase.from('story_submissions').select('*, user:profiles(full_name)')
+      supabase.from('story_submissions').select('*, user:profiles!story_submissions_user_id_fkey(full_name)')
         .eq('restaurant_id', rid).order('created_at', { ascending: false }).limit(10),
       supabase.from('stamp_cards').select('id', { count: 'exact', head: true })
         .eq('restaurant_id', rid),

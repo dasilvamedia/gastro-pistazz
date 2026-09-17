@@ -95,7 +95,7 @@ export default function StoriesPage() {
   const fetchStories = useCallback(async (rid: string) => {
     const { data } = await supabase
       .from('story_submissions')
-      .select('*, user:profiles(full_name, instagram_handle)')
+      .select('*, user:profiles!story_submissions_user_id_fkey(full_name, instagram_handle)')
       .eq('restaurant_id', rid)
       .order('created_at', { ascending: false })
     setStories((data ?? []) as StoryWithUser[])

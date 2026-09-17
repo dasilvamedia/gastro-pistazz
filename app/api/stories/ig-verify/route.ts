@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       .select(`
         *,
         restaurant:restaurants(name, instagram_handle),
-        profile:profiles(instagram_handle)
+        profile:profiles!story_submissions_user_id_fkey(instagram_handle)
       `)
       .eq('id', submission_id)
       .single()
