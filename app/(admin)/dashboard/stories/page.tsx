@@ -63,9 +63,9 @@ function IgCheckBadge({ ok, label }: { ok: boolean | null | undefined; label: st
 function AIBadge({ verdict, confidence, notes }: { verdict?: string | null; confidence?: number | null; notes?: string | null }) {
   if (!verdict || verdict === 'pending') {
     return (
-      <div title="Wird geprüft" className="flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+      <div title="Die KI-Prüfung läuft" className="flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
         <span className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin" />
-        Wird geprüft…
+        KI prüft den Kassenbon…
       </div>
     )
   }
@@ -223,7 +223,14 @@ export default function StoriesPage() {
                       +{story.points_awarded} Punkte
                     </span>
                   </div>
-                  <AIBadge verdict={story.ai_verdict} confidence={story.ai_confidence} notes={story.ai_notes} />
+                  {story.type === 'instagram_story' && story.status === 'pending' && !story.receipt_url && !story.nfc_confirmed_at ? (
+                    // Ohne Beweis laeuft noch keine Pruefung - kein irrefuehrender Spinner
+                    <div className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+                      Wartet auf den Kassenbon des Gastes (5-Stunden-Fenster)
+                    </div>
+                  ) : (
+                    <AIBadge verdict={story.ai_verdict} confidence={story.ai_confidence} notes={story.ai_notes} />
+                  )}
                   {story.ig_checks && (
                     <div className="flex gap-1 flex-wrap mt-1">
                       <IgCheckBadge ok={story.ig_checks.url_user_match} label="URL-Match" />
