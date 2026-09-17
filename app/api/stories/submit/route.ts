@@ -79,6 +79,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 })
     }
 
+    // Selbstheilung: einzelne Alt-Konten haben keine profiles-Zeile (der
+    // Anlege-Trigger schlug damals fehl) -> der Insert platzt sonst am
+    // Fremdschluessel. Fehlendes Profil minimal anlegen.
+    const { data: ownProfile } = await admin.from('profiles').select('id').eq('id', user.id).maybeSingle()
+    if (!ownProfile) {
+      const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string }
+      await admin.from('profiles').upsert({
+        id: user.id,
+        email: user.email ?? null,
+        full_name: meta.full_name ?? meta.name ?? null,
+        role: 'guest',
+        onboarding_completed: true,
+      }, { onConflict: 'id', ignoreDuplicates: true })
+    }
+
     // Stories: max. eine Einreichung pro Restaurant und Tag (abgelehnte zaehlen
     // nicht, damit ein zweiter Versuch nach Ablehnung moeglich bleibt). Ersetzt
     // die Link-Duplikatssperre, seit der Story-Link entfallen ist.

@@ -1867,9 +1867,10 @@ function StoryCreateInner() {
     } catch (e: unknown) {
       toast.dismiss(loadingToast)
       // BEWUSST kein Fallback in den alten Zwangs-Upload-Flow: der Screen
-      // bleibt stehen, der Gast tippt einfach nochmal. Die Einreichung MUSS
-      // sofort angelegt werden, der Kassenbon kommt spaeter.
-      toast.error(e instanceof Error && e.message ? e.message : 'Einreichen fehlgeschlagen. Bitte nochmal auf "Punkte anfordern" tippen.')
+      // bleibt stehen, der Gast tippt einfach nochmal. Alert statt Toast,
+      // damit die Meldung lesbar STEHEN bleibt.
+      const msg = e instanceof Error && e.message ? e.message : 'Unbekannter Fehler.'
+      window.alert(`Einreichen fehlgeschlagen: ${msg}\n\nBitte tippe nochmal auf "Punkte anfordern". Deine Story auf Instagram ist davon nicht betroffen.`)
     }
   }
 
