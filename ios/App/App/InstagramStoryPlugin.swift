@@ -11,7 +11,8 @@ public class InstagramStoryPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "InstagramStory"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "share", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "shareVideo", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "shareVideo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "shareVideoFile", returnType: CAPPluginReturnPromise)
     ]
 
     /// Uebergibt ein aufgenommenes Video (Story/Boomerang) direkt an
@@ -25,9 +26,32 @@ public class InstagramStoryPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("base64 fehlt oder ungueltig")
             return
         }
-        let appId = call.getString("appId") ?? ""
         let stickerData = call.getString("stickerBase64").flatMap { Data(base64Encoded: $0) }
+        presentVideoToInstagram(videoData: videoData, stickerData: stickerData,
+                                appId: call.getString("appId") ?? "", call: call)
+    }
 
+    /// Wie shareVideo, aber liest das Video aus einer lokalen Datei (URI vom
+    /// Capacitor-Filesystem). Vermeidet den riesigen Base64-Transfer ueber die
+    /// JS-Bruecke, der das WebView sekundenlang einfror (ab Build 22).
+    @objc func shareVideoFile(_ call: CAPPluginCall) {
+        guard let path = call.getString("path"), !path.isEmpty else {
+            call.reject("path fehlt")
+            return
+        }
+        let fileUrl = path.hasPrefix("file://") ? URL(string: path) : URL(fileURLWithPath: path)
+        guard let url = fileUrl, let videoData = try? Data(contentsOf: url) else {
+            call.reject("Datei nicht lesbar")
+            return
+        }
+        let stickerData = call.getString("stickerBase64").flatMap { Data(base64Encoded: $0) }
+        presentVideoToInstagram(videoData: videoData, stickerData: stickerData,
+                                appId: call.getString("appId") ?? "", call: call)
+        // Temp-Datei aufraeumen, Instagram hat die Daten ueber das Pasteboard
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    private func presentVideoToInstagram(videoData: Data, stickerData: Data?, appId: String, call: CAPPluginCall) {
         DispatchQueue.main.async {
             guard let url = URL(string: "instagram-stories://share?source_application=\(appId)"),
                   UIApplication.shared.canOpenURL(url) else {

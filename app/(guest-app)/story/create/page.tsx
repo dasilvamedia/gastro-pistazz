@@ -1647,6 +1647,42 @@ function StoryCreateInner() {
   }
 
   // ── Video an Instagram uebergeben (nativ, sonst System-Share) ────────────
+  // Video als Datei fuer das native Plugin ablegen statt als riesigen
+  // Base64-String ueber die JS-Bruecke zu schieben (das fror das WebView
+  // sekundenlang ein -> "Flackern/Haengen" bei der Instagram-Uebergabe).
+  // Geschrieben wird in Scheiben, deren Groesse durch 3 teilbar ist, damit
+  // die Base64-Stuecke aneinandergehaengt eine gueltige Datei ergeben; nach
+  // jeder Scheibe bekommt der UI-Thread Luft.
+  const writeShareFile = async (blob: Blob, fileName: string): Promise<string | null> => {
+    const Fs = (window as unknown as {
+      Capacitor?: { Plugins?: { Filesystem?: {
+        writeFile: (o: { path: string; data: string; directory: string }) => Promise<unknown>
+        appendFile: (o: { path: string; data: string; directory: string }) => Promise<unknown>
+        getUri: (o: { path: string; directory: string }) => Promise<{ uri: string }>
+      } } }
+    }).Capacitor?.Plugins?.Filesystem
+    if (!Fs) return null
+    const CHUNK = 3 * 700_000 // ~2,1 MB, durch 3 teilbar (padding-freie Chunks)
+    try {
+      for (let off = 0; off < blob.size; off += CHUNK) {
+        const slice = blob.slice(off, off + CHUNK)
+        const b64 = await new Promise<string>((res, rej) => {
+          const r = new FileReader()
+          r.onload = () => res((r.result as string).split(',')[1])
+          r.onerror = rej
+          r.readAsDataURL(slice)
+        })
+        if (off === 0) await Fs.writeFile({ path: fileName, data: b64, directory: 'CACHE' })
+        else await Fs.appendFile({ path: fileName, data: b64, directory: 'CACHE' })
+        await new Promise(r => setTimeout(r, 0))
+      }
+      const { uri } = await Fs.getUri({ path: fileName, directory: 'CACHE' })
+      return uri
+    } catch {
+      return null
+    }
+  }
+
   const shareVideoToIG = async () => {
     if (videoBusy) return
     // Die komplette Uebergabe laeuft hinter einem Busy-Overlay: die Base64-
@@ -1664,8 +1700,30 @@ function StoryCreateInner() {
       if (!share) return
 
       const native = (window as unknown as {
-        Capacitor?: { Plugins?: { InstagramStory?: { shareVideo?: (o: { base64: string; appId?: string; stickerBase64?: string }) => Promise<{ shared: boolean }> } } }
+        Capacitor?: { Plugins?: { InstagramStory?: {
+          shareVideo?: (o: { base64: string; appId?: string; stickerBase64?: string }) => Promise<{ shared: boolean }>
+          shareVideoFile?: (o: { path: string; appId?: string; stickerBase64?: string }) => Promise<{ shared: boolean }>
+        } } }
       }).Capacitor?.Plugins?.InstagramStory
+      const appId = process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097'
+
+      // Ab Build 22: Datei-Uebergabe (fluessig, kein Bruecken-Freeze)
+      if (native?.shareVideoFile) {
+        const ext = share.mime.includes('mp4') ? 'mp4' : 'webm'
+        const uri = await writeShareFile(share.blob, `pistazz-story-${Date.now()}.${ext}`)
+        if (uri) {
+          try {
+            const out = await native.shareVideoFile({
+              path: uri,
+              appId,
+              ...(stickerNative ? { stickerBase64: stickerPngBase64() } : {}),
+            })
+            if (out?.shared) return
+          } catch { /* Fallback unten */ }
+        }
+      }
+
+      // Build 21 und aelter: Base64 ueber die Bruecke (Overlay maskiert den Ruckler)
       if (native?.shareVideo) {
         try {
           const base64 = await new Promise<string>((res, rej) => {
@@ -1676,7 +1734,7 @@ function StoryCreateInner() {
           })
           const out = await native.shareVideo({
             base64,
-            appId: process.env.NEXT_PUBLIC_META_APP_ID ?? '1100803475748097',
+            appId,
             // Original-Modus: Sticker als eigenes Instagram-Element obendrauf
             ...(stickerNative ? { stickerBase64: stickerPngBase64() } : {}),
           })
