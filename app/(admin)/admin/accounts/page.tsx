@@ -86,8 +86,11 @@ function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: s
 
 function TrialBadge({ sub }: { sub: SubRow | null }) {
   if (!sub) return <span className="text-xs text-gray-300">-</span>
-  const sl = STATUS_LABEL[sub.status]
-  const pl = PLANS[sub.plan]
+  // Fallbacks: Alt-Abos koennen Status/Plan-Werte tragen, die es in der
+  // aktuellen Preisstruktur nicht mehr gibt (z.B. plan 'starter'). Ohne
+  // Fallback stirbt die ganze Seite am Farb-Lookup.
+  const sl = STATUS_LABEL[sub.status] ?? { label: String(sub.status), color: '#6B7280', bg: '#F3F4F6', emoji: '' }
+  const pl = PLANS[sub.plan] ?? { name: String(sub.plan), color: '#6B7280', bg: '#F3F4F6' }
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5">

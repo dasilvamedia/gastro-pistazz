@@ -130,8 +130,10 @@ export default function EinstellungenPage() {
   const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#8BB06A]'
   const sectionCls = 'glass rounded-xl p-5 space-y-4'
 
-  const planInfo  = subscription ? PLANS[subscription.plan] : null
-  const statusInfo = subscription ? STATUS_LABEL[subscription.status] : null
+  // Fallbacks fuer Alt-Abos mit Plan/Status ausserhalb der aktuellen
+  // Preisstruktur (z.B. 'starter') - sonst crasht die Seite am Lookup.
+  const planInfo  = subscription ? (PLANS[subscription.plan] ?? { name: String(subscription.plan), color: '#6B7280', bg: '#F3F4F6' }) : null
+  const statusInfo = subscription ? (STATUS_LABEL[subscription.status] ?? { label: String(subscription.status), color: '#6B7280', bg: '#F3F4F6', emoji: '' }) : null
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-6">

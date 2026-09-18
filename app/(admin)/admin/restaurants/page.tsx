@@ -56,7 +56,8 @@ function StatusToggle({ active, onClick }: { active: boolean; onClick: () => voi
 
 function TrialBadge({ sub }: { sub: SubInfo | null }) {
   if (!sub) return <span className="text-xs text-gray-300">-</span>
-  const s = STATUS_LABEL[sub.status]
+  // Fallback fuer unbekannte Alt-Status, sonst crasht die Liste am Lookup
+  const s = STATUS_LABEL[sub.status] ?? { label: String(sub.status), color: '#6B7280', bg: '#F3F4F6', emoji: '' }
   return (
     <div className="flex flex-col gap-0.5">
       <span
